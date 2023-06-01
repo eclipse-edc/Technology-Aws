@@ -46,3 +46,4 @@ include(":extensions:control-plane:provision:provision-aws-s3")
 
 // data plane
 include(":extensions:data-plane:data-plane-aws-s3")
+include(":version-catalog")
