@@ -1,4 +1,4 @@
-name: Create Release of FCC
+name: Create Release of Technology-Aws
 on:
   workflow_dispatch:
     inputs:
@@ -72,3 +72,4 @@ jobs:
       - uses: ./.github/actions/bump-version
         with:
           target_branch: "main"
+          base_version: ${{ needs.Prepare-Release.outputs.edc-version }}
