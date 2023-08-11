@@ -210,7 +210,7 @@ maven/mavencentral/software.amazon.awssdk/apache-client/2.20.123, Apache-2.0, ap
 maven/mavencentral/software.amazon.awssdk/arns/2.20.123, Apache-2.0, approved, #8616
 maven/mavencentral/software.amazon.awssdk/auth/2.20.123, Apache-2.0, approved, #8602
 maven/mavencentral/software.amazon.awssdk/aws-core/2.20.123, Apache-2.0, approved, #8612
-maven/mavencentral/software.amazon.awssdk/aws-json-protocol/2.20.123, , restricted, clearlydefined
+maven/mavencentral/software.amazon.awssdk/aws-json-protocol/2.20.123, Apache-2.0, approved, #10018
 maven/mavencentral/software.amazon.awssdk/aws-query-protocol/2.20.123, Apache-2.0, approved, #8629
 maven/mavencentral/software.amazon.awssdk/aws-xml-protocol/2.20.123, Apache-2.0, approved, #8624
 maven/mavencentral/software.amazon.awssdk/crt-core/2.20.123, Apache-2.0, approved, #8627
