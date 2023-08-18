@@ -36,6 +36,6 @@ public class S3DataAddressValidationRule implements ValidationRule<DataAddress> 
                 )
         );
 
-        return composite.apply(dataAddress.getProperties());
+        return composite.apply(dataAddress);
     }
 }

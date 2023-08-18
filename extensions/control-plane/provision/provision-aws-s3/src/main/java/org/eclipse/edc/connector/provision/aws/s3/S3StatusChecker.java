@@ -44,8 +44,8 @@ public class S3StatusChecker implements StatusChecker {
     public boolean isComplete(TransferProcess transferProcess, List<ProvisionedResource> resources) {
         if (resources.isEmpty()) {
             var destination = transferProcess.getDataRequest().getDataDestination();
-            var bucketName = destination.getProperty(S3BucketSchema.BUCKET_NAME);
-            var region = destination.getProperty(S3BucketSchema.REGION);
+            var bucketName = destination.getStringProperty(S3BucketSchema.BUCKET_NAME);
+            var region = destination.getStringProperty(S3BucketSchema.REGION);
             return checkBucket(bucketName, region);
         } else {
             for (var resource : resources) {

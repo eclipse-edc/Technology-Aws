@@ -85,16 +85,16 @@ public class S3DataSinkFactory implements DataSinkFactory {
         var secret = vault.resolveSecret(destination.getKeyName());
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsTemporarySecretToken.class);
-            client = clientProvider.s3Client(destination.getProperty(REGION), secretToken);
+            client = clientProvider.s3Client(destination.getStringProperty(REGION), secretToken);
         } else if (credentialsValidation.apply(destination).succeeded()) {
-            var secretToken = new AwsSecretToken(destination.getProperty(ACCESS_KEY_ID), destination.getProperty(SECRET_ACCESS_KEY));
-            client = clientProvider.s3Client(destination.getProperty(REGION), secretToken);
+            var secretToken = new AwsSecretToken(destination.getStringProperty(ACCESS_KEY_ID), destination.getStringProperty(SECRET_ACCESS_KEY));
+            client = clientProvider.s3Client(destination.getStringProperty(REGION), secretToken);
         } else {
-            client = clientProvider.s3Client(destination.getProperty(REGION));
+            client = clientProvider.s3Client(destination.getStringProperty(REGION));
         }
 
         return S3DataSink.Builder.newInstance()
-                .bucketName(destination.getProperty(BUCKET_NAME))
+                .bucketName(destination.getStringProperty(BUCKET_NAME))
                 .keyName(destination.getKeyName())
                 .requestId(request.getId())
                 .executorService(executorService)

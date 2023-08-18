@@ -34,16 +34,16 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
     private String role;
 
     public String getRegion() {
-        return getDataAddress().getProperty(REGION);
+        return getDataAddress().getStringProperty(REGION);
     }
 
     public String getBucketName() {
-        return getDataAddress().getProperty(BUCKET_NAME);
+        return getDataAddress().getStringProperty(BUCKET_NAME);
     }
 
     @Override
     public String getResourceName() {
-        return dataAddress.getProperty(BUCKET_NAME);
+        return dataAddress.getStringProperty(BUCKET_NAME);
     }
 
     public String getRole() {
