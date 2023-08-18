@@ -57,11 +57,6 @@ public class S3DataSourceFactory implements DataSourceFactory {
     }
 
     @Override
-    public @NotNull Result<Boolean> validate(DataFlowRequest request) {
-        return validateRequest(request).map(it -> true);
-    }
-
-    @Override
     public @NotNull Result<Void> validateRequest(DataFlowRequest request) {
         var source = request.getSourceDataAddress();
 
@@ -81,16 +76,16 @@ public class S3DataSourceFactory implements DataSourceFactory {
         var secret = vault.resolveSecret(source.getKeyName());
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsSecretToken.class);
-            client = clientProvider.s3Client(source.getProperty(REGION), secretToken);
+            client = clientProvider.s3Client(source.getStringProperty(REGION), secretToken);
         } else if (credentialsValidation.apply(source).succeeded()) {
-            var secretToken = new AwsSecretToken(source.getProperty(ACCESS_KEY_ID), source.getProperty(SECRET_ACCESS_KEY));
-            client = clientProvider.s3Client(source.getProperty(REGION), secretToken);
+            var secretToken = new AwsSecretToken(source.getStringProperty(ACCESS_KEY_ID), source.getStringProperty(SECRET_ACCESS_KEY));
+            client = clientProvider.s3Client(source.getStringProperty(REGION), secretToken);
         } else {
-            client = clientProvider.s3Client(source.getProperty(REGION));
+            client = clientProvider.s3Client(source.getStringProperty(REGION));
         }
 
         return S3DataSource.Builder.newInstance()
-                .bucketName(source.getProperty(BUCKET_NAME))
+                .bucketName(source.getStringProperty(BUCKET_NAME))
                 .keyName(source.getKeyName())
                 .client(client)
                 .build();
