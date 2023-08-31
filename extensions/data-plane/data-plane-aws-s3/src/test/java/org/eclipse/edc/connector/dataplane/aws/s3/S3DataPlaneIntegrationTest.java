@@ -72,30 +72,30 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var sinkFactory = new S3DataSinkFactory(destinationClientProvider, Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
         var sourceFactory = new S3DataSourceFactory(sourceClientProvider, vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
-            .type(S3BucketSchema.TYPE)
-            .keyName(key)
-            .property(BUCKET_NAME, sourceBucketName)
-            .property(S3BucketSchema.REGION, REGION)
-            .property(ACCESS_KEY_ID, getSourceCredentials().accessKeyId())
-            .property(SECRET_ACCESS_KEY, getSourceCredentials().secretAccessKey())
-            .build();
+                .type(S3BucketSchema.TYPE)
+                .keyName(key)
+                .property(BUCKET_NAME, sourceBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(ACCESS_KEY_ID, getSourceCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, getSourceCredentials().secretAccessKey())
+                .build();
 
         var destinationAddress = DataAddress.Builder.newInstance()
-            .type(S3BucketSchema.TYPE)
-            .keyName(key)
-            .property(BUCKET_NAME, destinationBucketName)
-            .property(S3BucketSchema.REGION, REGION)
-            .property(ACCESS_KEY_ID, getDestinationCredentials().accessKeyId())
-            .property(SECRET_ACCESS_KEY, getDestinationCredentials().secretAccessKey())
-            .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
-            .build();
+                .type(S3BucketSchema.TYPE)
+                .keyName(key)
+                .property(BUCKET_NAME, destinationBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(ACCESS_KEY_ID, getDestinationCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, getDestinationCredentials().secretAccessKey())
+                .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
+                .build();
 
         var request = DataFlowRequest.Builder.newInstance()
-            .id(UUID.randomUUID().toString())
-            .processId(UUID.randomUUID().toString())
-            .sourceDataAddress(sourceAddress)
-            .destinationDataAddress(destinationAddress)
-            .build();
+                .id(UUID.randomUUID().toString())
+                .processId(UUID.randomUUID().toString())
+                .sourceDataAddress(sourceAddress)
+                .destinationDataAddress(destinationAddress)
+                .build();
 
         var sink = sinkFactory.createSink(request);
         var source = sourceFactory.createSource(request);

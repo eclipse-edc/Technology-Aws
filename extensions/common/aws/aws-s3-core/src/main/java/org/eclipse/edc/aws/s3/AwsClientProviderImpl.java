@@ -62,7 +62,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     public S3Client s3Client(String region, SecretToken token) {
         if (token instanceof AwsTemporarySecretToken temporary) {
             var credentials = AwsSessionCredentials.create(temporary.getAccessKeyId(), temporary.getSecretAccessKey(),
-                temporary.getSessionToken());
+                    temporary.getSessionToken());
             return createS3Client(credentials, region);
         }
         if (token instanceof AwsSecretToken secretToken) {
@@ -111,8 +111,8 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     private S3Client createS3Client(AwsCredentials credentials, String region) {
         var credentialsProvider = StaticCredentialsProvider.create(credentials);
         var builder = S3Client.builder()
-            .credentialsProvider(credentialsProvider)
-            .region(Region.of(region));
+                .credentialsProvider(credentialsProvider)
+                .region(Region.of(region));
 
         handleBaseEndpointOverride(builder);
 
@@ -121,8 +121,8 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     private S3Client createS3Client(String region) {
         S3ClientBuilder builder = S3Client.builder()
-            .credentialsProvider(credentialsProvider)
-            .region(Region.of(region));
+                .credentialsProvider(credentialsProvider)
+                .region(Region.of(region));
 
         handleBaseEndpointOverride(builder);
 
@@ -131,9 +131,9 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     private S3AsyncClient createS3AsyncClient(String region) {
         var builder = S3AsyncClient.builder()
-            .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
-            .credentialsProvider(credentialsProvider)
-            .region(Region.of(region));
+                .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
+                .credentialsProvider(credentialsProvider)
+                .region(Region.of(region));
 
         handleBaseEndpointOverride(builder);
 
@@ -142,9 +142,9 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     private StsAsyncClient createStsClient(String region) {
         var builder = StsAsyncClient.builder()
-            .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
-            .credentialsProvider(credentialsProvider)
-            .region(Region.of(region));
+                .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
+                .credentialsProvider(credentialsProvider)
+                .region(Region.of(region));
 
         handleEndpointOverride(builder);
 
@@ -153,9 +153,9 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     private IamAsyncClient createIamAsyncClient() {
         var builder = IamAsyncClient.builder()
-            .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
-            .credentialsProvider(credentialsProvider)
-            .region(Region.AWS_GLOBAL);
+                .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
+                .credentialsProvider(credentialsProvider)
+                .region(Region.AWS_GLOBAL);
 
         handleEndpointOverride(builder);
 
@@ -166,7 +166,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         var endpointOverride = configuration.getEndpointOverride();
         if (endpointOverride != null) {
             builder.serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
-                .endpointOverride(endpointOverride);
+                    .endpointOverride(endpointOverride);
         }
     }
 

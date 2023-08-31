@@ -15,9 +15,6 @@
 
 package org.eclipse.edc.aws.s3.testfixtures;
 
-import java.io.File;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import okhttp3.Request;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsClientProviderConfiguration;
@@ -39,15 +36,18 @@ import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -81,14 +81,14 @@ public abstract class AbstractS3Test {
 
     protected String bucketName = createBucketName();
     private final AwsClientProviderConfiguration sourceConfiguration = AwsClientProviderConfiguration.Builder.newInstance()
-        .credentialsProvider(this::getSourceCredentials)
-        .endpointOverride(SOURCE_S3_ENDPOINT)
-        .build();
+            .credentialsProvider(this::getSourceCredentials)
+            .endpointOverride(SOURCE_S3_ENDPOINT)
+            .build();
 
     private final AwsClientProviderConfiguration destinationConfiguration = AwsClientProviderConfiguration.Builder.newInstance()
-        .credentialsProvider(this::getDestinationCredentials)
-        .endpointOverride(DESTINATION_S3_ENDPOINT)
-        .build();
+            .credentialsProvider(this::getDestinationCredentials)
+            .endpointOverride(DESTINATION_S3_ENDPOINT)
+            .build();
     protected AwsClientProvider sourceClientProvider = new AwsClientProviderImpl(sourceConfiguration);
 
     protected AwsClientProvider destinationClientProvider = new AwsClientProviderImpl(destinationConfiguration);
@@ -251,9 +251,11 @@ public abstract class AbstractS3Test {
             }
         }
     }
+
     protected S3AsyncClient getMinioClient(MinioInstance minio) {
         return minio.equals(MinioInstance.SOURCE) ? s3AsyncSourceClient : s3AsyncDestinationClient;
     }
+
     public enum MinioInstance {
         SOURCE,
         DESTINATION;

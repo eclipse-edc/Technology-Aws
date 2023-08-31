@@ -14,10 +14,10 @@
 
 package org.eclipse.edc.aws.s3;
 
-import java.net.URISyntaxException;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 
 public class AwsClientProviderConfiguration {
