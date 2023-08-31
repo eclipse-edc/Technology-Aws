@@ -20,4 +20,5 @@ public interface S3BucketSchema {
     String BUCKET_NAME = "bucketName";
     String ACCESS_KEY_ID = "accessKeyId";
     String SECRET_ACCESS_KEY = "secretAccessKey";
+    String ENDPOINT_OVERRIDE = "endpointOverride";
 }

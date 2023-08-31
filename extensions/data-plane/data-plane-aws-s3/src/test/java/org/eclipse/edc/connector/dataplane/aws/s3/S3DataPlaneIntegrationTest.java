@@ -38,6 +38,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.mockito.Mockito.mock;
 
@@ -49,51 +50,52 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     @BeforeEach
     void setup() {
-        createBucket(sourceBucketName);
-        createBucket(destinationBucketName);
+        createBucket(sourceBucketName, MinioInstance.SOURCE);
+        createBucket(destinationBucketName, MinioInstance.DESTINATION);
     }
 
     @AfterEach
     void tearDown() {
-        deleteBucket(sourceBucketName);
-        deleteBucket(destinationBucketName);
+        deleteBucket(sourceBucketName, MinioInstance.SOURCE);
+        deleteBucket(destinationBucketName, MinioInstance.DESTINATION);
     }
 
     @Test
     void shouldCopyFromSourceToSink() {
         var body = UUID.randomUUID().toString();
         var key = UUID.randomUUID().toString();
-        putStringOnBucket(sourceBucketName, key, body);
+        putStringOnBucket(sourceBucketName, key, body, MinioInstance.SOURCE);
 
         var vault = mock(Vault.class);
         var typeManager = new TypeManager();
 
-        var sinkFactory = new S3DataSinkFactory(clientProvider, Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
-        var sourceFactory = new S3DataSourceFactory(clientProvider, vault, typeManager);
+        var sinkFactory = new S3DataSinkFactory(destinationClientProvider, Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
+        var sourceFactory = new S3DataSourceFactory(sourceClientProvider, vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .keyName(key)
-                .property(BUCKET_NAME, sourceBucketName)
-                .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getCredentials().secretAccessKey())
-                .build();
+            .type(S3BucketSchema.TYPE)
+            .keyName(key)
+            .property(BUCKET_NAME, sourceBucketName)
+            .property(S3BucketSchema.REGION, REGION)
+            .property(ACCESS_KEY_ID, getSourceCredentials().accessKeyId())
+            .property(SECRET_ACCESS_KEY, getSourceCredentials().secretAccessKey())
+            .build();
 
         var destinationAddress = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .keyName(key)
-                .property(BUCKET_NAME, destinationBucketName)
-                .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getCredentials().secretAccessKey())
-                .build();
+            .type(S3BucketSchema.TYPE)
+            .keyName(key)
+            .property(BUCKET_NAME, destinationBucketName)
+            .property(S3BucketSchema.REGION, REGION)
+            .property(ACCESS_KEY_ID, getDestinationCredentials().accessKeyId())
+            .property(SECRET_ACCESS_KEY, getDestinationCredentials().secretAccessKey())
+            .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
+            .build();
 
         var request = DataFlowRequest.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .processId(UUID.randomUUID().toString())
-                .sourceDataAddress(sourceAddress)
-                .destinationDataAddress(destinationAddress)
-                .build();
+            .id(UUID.randomUUID().toString())
+            .processId(UUID.randomUUID().toString())
+            .sourceDataAddress(sourceAddress)
+            .destinationDataAddress(destinationAddress)
+            .build();
 
         var sink = sinkFactory.createSink(request);
         var source = sourceFactory.createSource(request);
@@ -102,17 +104,16 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
         assertThat(getObject(key)).succeedsWithin(5, SECONDS)
-                .extracting(ResponseBytes::response)
-                .extracting(GetObjectResponse::contentLength)
-                .extracting(Long::intValue)
-                .isEqualTo(body.length());
+            .extracting(ResponseBytes::response)
+            .extracting(GetObjectResponse::contentLength)
+            .extracting(Long::intValue)
+            .isEqualTo(body.length());
         assertThat(getObject(key + ".complete")).succeedsWithin(5, SECONDS);
     }
 
     private CompletableFuture<ResponseBytes<GetObjectResponse>> getObject(String key) {
         var getObjectRequest = GetObjectRequest.builder().bucket(destinationBucketName).key(key).build();
-        return clientProvider.s3AsyncClient(REGION)
-                .getObject(getObjectRequest, new ByteArrayAsyncResponseTransformer<>());
+        return getMinioClient(MinioInstance.DESTINATION).getObject(getObjectRequest, new ByteArrayAsyncResponseTransformer<>());
     }
 
 }

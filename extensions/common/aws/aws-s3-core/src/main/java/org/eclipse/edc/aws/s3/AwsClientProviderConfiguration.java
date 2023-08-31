@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.aws.s3;
 
+import java.net.URISyntaxException;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.net.URI;
@@ -41,6 +42,14 @@ public class AwsClientProviderConfiguration {
 
     public int getThreadPoolSize() {
         return threadPoolSize;
+    }
+
+    public void setEndpointOverride(String endpointOverride) {
+        try {
+            this.endpointOverride = new URI(endpointOverride);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(String.format("Cannot set endpointOverride (%s) as URI", endpointOverride));
+        }
     }
 
     public static class Builder {

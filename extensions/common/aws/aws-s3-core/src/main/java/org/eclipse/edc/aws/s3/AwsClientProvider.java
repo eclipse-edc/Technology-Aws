@@ -67,4 +67,6 @@ public interface AwsClientProvider {
      * Releases resources used by the provider.
      */
     void shutdown();
+
+    void configureEndpointOverride(String endpointOverride);
 }

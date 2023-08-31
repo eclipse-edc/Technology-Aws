@@ -49,7 +49,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
     void setup() {
         var retryPolicy = RetryPolicy.builder().withMaxRetries(3).withBackoff(200, 1000, ChronoUnit.MILLIS).build();
         var providerMock = mock(AwsClientProvider.class);
-        when(providerMock.s3AsyncClient(anyString())).thenReturn(s3AsyncClient);
+        when(providerMock.s3AsyncClient(anyString())).thenReturn(s3AsyncSourceClient);
         checker = new S3StatusChecker(providerMock, retryPolicy);
     }
 
@@ -62,7 +62,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     @Test
     void isComplete_noResources_whenComplete() throws InterruptedException {
-        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
+        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName, MinioInstance.SOURCE);
         var transferProcess = createTransferProcess(bucketName);
 
         var hasCompleted = waitUntil(() -> checker.isComplete(transferProcess, emptyList()), ONE_MINUTE_MILLIS);
@@ -89,7 +89,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     @Test
     void isComplete_withResources_whenComplete() throws InterruptedException {
-        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
+        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName, MinioInstance.SOURCE);
         TransferProcess tp = createTransferProcess(bucketName);
 
         var hasCompleted = waitUntil(() -> checker.isComplete(tp, emptyList()), ONE_MINUTE_MILLIS);
@@ -125,27 +125,27 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     private S3BucketProvisionedResource createProvisionedResource(TransferProcess transferProcess) {
         return S3BucketProvisionedResource.Builder.newInstance()
-                .bucketName(bucketName)
-                .region(REGION)
-                .resourceDefinitionId(UUID.randomUUID().toString())
-                .transferProcessId(transferProcess.getId())
-                .id(UUID.randomUUID().toString())
-                .resourceName(bucketName)
-                .build();
+            .bucketName(bucketName)
+            .region(REGION)
+            .resourceDefinitionId(UUID.randomUUID().toString())
+            .transferProcessId(transferProcess.getId())
+            .id(UUID.randomUUID().toString())
+            .resourceName(bucketName)
+            .build();
     }
 
     private TransferProcess createTransferProcess(String bucketName) {
         return TransferProcess.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .dataRequest(DataRequest.Builder.newInstance()
-                        .destinationType(S3BucketSchema.TYPE)
-                        .dataDestination(DataAddress.Builder.newInstance()
-                                .type(S3BucketSchema.TYPE)
-                                .property(S3BucketSchema.REGION, AbstractS3Test.REGION)
-                                .property(S3BucketSchema.BUCKET_NAME, bucketName)
-                                .build())
-                        .build())
-                .build();
+            .id(UUID.randomUUID().toString())
+            .dataRequest(DataRequest.Builder.newInstance()
+                .destinationType(S3BucketSchema.TYPE)
+                .dataDestination(DataAddress.Builder.newInstance()
+                    .type(S3BucketSchema.TYPE)
+                    .property(S3BucketSchema.REGION, AbstractS3Test.REGION)
+                    .property(S3BucketSchema.BUCKET_NAME, bucketName)
+                    .build())
+                .build())
+            .build();
     }
 
 
