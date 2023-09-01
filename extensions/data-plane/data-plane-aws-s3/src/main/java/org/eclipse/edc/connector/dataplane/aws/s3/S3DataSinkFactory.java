@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *       ZF Friedrichshafen AG
  *
  */
 
@@ -18,6 +19,7 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
@@ -96,19 +98,19 @@ public class S3DataSinkFactory implements DataSinkFactory {
 
     private S3Client createS3Client(DataAddress destination) {
 
-        clientProvider.configureEndpointOverride(destination.getStringProperty(ENDPOINT_OVERRIDE));
+        String endpointOverride = destination.getStringProperty(ENDPOINT_OVERRIDE);
 
         S3Client client;
         var secret = vault.resolveSecret(destination.getKeyName());
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsTemporarySecretToken.class);
-            client = clientProvider.s3Client(destination.getStringProperty(REGION), secretToken);
+            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));
         } else if (credentialsValidation.apply(destination).succeeded()) {
             var secretToken = new AwsSecretToken(destination.getStringProperty(ACCESS_KEY_ID),
                     destination.getStringProperty(SECRET_ACCESS_KEY));
-            client = clientProvider.s3Client(destination.getStringProperty(REGION), secretToken);
+            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));
         } else {
-            client = clientProvider.s3Client(destination.getStringProperty(REGION));
+            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride));
         }
         return client;
     }

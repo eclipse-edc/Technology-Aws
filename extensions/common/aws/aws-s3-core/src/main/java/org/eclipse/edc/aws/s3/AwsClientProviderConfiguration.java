@@ -17,7 +17,6 @@ package org.eclipse.edc.aws.s3;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Objects;
 
 public class AwsClientProviderConfiguration {
@@ -28,9 +27,7 @@ public class AwsClientProviderConfiguration {
     private URI endpointOverride;
     private int threadPoolSize = DEFAULT_AWS_ASYNC_CLIENT_THREAD_POOL_SIZE;
 
-    private AwsClientProviderConfiguration() {
-
-    }
+    private AwsClientProviderConfiguration() {}
 
     public AwsCredentialsProvider getCredentialsProvider() {
         return credentialsProvider;
@@ -42,14 +39,6 @@ public class AwsClientProviderConfiguration {
 
     public int getThreadPoolSize() {
         return threadPoolSize;
-    }
-
-    public void setEndpointOverride(String endpointOverride) {
-        try {
-            this.endpointOverride = new URI(endpointOverride);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(String.format("Cannot set endpointOverride (%s) as URI", endpointOverride));
-        }
     }
 
     public static class Builder {
