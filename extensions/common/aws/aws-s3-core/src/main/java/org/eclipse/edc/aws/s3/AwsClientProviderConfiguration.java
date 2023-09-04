@@ -27,9 +27,7 @@ public class AwsClientProviderConfiguration {
     private URI endpointOverride;
     private int threadPoolSize = DEFAULT_AWS_ASYNC_CLIENT_THREAD_POOL_SIZE;
 
-    private AwsClientProviderConfiguration() {
-
-    }
+    private AwsClientProviderConfiguration() {}
 
     public AwsCredentialsProvider getCredentialsProvider() {
         return credentialsProvider;

@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *       ZF Friedrichshafen AG - Initial implementation
  *
  */
 
@@ -25,22 +26,23 @@ import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.internal.async.ByteArrayAsyncResponseTransformer;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.mockito.Mockito.mock;
 
+@TestInstance(Lifecycle.PER_CLASS)
 @AwsS3IntegrationTest
 public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
@@ -49,34 +51,34 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     @BeforeEach
     void setup() {
-        createBucket(sourceBucketName);
-        createBucket(destinationBucketName);
+        sourceClient.createBucket(sourceBucketName);
+        destinationClient.createBucket(destinationBucketName);
     }
 
     @AfterEach
     void tearDown() {
-        deleteBucket(sourceBucketName);
-        deleteBucket(destinationBucketName);
+        sourceClient.deleteBucket(sourceBucketName);
+        destinationClient.deleteBucket(destinationBucketName);
     }
 
     @Test
     void shouldCopyFromSourceToSink() {
         var body = UUID.randomUUID().toString();
         var key = UUID.randomUUID().toString();
-        putStringOnBucket(sourceBucketName, key, body);
+        sourceClient.putStringOnBucket(sourceBucketName, key, body);
 
         var vault = mock(Vault.class);
         var typeManager = new TypeManager();
 
-        var sinkFactory = new S3DataSinkFactory(clientProvider, Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
-        var sourceFactory = new S3DataSourceFactory(clientProvider, vault, typeManager);
+        var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
+        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(key)
                 .property(BUCKET_NAME, sourceBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getCredentials().secretAccessKey())
+                .property(ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey())
                 .build();
 
         var destinationAddress = DataAddress.Builder.newInstance()
@@ -84,8 +86,9 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                 .keyName(key)
                 .property(BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getCredentials().secretAccessKey())
+                .property(ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
+                .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
                 .build();
 
         var request = DataFlowRequest.Builder.newInstance()
@@ -101,18 +104,11 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var transferResult = sink.transfer(source);
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
-        assertThat(getObject(key)).succeedsWithin(5, SECONDS)
-                .extracting(ResponseBytes::response)
-                .extracting(GetObjectResponse::contentLength)
-                .extracting(Long::intValue)
-                .isEqualTo(body.length());
-        assertThat(getObject(key + ".complete")).succeedsWithin(5, SECONDS);
+        assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
+            .extracting(ResponseBytes::response)
+            .extracting(GetObjectResponse::contentLength)
+            .extracting(Long::intValue)
+            .isEqualTo(body.length());
+        assertThat(destinationClient.getObject(destinationBucketName, key + ".complete")).succeedsWithin(5, SECONDS);
     }
-
-    private CompletableFuture<ResponseBytes<GetObjectResponse>> getObject(String key) {
-        var getObjectRequest = GetObjectRequest.builder().bucket(destinationBucketName).key(key).build();
-        return clientProvider.s3AsyncClient(REGION)
-                .getObject(getObjectRequest, new ByteArrayAsyncResponseTransformer<>());
-    }
-
 }

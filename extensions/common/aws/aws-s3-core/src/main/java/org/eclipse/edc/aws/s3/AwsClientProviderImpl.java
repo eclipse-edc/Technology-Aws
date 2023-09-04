@@ -9,15 +9,14 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - Initial implementation
+ *       ZF Friedrichshafen AG - Initial implementation
  *
  */
 
 package org.eclipse.edc.aws.s3;
 
-import org.eclipse.edc.connector.transfer.spi.types.SecretToken;
 import org.eclipse.edc.spi.EdcException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -27,12 +26,13 @@ import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3BaseClientBuilder;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.utils.SdkAutoCloseable;
+import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.awssdk.utils.ThreadFactoryBuilder;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -58,23 +58,8 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     }
 
     @Override
-    public S3Client s3Client(String region, SecretToken token) {
-        if (token instanceof AwsTemporarySecretToken) {
-            var temporary = (AwsTemporarySecretToken) token;
-            var credentials = AwsSessionCredentials.create(temporary.getAccessKeyId(), temporary.getSecretAccessKey(), temporary.getSessionToken());
-            return createS3Client(credentials, region);
-        } else if (token instanceof AwsSecretToken) {
-            var secretToken = (AwsSecretToken) token;
-            var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
-            return createS3Client(credentials, region);
-        } else {
-            throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
-        }
-    }
-
-    @Override
-    public S3Client s3Client(String region) {
-        return s3Clients.computeIfAbsent(region, this::createS3Client);
+    public S3Client s3Client(S3ClientRequest s3ClientRequest) {
+        return createS3Client(s3ClientRequest);
     }
 
     @Override
@@ -95,28 +80,38 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     @Override
     public void shutdown() {
         iamAsyncClient.close();
-        s3Clients.values().forEach(SdkAutoCloseable::close);
         s3AsyncClients.values().forEach(SdkAutoCloseable::close);
         stsAsyncClients.values().forEach(SdkAutoCloseable::close);
     }
 
-    private S3Client createS3Client(AwsCredentials credentials, String region) {
-        var credentialsProvider = StaticCredentialsProvider.create(credentials);
+    private S3Client createS3Client(S3ClientRequest s3ClientRequest) {
+
+        var token = s3ClientRequest.secretToken();
+        var region = s3ClientRequest.region();
+        var endpointOverride = s3ClientRequest.endpointOverride();
+
+        if (token != null) {
+            if (token instanceof AwsTemporarySecretToken temporary) {
+                var credentials = AwsSessionCredentials.create(temporary.getAccessKeyId(), temporary.getSecretAccessKey(),
+                        temporary.getSessionToken());
+                return createS3Client(StaticCredentialsProvider.create(credentials), region, endpointOverride);
+            }
+            if (token instanceof AwsSecretToken secretToken) {
+                var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
+                return createS3Client(StaticCredentialsProvider.create(credentials), region, endpointOverride);
+            }
+            throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
+        } else {
+            return s3Clients.computeIfAbsent(region, s3Client -> createS3Client(credentialsProvider, region, endpointOverride));
+        }
+    }
+
+    private S3Client createS3Client(AwsCredentialsProvider credentialsProvider, String region, String endpointOverride) {
         var builder = S3Client.builder()
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(region));
 
-        handleBaseEndpointOverride(builder);
-
-        return builder.build();
-    }
-
-    private S3Client createS3Client(String region) {
-        S3ClientBuilder builder = S3Client.builder()
-                .credentialsProvider(credentialsProvider)
-                .region(Region.of(region));
-
-        handleBaseEndpointOverride(builder);
+        handleBaseEndpointOverride(builder, endpointOverride);
 
         return builder.build();
     }
@@ -127,7 +122,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(region));
 
-        handleBaseEndpointOverride(builder);
+        handleBaseEndpointOverride(builder, null);
 
         return builder.build();
     }
@@ -154,11 +149,18 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         return builder.build();
     }
 
-    private void handleBaseEndpointOverride(S3BaseClientBuilder<?, ?> builder) {
-        var endpointOverride = configuration.getEndpointOverride();
-        if (endpointOverride != null) {
+    private void handleBaseEndpointOverride(S3BaseClientBuilder<?, ?> builder, String endpointOverride) {
+        URI endpointOverrideUri;
+
+        if (StringUtils.isNotBlank(endpointOverride)) {
+            endpointOverrideUri = URI.create(endpointOverride);
+        } else {
+            endpointOverrideUri = configuration.getEndpointOverride();
+        }
+
+        if (endpointOverrideUri != null) {
             builder.serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
-                    .endpointOverride(endpointOverride);
+                    .endpointOverride(endpointOverrideUri);
         }
     }
 
