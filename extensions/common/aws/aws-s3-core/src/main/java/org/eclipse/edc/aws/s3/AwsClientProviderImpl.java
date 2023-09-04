@@ -15,7 +15,6 @@
 
 package org.eclipse.edc.aws.s3;
 
-import org.eclipse.edc.connector.transfer.spi.types.SecretToken;
 import org.eclipse.edc.spi.EdcException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -34,7 +33,6 @@ import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.awssdk.utils.ThreadFactoryBuilder;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -47,7 +45,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     private final AwsCredentialsProvider credentialsProvider;
     private final AwsClientProviderConfiguration configuration;
     private final Executor executor;
-    private final Map<S3ClientRequest, S3Client> s3Clients = new ConcurrentHashMap<>();
+    private final Map<String, S3Client> s3Clients = new ConcurrentHashMap<>();
     private final Map<String, S3AsyncClient> s3AsyncClients = new ConcurrentHashMap<>();
     private final Map<String, StsAsyncClient> stsAsyncClients = new ConcurrentHashMap<>();
     private final IamAsyncClient iamAsyncClient;
@@ -61,7 +59,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     @Override
     public S3Client s3Client(S3ClientRequest s3ClientRequest) {
-        return s3Clients.computeIfAbsent(s3ClientRequest, this::createS3Client);
+        return createS3Client(s3ClientRequest);
     }
 
     @Override
@@ -88,9 +86,9 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     private S3Client createS3Client(S3ClientRequest s3ClientRequest) {
 
-        SecretToken token = s3ClientRequest.getSecretToken();
-        String region = s3ClientRequest.getRegion();
-        String endpointOverride = s3ClientRequest.getEndpointOverride();
+        var token = s3ClientRequest.secretToken();
+        var region = s3ClientRequest.region();
+        var endpointOverride = s3ClientRequest.endpointOverride();
 
         if (token != null) {
             if (token instanceof AwsTemporarySecretToken temporary) {
@@ -104,7 +102,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
             }
             throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
         } else {
-            return createS3Client(credentialsProvider, region, endpointOverride);
+            return s3Clients.computeIfAbsent(region, s3Client -> createS3Client(credentialsProvider, region, endpointOverride));
         }
     }
 
@@ -154,12 +152,8 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     private void handleBaseEndpointOverride(S3BaseClientBuilder<?, ?> builder, String endpointOverride) {
         URI endpointOverrideUri;
 
-        if (!StringUtils.isBlank(endpointOverride)) {
-            try {
-                endpointOverrideUri = new URI(endpointOverride);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(String.format("Cannot set endpointOverride (%s) as URI", endpointOverride));
-            }
+        if (StringUtils.isNotBlank(endpointOverride)) {
+            endpointOverrideUri = URI.create(endpointOverride);
         } else {
             endpointOverrideUri = configuration.getEndpointOverride();
         }

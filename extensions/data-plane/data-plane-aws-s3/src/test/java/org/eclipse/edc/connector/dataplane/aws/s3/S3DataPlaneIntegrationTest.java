@@ -26,13 +26,12 @@ import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.internal.async.ByteArrayAsyncResponseTransformer;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -43,6 +42,7 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.mockito.Mockito.mock;
 
+@TestInstance(Lifecycle.PER_CLASS)
 @AwsS3IntegrationTest
 public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
@@ -51,34 +51,34 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     @BeforeEach
     void setup() {
-        createBucket(sourceBucketName, MinioInstance.SOURCE);
-        createBucket(destinationBucketName, MinioInstance.DESTINATION);
+        sourceClient.createBucket(sourceBucketName);
+        destinationClient.createBucket(destinationBucketName);
     }
 
     @AfterEach
     void tearDown() {
-        deleteBucket(sourceBucketName, MinioInstance.SOURCE);
-        deleteBucket(destinationBucketName, MinioInstance.DESTINATION);
+        sourceClient.deleteBucket(sourceBucketName);
+        destinationClient.deleteBucket(destinationBucketName);
     }
 
     @Test
     void shouldCopyFromSourceToSink() {
         var body = UUID.randomUUID().toString();
         var key = UUID.randomUUID().toString();
-        putStringOnBucket(sourceBucketName, key, body, MinioInstance.SOURCE);
+        sourceClient.putStringOnBucket(sourceBucketName, key, body);
 
         var vault = mock(Vault.class);
         var typeManager = new TypeManager();
 
-        var sinkFactory = new S3DataSinkFactory(destinationClientProvider, Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
-        var sourceFactory = new S3DataSourceFactory(sourceClientProvider, vault, typeManager);
+        var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
+        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(key)
                 .property(BUCKET_NAME, sourceBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getSourceCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getSourceCredentials().secretAccessKey())
+                .property(ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey())
                 .build();
 
         var destinationAddress = DataAddress.Builder.newInstance()
@@ -86,8 +86,8 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                 .keyName(key)
                 .property(BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(ACCESS_KEY_ID, getDestinationCredentials().accessKeyId())
-                .property(SECRET_ACCESS_KEY, getDestinationCredentials().secretAccessKey())
+                .property(ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
+                .property(SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
                 .build();
 
@@ -104,17 +104,11 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var transferResult = sink.transfer(source);
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
-        assertThat(getObject(key)).succeedsWithin(5, SECONDS)
+        assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
             .extracting(ResponseBytes::response)
             .extracting(GetObjectResponse::contentLength)
             .extracting(Long::intValue)
             .isEqualTo(body.length());
-        assertThat(getObject(key + ".complete")).succeedsWithin(5, SECONDS);
+        assertThat(destinationClient.getObject(destinationBucketName, key + ".complete")).succeedsWithin(5, SECONDS);
     }
-
-    private CompletableFuture<ResponseBytes<GetObjectResponse>> getObject(String key) {
-        var getObjectRequest = GetObjectRequest.builder().bucket(destinationBucketName).key(key).build();
-        return getMinioClient(MinioInstance.DESTINATION).getObject(getObjectRequest, new ByteArrayAsyncResponseTransformer<>());
-    }
-
 }

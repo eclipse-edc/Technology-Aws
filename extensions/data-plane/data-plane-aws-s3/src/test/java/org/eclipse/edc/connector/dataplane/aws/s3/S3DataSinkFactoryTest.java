@@ -115,9 +115,9 @@ class S3DataSinkFactoryTest {
 
         S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
 
-        assertThat(s3ClientRequest.getRegion()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.getSecretToken()).isInstanceOf(AwsTemporarySecretToken.class);
-        assertThat(s3ClientRequest.getEndpointOverride()).isNull();
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsTemporarySecretToken.class);
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -134,9 +134,9 @@ class S3DataSinkFactoryTest {
 
         S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
 
-        assertThat(s3ClientRequest.getRegion()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.getSecretToken()).isEqualTo(new AwsSecretToken(TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY));
-        assertThat(s3ClientRequest.getEndpointOverride()).isNull();
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isEqualTo(new AwsSecretToken(TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY));
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -153,9 +153,9 @@ class S3DataSinkFactoryTest {
 
         S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
 
-        assertThat(s3ClientRequest.getRegion()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.getSecretToken()).isNull();
-        assertThat(s3ClientRequest.getEndpointOverride()).isNull();
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isNull();
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test

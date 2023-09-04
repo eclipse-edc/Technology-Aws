@@ -8,12 +8,10 @@ To run AWS integration tests you will need a MinIO instances running:
  docker run --name miniodest -p 9002:9000 -p 9003:9001 -d -e MINIO_ROOT_USER=root -e MINIO_ROOT_PASSWORD=password bitnami/minio:latest
 ```
 
-Then set the two sets of environment variables:
+Then set the two environment variables:
 ```
-S3_ACCESS_KEY_ID_SOURCE=root
-S3_SECRET_ACCESS_KEY_SOURCE=password
-S3_ACCESS_KEY_ID_DESTINATION=root
-S3_SECRET_ACCESS_KEY_DESTINATION=password
+S3_ACCESS_KEY_ID=root
+S3_SECRET_ACCESS_KEY=password
 ```
 
 ## Test using your AWS credential
