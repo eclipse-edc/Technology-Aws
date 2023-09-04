@@ -87,10 +87,17 @@ jobs:
       S3_SECRET_ACCESS_KEY: password
 
     services:
-      minio:
+      minio-source:
         image: bitnami/minio:latest
         ports:
           - 9000:9000
+        env:
+          MINIO_ROOT_USER: root
+          MINIO_ROOT_PASSWORD: password
+      minio-destination:
+        image: bitnami/minio:latest
+        ports:
+          - 9002:9000
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: password
