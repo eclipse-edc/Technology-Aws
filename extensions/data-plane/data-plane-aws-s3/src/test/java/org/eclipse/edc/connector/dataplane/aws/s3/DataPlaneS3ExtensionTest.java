@@ -14,18 +14,26 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.api.client.spi.transferprocess.TransferProcessApiClient;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.junit.extensions.EdcExtension;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(EdcExtension.class)
 class DataPlaneS3ExtensionTest {
+
+    @BeforeEach
+    void setup(EdcExtension extension) {
+        extension.registerServiceMock(TransferProcessApiClient.class, mock(TransferProcessApiClient.class));
+    }
 
     @Test
     void shouldProvidePipelineServices(PipelineService pipelineService) {
