@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *       ZF Friedrichshafen AG - Initial implementation
  *
  */
 
@@ -17,6 +18,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
@@ -28,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.mockito.ArgumentCaptor;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -40,8 +43,6 @@ import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_REG
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_SECRET_ACCESS_KEY;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithCredentials;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithoutCredentials;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,8 +52,8 @@ class S3DataSourceFactoryTest {
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final TypeManager typeManager = new TypeManager();
     private final Vault vault = mock(Vault.class);
-
     private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, vault, typeManager);
+    private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -118,7 +119,14 @@ class S3DataSourceFactoryTest {
         var sink = factory.createSource(request);
 
         assertThat(sink).isNotNull().isInstanceOf(S3DataSource.class);
-        verify(clientProvider).s3Client(VALID_REGION);
+
+        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
+
+        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
+
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isNull();
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -142,7 +150,14 @@ class S3DataSourceFactoryTest {
         var s3Source = factory.createSource(request);
 
         assertThat(s3Source).isNotNull().isInstanceOf(S3DataSource.class);
-        verify(clientProvider).s3Client(eq(TestFunctions.VALID_REGION), isA(AwsSecretToken.class));
+
+        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
+
+        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
+
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     private DataFlowRequest createRequest(DataAddress source) {

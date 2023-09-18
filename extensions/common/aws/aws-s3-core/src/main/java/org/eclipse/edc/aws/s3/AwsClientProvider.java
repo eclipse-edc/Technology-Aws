@@ -9,12 +9,12 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - Initial implementation
+ *       ZF Friedrichshafen AG - Initial implementation
  *
  */
 
 package org.eclipse.edc.aws.s3;
 
-import org.eclipse.edc.connector.transfer.spi.types.SecretToken;
 import org.eclipse.edc.runtime.metamodel.annotation.ExtensionPoint;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -37,16 +37,10 @@ import software.amazon.awssdk.services.sts.StsAsyncClient;
  */
 @ExtensionPoint
 public interface AwsClientProvider {
-
     /**
-     * Returns the client for the specified region with the secret token credentials
+     * Returns the client for the specified s3ClientRequest
      */
-    S3Client s3Client(String region, SecretToken secretToken);
-
-    /**
-     * Returns the s3 client for the specified region
-     */
-    S3Client s3Client(String region);
+    S3Client s3Client(S3ClientRequest s3ClientRequest);
 
     /**
      * Returns the s3 async client for the specified region

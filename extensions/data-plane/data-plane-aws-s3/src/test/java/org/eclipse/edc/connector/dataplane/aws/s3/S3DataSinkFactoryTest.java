@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *       ZF Friedrichshafen AG
  *
  */
 
@@ -18,6 +19,7 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
@@ -30,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.mockito.ArgumentCaptor;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -39,8 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,7 @@ class S3DataSinkFactoryTest {
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = new TypeManager();
     private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(ExecutorService.class), mock(Monitor.class), vault, typeManager);
+    private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -108,7 +110,14 @@ class S3DataSinkFactoryTest {
         var sink = factory.createSink(request);
 
         assertThat(sink).isNotNull().isInstanceOf(S3DataSink.class);
-        verify(clientProvider).s3Client(eq(TestFunctions.VALID_REGION), isA(AwsTemporarySecretToken.class));
+
+        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
+
+        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
+
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsTemporarySecretToken.class);
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -120,7 +129,14 @@ class S3DataSinkFactoryTest {
         var sink = factory.createSink(request);
 
         assertThat(sink).isNotNull().isInstanceOf(S3DataSink.class);
-        verify(clientProvider).s3Client(TestFunctions.VALID_REGION, new AwsSecretToken(TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY));
+
+        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
+
+        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
+
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isEqualTo(new AwsSecretToken(TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY));
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -132,7 +148,14 @@ class S3DataSinkFactoryTest {
         var sink = factory.createSink(request);
 
         assertThat(sink).isNotNull().isInstanceOf(S3DataSink.class);
-        verify(clientProvider).s3Client(TestFunctions.VALID_REGION);
+
+        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
+
+        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
+
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isNull();
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
@@ -149,7 +172,7 @@ class S3DataSinkFactoryTest {
     private static class InvalidInputs implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(TestFunctions.VALID_BUCKET_NAME, " ", TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY),
                     Arguments.of(" ", TestFunctions.VALID_REGION, TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY)

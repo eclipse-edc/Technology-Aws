@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *       ZF Friedrichshafen AG - Initial implementation
  *
  */
 
@@ -17,6 +18,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
@@ -33,6 +35,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
@@ -42,7 +45,6 @@ public class S3DataSourceFactory implements DataSourceFactory {
     private final ValidationRule<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidationRule();
     private final AwsClientProvider clientProvider;
     private final Vault vault;
-
     private final TypeManager typeManager;
 
     public S3DataSourceFactory(AwsClientProvider clientProvider, Vault vault, TypeManager typeManager) {
@@ -72,23 +74,29 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
         var source = request.getSourceDataAddress();
 
+        return S3DataSource.Builder.newInstance()
+            .bucketName(source.getStringProperty(BUCKET_NAME))
+            .keyName(source.getKeyName())
+            .client(getS3Client(source))
+            .build();
+    }
+
+    private S3Client getS3Client(DataAddress address) {
+
+        String endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
+
         S3Client client;
-        var secret = vault.resolveSecret(source.getKeyName());
+        var secret = vault.resolveSecret(address.getKeyName());
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsSecretToken.class);
-            client = clientProvider.s3Client(source.getStringProperty(REGION), secretToken);
-        } else if (credentialsValidation.apply(source).succeeded()) {
-            var secretToken = new AwsSecretToken(source.getStringProperty(ACCESS_KEY_ID), source.getStringProperty(SECRET_ACCESS_KEY));
-            client = clientProvider.s3Client(source.getStringProperty(REGION), secretToken);
+            client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride, secretToken));
+        } else if (credentialsValidation.apply(address).succeeded()) {
+            var secretToken = new AwsSecretToken(address.getStringProperty(ACCESS_KEY_ID), address.getStringProperty(SECRET_ACCESS_KEY));
+            client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride, secretToken));
         } else {
-            client = clientProvider.s3Client(source.getStringProperty(REGION));
+            client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride));
         }
-
-        return S3DataSource.Builder.newInstance()
-                .bucketName(source.getStringProperty(BUCKET_NAME))
-                .keyName(source.getKeyName())
-                .client(client)
-                .build();
+        return client;
     }
 
 }

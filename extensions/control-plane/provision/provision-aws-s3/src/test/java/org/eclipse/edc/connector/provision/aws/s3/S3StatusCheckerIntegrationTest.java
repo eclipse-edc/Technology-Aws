@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Microsoft Corporation - initial API and implementation
+ *       ZF Friedrichshafen AG
  *
  */
 
@@ -24,6 +25,8 @@ import org.eclipse.edc.connector.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -37,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@TestInstance(Lifecycle.PER_CLASS)
 @AwsS3IntegrationTest
 class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
@@ -49,7 +53,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
     void setup() {
         var retryPolicy = RetryPolicy.builder().withMaxRetries(3).withBackoff(200, 1000, ChronoUnit.MILLIS).build();
         var providerMock = mock(AwsClientProvider.class);
-        when(providerMock.s3AsyncClient(anyString())).thenReturn(s3AsyncClient);
+        when(providerMock.s3AsyncClient(anyString())).thenReturn(sourceClient.getS3AsyncClient());
         checker = new S3StatusChecker(providerMock, retryPolicy);
     }
 
@@ -62,7 +66,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     @Test
     void isComplete_noResources_whenComplete() throws InterruptedException {
-        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
+        sourceClient.putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
         var transferProcess = createTransferProcess(bucketName);
 
         var hasCompleted = waitUntil(() -> checker.isComplete(transferProcess, emptyList()), ONE_MINUTE_MILLIS);
@@ -89,7 +93,7 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     @Test
     void isComplete_withResources_whenComplete() throws InterruptedException {
-        putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
+        sourceClient.putTestFile(PROCESS_ID + ".complete", getFileFromResourceName("hello.txt"), bucketName);
         TransferProcess tp = createTransferProcess(bucketName);
 
         var hasCompleted = waitUntil(() -> checker.isComplete(tp, emptyList()), ONE_MINUTE_MILLIS);
@@ -125,28 +129,26 @@ class S3StatusCheckerIntegrationTest extends AbstractS3Test {
 
     private S3BucketProvisionedResource createProvisionedResource(TransferProcess transferProcess) {
         return S3BucketProvisionedResource.Builder.newInstance()
-                .bucketName(bucketName)
-                .region(REGION)
-                .resourceDefinitionId(UUID.randomUUID().toString())
-                .transferProcessId(transferProcess.getId())
-                .id(UUID.randomUUID().toString())
-                .resourceName(bucketName)
-                .build();
+            .bucketName(bucketName)
+            .region(REGION)
+            .resourceDefinitionId(UUID.randomUUID().toString())
+            .transferProcessId(transferProcess.getId())
+            .id(UUID.randomUUID().toString())
+            .resourceName(bucketName)
+            .build();
     }
 
     private TransferProcess createTransferProcess(String bucketName) {
         return TransferProcess.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .dataRequest(DataRequest.Builder.newInstance()
-                        .destinationType(S3BucketSchema.TYPE)
-                        .dataDestination(DataAddress.Builder.newInstance()
-                                .type(S3BucketSchema.TYPE)
-                                .property(S3BucketSchema.REGION, AbstractS3Test.REGION)
-                                .property(S3BucketSchema.BUCKET_NAME, bucketName)
-                                .build())
-                        .build())
-                .build();
+            .id(UUID.randomUUID().toString())
+            .dataRequest(DataRequest.Builder.newInstance()
+                .destinationType(S3BucketSchema.TYPE)
+                .dataDestination(DataAddress.Builder.newInstance()
+                    .type(S3BucketSchema.TYPE)
+                    .property(S3BucketSchema.REGION, AbstractS3Test.REGION)
+                    .property(S3BucketSchema.BUCKET_NAME, bucketName)
+                    .build())
+                .build())
+            .build();
     }
-
-
 }
