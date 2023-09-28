@@ -17,11 +17,9 @@ package org.eclipse.edc.connector.provision.aws.s3;
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
-import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.connector.transfer.spi.provision.ProvisionManager;
 import org.eclipse.edc.connector.transfer.spi.provision.Provisioner;
 import org.eclipse.edc.connector.transfer.spi.provision.ResourceManifestGenerator;
-import org.eclipse.edc.connector.transfer.spi.status.StatusCheckerRegistry;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -74,9 +72,6 @@ public class AwsProvisionExtension implements ServiceExtension {
         // register the generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);
         manifestGenerator.registerGenerator(new S3ConsumerResourceDefinitionGenerator());
-
-        var statusCheckerReg = context.getService(StatusCheckerRegistry.class);
-        statusCheckerReg.register(S3BucketSchema.TYPE, new S3StatusChecker(clientProvider, retryPolicy));
 
         registerTypes(typeManager);
     }

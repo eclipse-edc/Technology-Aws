@@ -3,12 +3,14 @@
 ## Local testing using MinIO
 
 To run AWS integration tests you will need a MinIO instances running:
+
 ```
  docker run --name miniosource -p 9000:9000 -p 9001:9001 -d -e MINIO_ROOT_USER=root -e MINIO_ROOT_PASSWORD=password bitnami/minio:latest
  docker run --name miniodest -p 9002:9000 -p 9003:9001 -d -e MINIO_ROOT_USER=root -e MINIO_ROOT_PASSWORD=password bitnami/minio:latest
 ```
 
 Then set the two environment variables:
+
 ```
 S3_ACCESS_KEY_ID=root
 S3_SECRET_ACCESS_KEY=password
@@ -23,7 +25,7 @@ for running integration tests against AWS S3 by environment variable:
 $ IT_AWS_ENDPOINT=https://s3.us-east-1.amazonaws.com/ \
   IT_AWS_REGION=us-east-1 \
   IT_AWS_PROFILE=myprofie \
-  ./gradlew clean test -DincludeTags="AwsS3IntegrationTest" --tests '*S3StatusCheckerIntegrationTest'
+  ./gradlew clean test -DincludeTags="AwsS3IntegrationTest"
 ```
 
 `IT_AWS_REGION` must be set to your region code in order to avoid
