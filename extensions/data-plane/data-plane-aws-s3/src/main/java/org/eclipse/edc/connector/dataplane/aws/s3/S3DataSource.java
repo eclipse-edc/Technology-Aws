@@ -31,11 +31,17 @@ class S3DataSource implements DataSource {
     private String keyName;
     private S3Client client;
 
-    private S3DataSource() { }
+    private S3DataSource() {
+    }
 
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
         return success(Stream.of(new S3Part(client, keyName, bucketName)));
+    }
+
+    @Override
+    public void close() {
+
     }
 
     private static class S3Part implements Part {
