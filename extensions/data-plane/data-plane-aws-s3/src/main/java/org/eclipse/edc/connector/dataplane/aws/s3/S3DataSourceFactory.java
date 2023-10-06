@@ -38,6 +38,7 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
 
 public class S3DataSourceFactory implements DataSourceFactory {
 
@@ -75,10 +76,11 @@ public class S3DataSourceFactory implements DataSourceFactory {
         var source = request.getSourceDataAddress();
 
         return S3DataSource.Builder.newInstance()
-            .bucketName(source.getStringProperty(BUCKET_NAME))
-            .keyName(source.getKeyName())
-            .client(getS3Client(source))
-            .build();
+                .bucketName(source.getStringProperty(BUCKET_NAME))
+                .keyName(source.getKeyName())
+                .keyPrefix(source.getStringProperty(KEY_PREFIX))
+                .client(getS3Client(source))
+                .build();
     }
 
     private S3Client getS3Client(DataAddress address) {

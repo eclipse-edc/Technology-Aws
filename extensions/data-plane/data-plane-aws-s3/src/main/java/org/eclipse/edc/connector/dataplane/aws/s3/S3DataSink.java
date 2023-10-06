@@ -52,7 +52,7 @@ class S3DataSink extends ParallelSink {
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(keyName)
+                        .key(part.name())
                         .build()).uploadId();
 
                 while (true) {

@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Microsoft Corporation - initial API and implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  */
 
@@ -18,6 +19,7 @@ public interface S3BucketSchema {
     String TYPE = "AmazonS3";
     String REGION = "region";
     String BUCKET_NAME = "bucketName";
+    String KEY_PREFIX = "keyPrefix";
     String ACCESS_KEY_ID = "accessKeyId";
     String SECRET_ACCESS_KEY = "secretAccessKey";
     String ENDPOINT_OVERRIDE = "endpointOverride";

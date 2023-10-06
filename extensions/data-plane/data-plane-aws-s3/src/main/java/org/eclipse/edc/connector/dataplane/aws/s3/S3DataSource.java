@@ -14,13 +14,19 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.dataplane.aws.s3.exception.S3ObjectNotFoundException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
@@ -29,13 +35,67 @@ class S3DataSource implements DataSource {
 
     private String bucketName;
     private String keyName;
+    private String keyPrefix;
     private S3Client client;
 
-    private S3DataSource() { }
+    private S3DataSource() {
+    }
 
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
+
+        if (keyPrefix != null) {
+            try {
+
+                var s3PartStream = this.fetchPrefixedS3Objects().stream()
+                        .map(S3Object::key)
+                        .map(key -> (Part) new S3Part(client, key, bucketName));
+
+                return success(s3PartStream);
+
+            } catch (S3Exception e) {
+                throw new RuntimeException("Error listing objects in the bucket: " + e.getMessage());
+            }
+        }
+
         return success(Stream.of(new S3Part(client, keyName, bucketName)));
+    }
+
+    /**
+     * Fetches S3 objects with the specified prefix.
+     *
+     * @return A list of S3 objects.
+     * @throws S3ObjectNotFoundException if no objects are found.
+     */
+    private List<S3Object> fetchPrefixedS3Objects() {
+
+        String continuationToken = null;
+        List<S3Object> s3Objects = new ArrayList<>();
+
+        do {
+
+            var listObjectsRequest = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .prefix(keyPrefix)
+                    .continuationToken(continuationToken)
+                    .build();
+
+            var response = client.listObjectsV2(listObjectsRequest);
+
+            s3Objects.addAll(response.contents());
+
+            continuationToken = response.nextContinuationToken();
+
+        } while (continuationToken != null);
+
+        if (s3Objects.isEmpty()) throw new S3ObjectNotFoundException("Object not found");
+
+        return s3Objects;
+    }
+
+    @Override
+    public void close() {
+        // no-op
     }
 
     private static class S3Part implements Part {
@@ -85,6 +145,11 @@ class S3DataSource implements DataSource {
 
         public Builder keyName(String keyName) {
             source.keyName = keyName;
+            return this;
+        }
+
+        public Builder keyPrefix(String keyPrefix) {
+            source.keyPrefix = keyPrefix;
             return this;
         }
 
