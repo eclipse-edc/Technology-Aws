@@ -36,9 +36,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
 
 public class S3DataSourceFactory implements DataSourceFactory {
 

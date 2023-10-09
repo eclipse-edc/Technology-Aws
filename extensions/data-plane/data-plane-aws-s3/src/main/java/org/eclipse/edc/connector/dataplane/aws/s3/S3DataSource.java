@@ -78,7 +78,6 @@ class S3DataSource implements DataSource {
      * Fetches S3 objects with the specified prefix.
      *
      * @return A list of S3 objects.
-     * @throws S3ObjectNotFoundException if no objects are found.
      */
     private List<S3Object> fetchPrefixedS3Objects() {
 
