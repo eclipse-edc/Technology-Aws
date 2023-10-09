@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022-2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -14,7 +14,6 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.connector.dataplane.aws.s3.exception.S3ObjectNotFoundException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
@@ -47,31 +46,22 @@ class S3DataSource implements DataSource {
     public StreamResult<Stream<Part>> openPartStream() {
 
         if (keyPrefix != null) {
-            try {
 
-                var s3Objects = this.fetchPrefixedS3Objects();
+            var s3Objects = this.fetchPrefixedS3Objects();
 
-                if (s3Objects.isEmpty()) {
-                    throw new S3ObjectNotFoundException("Object not found");
-                }
-
-                var s3PartStream = s3Objects.stream()
-                        .map(S3Object::key)
-                        .map(key -> (Part) new S3Part(client, key, bucketName));
-
-                return success(s3PartStream);
-
-            } catch (Exception e) {
-                return failure(new StreamFailure(List.of("Error listing objects in the bucket: " + e.getMessage()), GENERAL_ERROR));
+            if (s3Objects.isEmpty()) {
+                return failure(new StreamFailure(List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
             }
+
+            var s3PartStream = s3Objects.stream()
+                    .map(S3Object::key)
+                    .map(key -> (Part) new S3Part(client, key, bucketName));
+
+            return success(s3PartStream);
+
         }
 
         return success(Stream.of(new S3Part(client, keyName, bucketName)));
-    }
-
-    @Override
-    public void close() throws Exception {
-        client.close();
     }
 
     /**
@@ -101,6 +91,11 @@ class S3DataSource implements DataSource {
         } while (continuationToken != null);
 
         return s3Objects;
+    }
+
+    @Override
+    public void close() throws Exception {
+        client.close();
     }
 
     private static class S3Part implements Part {

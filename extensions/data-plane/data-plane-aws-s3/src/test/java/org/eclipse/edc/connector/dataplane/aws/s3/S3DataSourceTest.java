@@ -76,7 +76,7 @@ public class S3DataSourceTest {
         var result = s3Datasource.openPartStream();
 
         assertThat(result.failed()).isTrue();
-        assertThat(result.getFailure().getFailureDetail()).isEqualTo("Error listing objects in the bucket: Object not found");
+        assertThat(result.getFailure().getFailureDetail()).isEqualTo("Error listing S3 objects in the bucket: Object not found");
     }
 
     @Test
