@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -14,7 +14,6 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.connector.dataplane.aws.s3.exception.S3ObjectNotFoundException;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -22,7 +21,6 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -50,14 +48,15 @@ public class S3DataSourceTest {
 
         when(s3ClientMock.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
 
-        var content = s3Datasource.openPartStream().getContent();
+        var result = s3Datasource.openPartStream();
 
+        assertThat(result.succeeded()).isTrue();
         verify(s3ClientMock, atLeastOnce()).listObjectsV2(any(ListObjectsV2Request.class));
-        assertThat(content).hasSize(2);
+        assertThat(result.getContent()).hasSize(2);
     }
 
     @Test
-    void should_throw_exception_case_no_object_is_found() {
+    void should_fail_case_no_object_is_found() {
 
         var mockResponse = ListObjectsV2Response.builder().build();
 
@@ -70,9 +69,10 @@ public class S3DataSourceTest {
 
         when(s3ClientMock.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
 
-        assertThatThrownBy(s3Datasource::openPartStream)
-                .isInstanceOf(S3ObjectNotFoundException.class)
-                .hasMessage("Object not found");
+        var result = s3Datasource.openPartStream();
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.getFailure().getFailureDetail()).isEqualTo("Error listing objects in the bucket: Object not found");
     }
 
     @Test
@@ -85,10 +85,11 @@ public class S3DataSourceTest {
                 .client(s3ClientMock)
                 .build();
 
-        var content = s3Datasource.openPartStream().getContent();
+        var result = s3Datasource.openPartStream();
 
+        assertThat(result.succeeded()).isTrue();
         verify(s3ClientMock, never()).listObjectsV2(any(ListObjectsV2Request.class));
-        assertThat(content).hasSize(1);
+        assertThat(result.getContent()).hasSize(1);
     }
 
 }

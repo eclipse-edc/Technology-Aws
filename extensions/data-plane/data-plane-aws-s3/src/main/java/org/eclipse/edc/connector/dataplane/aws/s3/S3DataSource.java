@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -16,19 +16,21 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.connector.dataplane.aws.s3.exception.S3ObjectNotFoundException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
+import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
+import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.failure;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
 
 class S3DataSource implements DataSource {
@@ -47,14 +49,20 @@ class S3DataSource implements DataSource {
         if (keyPrefix != null) {
             try {
 
-                var s3PartStream = this.fetchPrefixedS3Objects().stream()
+                var s3Objects = this.fetchPrefixedS3Objects();
+
+                if (s3Objects.isEmpty()) {
+                    throw new S3ObjectNotFoundException("Object not found");
+                }
+
+                var s3PartStream = s3Objects.stream()
                         .map(S3Object::key)
                         .map(key -> (Part) new S3Part(client, key, bucketName));
 
                 return success(s3PartStream);
 
-            } catch (S3Exception e) {
-                throw new RuntimeException("Error listing objects in the bucket: " + e.getMessage());
+            } catch (Exception e) {
+                return failure(new StreamFailure(List.of("Error listing objects in the bucket: " + e.getMessage()), GENERAL_ERROR));
             }
         }
 
@@ -87,8 +95,6 @@ class S3DataSource implements DataSource {
             continuationToken = response.nextContinuationToken();
 
         } while (continuationToken != null);
-
-        if (s3Objects.isEmpty()) throw new S3ObjectNotFoundException("Object not found");
 
         return s3Objects;
     }
