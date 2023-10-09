@@ -40,8 +40,8 @@ class S3DataSource implements DataSource {
     }
 
     @Override
-    public void close() {
-
+    public void close() throws Exception {
+        client.close();
     }
 
     private static class S3Part implements Part {
