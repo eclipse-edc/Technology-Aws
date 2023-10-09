@@ -69,6 +69,11 @@ class S3DataSource implements DataSource {
         return success(Stream.of(new S3Part(client, keyName, bucketName)));
     }
 
+    @Override
+    public void close() throws Exception {
+        client.close();
+    }
+
     /**
      * Fetches S3 objects with the specified prefix.
      *
@@ -97,11 +102,6 @@ class S3DataSource implements DataSource {
         } while (continuationToken != null);
 
         return s3Objects;
-    }
-
-    @Override
-    public void close() {
-        // no-op
     }
 
     private static class S3Part implements Part {
