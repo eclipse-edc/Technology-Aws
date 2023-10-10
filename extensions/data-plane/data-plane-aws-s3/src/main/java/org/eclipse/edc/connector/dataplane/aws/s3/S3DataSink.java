@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -52,7 +52,7 @@ class S3DataSink extends ParallelSink {
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(keyName)
+                        .key(part.name())
                         .build()).uploadId();
 
                 while (true) {

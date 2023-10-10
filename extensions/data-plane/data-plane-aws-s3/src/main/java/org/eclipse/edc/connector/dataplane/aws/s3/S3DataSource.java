@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -15,20 +15,28 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
+import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
+import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
+import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.failure;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
 
 class S3DataSource implements DataSource {
 
     private String bucketName;
     private String keyName;
+    private String keyPrefix;
     private S3Client client;
 
     private S3DataSource() {
@@ -36,7 +44,53 @@ class S3DataSource implements DataSource {
 
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
+
+        if (keyPrefix != null) {
+
+            var s3Objects = this.fetchPrefixedS3Objects();
+
+            if (s3Objects.isEmpty()) {
+                return failure(new StreamFailure(List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
+            }
+
+            var s3PartStream = s3Objects.stream()
+                    .map(S3Object::key)
+                    .map(key -> (Part) new S3Part(client, key, bucketName));
+
+            return success(s3PartStream);
+
+        }
+
         return success(Stream.of(new S3Part(client, keyName, bucketName)));
+    }
+
+    /**
+     * Fetches S3 objects with the specified prefix.
+     *
+     * @return A list of S3 objects.
+     */
+    private List<S3Object> fetchPrefixedS3Objects() {
+
+        String continuationToken = null;
+        List<S3Object> s3Objects = new ArrayList<>();
+
+        do {
+
+            var listObjectsRequest = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .prefix(keyPrefix)
+                    .continuationToken(continuationToken)
+                    .build();
+
+            var response = client.listObjectsV2(listObjectsRequest);
+
+            s3Objects.addAll(response.contents());
+
+            continuationToken = response.nextContinuationToken();
+
+        } while (continuationToken != null);
+
+        return s3Objects;
     }
 
     @Override
@@ -91,6 +145,11 @@ class S3DataSource implements DataSource {
 
         public Builder keyName(String keyName) {
             source.keyName = keyName;
+            return this;
+        }
+
+        public Builder keyPrefix(String keyPrefix) {
+            source.keyPrefix = keyPrefix;
             return this;
         }
 
