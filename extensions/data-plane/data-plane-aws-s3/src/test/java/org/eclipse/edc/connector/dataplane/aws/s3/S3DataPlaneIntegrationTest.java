@@ -36,10 +36,8 @@ import java.util.concurrent.Executors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.*;
+import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_BYTES;
 import static org.mockito.Mockito.mock;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -70,7 +68,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var vault = mock(Vault.class);
         var typeManager = new TypeManager();
 
-        var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager);
+        var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager, DEFAULT_CHUNK_SIZE_IN_BYTES);
         var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -105,10 +103,10 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
         assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
-            .extracting(ResponseBytes::response)
-            .extracting(GetObjectResponse::contentLength)
-            .extracting(Long::intValue)
-            .isEqualTo(body.length());
+                .extracting(ResponseBytes::response)
+                .extracting(GetObjectResponse::contentLength)
+                .extracting(Long::intValue)
+                .isEqualTo(body.length());
         assertThat(destinationClient.getObject(destinationBucketName, key + ".complete")).succeedsWithin(5, SECONDS);
     }
 }

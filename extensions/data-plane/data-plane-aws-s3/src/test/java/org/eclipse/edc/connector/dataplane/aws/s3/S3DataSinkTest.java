@@ -18,29 +18,27 @@ import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.UploadPartRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartResponse;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class S3DataSinkTest {
 
@@ -60,14 +58,14 @@ public class S3DataSinkTest {
         completeMultipartUploadRequestCaptor = ArgumentCaptor.forClass(CompleteMultipartUploadRequest.class);
 
         dataSink = S3DataSink.Builder.newInstance()
-            .bucketName(BUCKET_NAME)
-            .keyName(KEY_NAME)
-            .client(s3ClientMock)
-            .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
-            .executorService(Executors.newFixedThreadPool(2))
-            .monitor(mock(Monitor.class))
-            .chunkSizeBytes(CHUNK_SIZE_BYTES)
-            .build();
+                .bucketName(BUCKET_NAME)
+                .keyName(KEY_NAME)
+                .client(s3ClientMock)
+                .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
+                .executorService(Executors.newFixedThreadPool(2))
+                .monitor(mock(Monitor.class))
+                .chunkSizeBytes(CHUNK_SIZE_BYTES)
+                .build();
 
         when(s3ClientMock.createMultipartUpload(any(CreateMultipartUploadRequest.class)))
                 .thenReturn(CreateMultipartUploadResponse.builder().uploadId("uploadId").build());
@@ -93,7 +91,7 @@ public class S3DataSinkTest {
         var result = dataSink.transferParts(
                 List.of(new InputStreamDataSource(KEY_NAME,
                         new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload"
-                            .getBytes(UTF_8)))));
+                                .getBytes(UTF_8)))));
         assertThat(result.succeeded()).isTrue();
         verify(s3ClientMock).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
 
@@ -122,5 +120,31 @@ public class S3DataSinkTest {
         var result = dataSink.complete();
 
         assertThat(result.failed()).isTrue();
+    }
+
+    @Nested
+    public class S3DataSinkBuilderTest {
+        private static Stream<Arguments> invalidChunkSizes() {
+            return Stream.of(
+                    Arguments.of(0),
+                    Arguments.of(-1)
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidChunkSizes")
+        void expectException_IfChunkSizeLowerThan1(int illegalChunkSize) {
+            assertThatThrownBy(() -> createInvalidS3DataSink(illegalChunkSize))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .message().isEqualTo("Chunk size must be greater than zero! Actual value is: " + illegalChunkSize);
+        }
+
+        private S3DataSink createInvalidS3DataSink(int chunkSize) {
+            return S3DataSink.Builder.newInstance()
+                    .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
+                    .executorService(Executors.newFixedThreadPool(2))
+                    .chunkSizeBytes(chunkSize)
+                    .build();
+        }
     }
 }

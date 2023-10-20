@@ -15,11 +15,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
-import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
-import org.eclipse.edc.aws.s3.S3BucketSchema;
-import org.eclipse.edc.aws.s3.S3ClientRequest;
+import org.eclipse.edc.aws.s3.*;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
@@ -37,16 +33,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.concurrent.ExecutorService;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.*;
 
 public class S3DataSinkFactory implements DataSinkFactory {
-
-    private static final int CHUNK_SIZE_IN_BYTES = 1024 * 1024 * 500; // 500MB chunk size
-
     private final ValidationRule<DataAddress> validation = new S3DataAddressValidationRule();
     private final ValidationRule<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidationRule();
     private final AwsClientProvider clientProvider;
@@ -54,13 +43,15 @@ public class S3DataSinkFactory implements DataSinkFactory {
     private final Monitor monitor;
     private final Vault vault;
     private final TypeManager typeManager;
+    private final int chunkSizeInBytes;
 
-    public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault, TypeManager typeManager) {
+    public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault, TypeManager typeManager, int chunkSizeInBytes) {
         this.clientProvider = clientProvider;
         this.executorService = executorService;
         this.monitor = monitor;
         this.vault = vault;
         this.typeManager = typeManager;
+        this.chunkSizeInBytes = chunkSizeInBytes;
     }
 
     @Override
@@ -86,14 +77,14 @@ public class S3DataSinkFactory implements DataSinkFactory {
 
         S3Client client = createS3Client(destination);
         return S3DataSink.Builder.newInstance()
-            .bucketName(destination.getStringProperty(BUCKET_NAME))
-            .keyName(destination.getKeyName())
-            .requestId(request.getId())
-            .executorService(executorService)
-            .monitor(monitor)
-            .client(client)
-            .chunkSizeBytes(CHUNK_SIZE_IN_BYTES)
-            .build();
+                .bucketName(destination.getStringProperty(BUCKET_NAME))
+                .keyName(destination.getKeyName())
+                .requestId(request.getId())
+                .executorService(executorService)
+                .monitor(monitor)
+                .client(client)
+                .chunkSizeBytes(chunkSizeInBytes)
+                .build();
     }
 
     private S3Client createS3Client(DataAddress destination) {
