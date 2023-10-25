@@ -15,7 +15,11 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.aws.s3.*;
+import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.AwsSecretToken;
+import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
+import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
 import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
@@ -33,7 +37,12 @@ import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.concurrent.ExecutorService;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.*;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+
 
 public class S3DataSinkFactory implements DataSinkFactory {
     private final ValidationRule<DataAddress> validation = new S3DataAddressValidationRule();

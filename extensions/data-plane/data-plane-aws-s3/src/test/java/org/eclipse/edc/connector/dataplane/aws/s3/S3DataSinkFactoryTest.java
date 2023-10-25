@@ -15,7 +15,11 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.aws.s3.*;
+import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.AwsSecretToken;
+import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
+import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
@@ -37,17 +41,21 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
-import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_BYTES;
+import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_MB;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class S3DataSinkFactoryTest {
 
+    private final int defaultChunkSizeInBytes = 1024 * 1024 * DEFAULT_CHUNK_SIZE_IN_MB;
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = new TypeManager();
-    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(ExecutorService.class), mock(Monitor.class), vault, typeManager, DEFAULT_CHUNK_SIZE_IN_BYTES);
+    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(ExecutorService.class), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
     private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
+
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
