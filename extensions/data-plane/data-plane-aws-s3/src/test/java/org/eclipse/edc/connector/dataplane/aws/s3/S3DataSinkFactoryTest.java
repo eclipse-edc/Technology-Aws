@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
+import static java.lang.Integer.parseInt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
@@ -49,7 +50,7 @@ import static org.mockito.Mockito.when;
 
 class S3DataSinkFactoryTest {
 
-    private final int defaultChunkSizeInBytes = 1024 * 1024 * DEFAULT_CHUNK_SIZE_IN_MB;
+    private final int defaultChunkSizeInBytes = 1024 * 1024 * parseInt(DEFAULT_CHUNK_SIZE_IN_MB);
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = new TypeManager();

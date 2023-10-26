@@ -34,6 +34,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
+import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
@@ -49,7 +50,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     private final String sourceBucketName = "source-" + UUID.randomUUID();
     private final String destinationBucketName = "destination-" + UUID.randomUUID();
-    private final int defaultChunkSizeInBytes = 1024 * 1024 * DEFAULT_CHUNK_SIZE_IN_MB;
+    private final int defaultChunkSizeInBytes = 1024 * 1024 * parseInt(DEFAULT_CHUNK_SIZE_IN_MB);
 
 
     @BeforeEach
