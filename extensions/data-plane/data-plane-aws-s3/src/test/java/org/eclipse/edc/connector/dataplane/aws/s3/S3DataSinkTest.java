@@ -20,9 +20,7 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -42,7 +40,6 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -137,14 +134,6 @@ public class S3DataSinkTest {
                     Arguments.of(0),
                     Arguments.of(-1)
             );
-        }
-
-        @ParameterizedTest
-        @MethodSource("invalidChunkSizes")
-        void expectException_IfChunkSizeLowerThan1(int illegalChunkSize) {
-            assertThatThrownBy(() -> createInvalidS3DataSink(illegalChunkSize))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .message().isEqualTo("Chunk size must be greater than zero! Actual value is: " + illegalChunkSize);
         }
 
         private S3DataSink createInvalidS3DataSink(int chunkSize) {

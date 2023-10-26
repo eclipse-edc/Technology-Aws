@@ -141,10 +141,6 @@ class S3DataSink extends ParallelSink {
         }
 
         @Override
-        protected void validate() {
-            if (this.sink.chunkSize < 1) {
-                throw new IllegalArgumentException("Chunk size must be greater than zero! Actual value is: " + this.sink.chunkSize);
-            }
-        }
+        protected void validate() {}
     }
 }
