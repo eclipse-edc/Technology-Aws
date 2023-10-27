@@ -28,3 +28,6 @@ Configuration with `keyPrefix`:
   }
 }
 ```
+
+#### AmazonS3 Chunk size Configuration
+The maximum chunk of stream to be read, by default, is 500mb. It can be changed in the EDC config file as `edc.dataplane.aws.sink.chunk.size.mb` or in the env variables as `EDC_DATAPLANE_AWS_SINK_CHUNK_SIZE_MB`.

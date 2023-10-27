@@ -38,9 +38,11 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
+import static java.lang.Integer.parseInt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
+import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_MB;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -48,11 +50,13 @@ import static org.mockito.Mockito.when;
 
 class S3DataSinkFactoryTest {
 
+    private final int defaultChunkSizeInBytes = 1024 * 1024 * parseInt(DEFAULT_CHUNK_SIZE_IN_MB);
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = new TypeManager();
-    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(ExecutorService.class), mock(Monitor.class), vault, typeManager);
+    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(ExecutorService.class), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
     private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
+
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -169,6 +173,15 @@ class S3DataSinkFactoryTest {
         assertThatThrownBy(() -> factory.createSink(request)).isInstanceOf(EdcException.class);
     }
 
+    private DataFlowRequest createRequest(DataAddress destination) {
+        return DataFlowRequest.Builder.newInstance()
+                .id(UUID.randomUUID().toString())
+                .processId(UUID.randomUUID().toString())
+                .sourceDataAddress(DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build())
+                .destinationDataAddress(destination)
+                .build();
+    }
+
     private static class InvalidInputs implements ArgumentsProvider {
 
         @Override
@@ -178,14 +191,5 @@ class S3DataSinkFactoryTest {
                     Arguments.of(" ", TestFunctions.VALID_REGION, TestFunctions.VALID_ACCESS_KEY_ID, TestFunctions.VALID_SECRET_ACCESS_KEY)
             );
         }
-    }
-
-    private DataFlowRequest createRequest(DataAddress destination) {
-        return DataFlowRequest.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .processId(UUID.randomUUID().toString())
-                .sourceDataAddress(DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build())
-                .destinationDataAddress(destination)
-                .build();
     }
 }

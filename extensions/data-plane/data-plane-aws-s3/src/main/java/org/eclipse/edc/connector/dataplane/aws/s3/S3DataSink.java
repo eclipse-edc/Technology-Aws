@@ -40,7 +40,8 @@ class S3DataSink extends ParallelSink {
     private String keyName;
     private int chunkSize;
 
-    private S3DataSink() {}
+    private S3DataSink() {
+    }
 
     @Override
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
@@ -64,11 +65,11 @@ class S3DataSink extends ParallelSink {
 
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
-                                .bucket(bucketName)
-                                .key(keyName)
-                                .uploadId(uploadId)
-                                .partNumber(partNumber)
-                                .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
+                                    .bucket(bucketName)
+                                    .key(keyName)
+                                    .uploadId(uploadId)
+                                    .partNumber(partNumber)
+                                    .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
                     partNumber++;
                 }
 
@@ -77,8 +78,8 @@ class S3DataSink extends ParallelSink {
                         .key(keyName)
                         .uploadId(uploadId)
                         .multipartUpload(CompletedMultipartUpload.builder()
-                            .parts(completedParts)
-                            .build())
+                                .parts(completedParts)
+                                .build())
                         .build());
 
             } catch (Exception e) {
