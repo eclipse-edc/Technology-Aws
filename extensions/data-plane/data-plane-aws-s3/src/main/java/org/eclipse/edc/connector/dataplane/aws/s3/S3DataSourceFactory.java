@@ -19,17 +19,18 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
-import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
-import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
+import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
+import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSourceFactory;
-import org.eclipse.edc.connector.dataplane.util.validation.ValidationRule;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.validator.spi.ValidationResult;
+import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -42,8 +43,8 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
 public class S3DataSourceFactory implements DataSourceFactory {
 
-    private final ValidationRule<DataAddress> validation = new S3DataAddressValidationRule();
-    private final ValidationRule<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidationRule();
+    private final Validator<DataAddress> validation = new S3DataAddressValidator();
+    private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
     private final Vault vault;
     private final TypeManager typeManager;
@@ -57,13 +58,6 @@ public class S3DataSourceFactory implements DataSourceFactory {
     @Override
     public boolean canHandle(DataFlowRequest request) {
         return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType());
-    }
-
-    @Override
-    public @NotNull Result<Void> validateRequest(DataFlowRequest request) {
-        var source = request.getSourceDataAddress();
-
-        return validation.apply(source).map(it -> null);
     }
 
     @Override
@@ -83,6 +77,13 @@ public class S3DataSourceFactory implements DataSourceFactory {
                 .build();
     }
 
+    @Override
+    public @NotNull Result<Void> validateRequest(DataFlowRequest request) {
+        var source = request.getSourceDataAddress();
+
+        return validation.validate(source).flatMap(ValidationResult::toResult);
+    }
+
     private S3Client getS3Client(DataAddress address) {
 
         String endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
@@ -92,7 +93,7 @@ public class S3DataSourceFactory implements DataSourceFactory {
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsSecretToken.class);
             client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride, secretToken));
-        } else if (credentialsValidation.apply(address).succeeded()) {
+        } else if (credentialsValidation.validate(address).succeeded()) {
             var secretToken = new AwsSecretToken(address.getStringProperty(ACCESS_KEY_ID), address.getStringProperty(SECRET_ACCESS_KEY));
             client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride, secretToken));
         } else {
