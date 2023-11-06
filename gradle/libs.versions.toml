@@ -55,12 +55,13 @@ edc-ih-spi-store = { module = "org.eclipse.edc:identity-hub-store-spi", version.
 edc-dsp = { module = "org.eclipse.edc:dsp", version.ref = "edc" }
 edc-junit = { module = "org.eclipse.edc:junit", version.ref = "edc" }
 edc-provision-http = { module = "org.eclipse.edc:provision-http", version.ref = "edc" }
-edc-rs-spi-store= { module = "org.eclipse.edc:registration-service-store-spi", version.ref = "edc" }
+edc-rs-spi-store = { module = "org.eclipse.edc:registration-service-store-spi", version.ref = "edc" }
 edc-spi-catalog = { module = "org.eclipse.edc:catalog-spi", version.ref = "edc" }
 edc-spi-contract = { module = "org.eclipse.edc:contract-spi", version.ref = "edc" }
 edc-spi-policy = { module = "org.eclipse.edc:policy-spi", version.ref = "edc" }
 edc-spi-core = { module = "org.eclipse.edc:core-spi", version.ref = "edc" }
 edc-spi-transfer = { module = "org.eclipse.edc:transfer-spi", version.ref = "edc" }
+edc-spi-validation = { module = "org.eclipse.edc:validator-spi", version.ref = "edc" }
 edc-spi-web = { module = "org.eclipse.edc:web-spi", version.ref = "edc" }
 edc-spi-jsonld = { module = "org.eclipse.edc:json-ld-spi", version.ref = "edc" }
 edc-spi-dataplane = { module = "org.eclipse.edc:data-plane-spi", version.ref = "edc" }

@@ -18,12 +18,14 @@ plugins {
 
 dependencies {
     api(libs.edc.spi.transfer)
+    api(libs.edc.spi.validation)
 
     api(libs.failsafe.core)
-
     api(libs.aws.iam)
     api(libs.aws.s3)
     api(libs.aws.sts)
+
+    testImplementation(libs.edc.junit)
 }
 
 
