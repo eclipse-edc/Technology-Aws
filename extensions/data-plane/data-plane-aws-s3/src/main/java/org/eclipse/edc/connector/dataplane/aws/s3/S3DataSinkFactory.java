@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -20,11 +20,10 @@ import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
-import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressCredentialsValidationRule;
-import org.eclipse.edc.connector.dataplane.aws.s3.validation.S3DataAddressValidationRule;
+import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
+import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSinkFactory;
-import org.eclipse.edc.connector.dataplane.util.validation.ValidationRule;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
@@ -32,6 +31,8 @@ import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.validator.spi.ValidationResult;
+import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -43,36 +44,29 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
+
 public class S3DataSinkFactory implements DataSinkFactory {
-
-    private static final int CHUNK_SIZE_IN_BYTES = 1024 * 1024 * 500; // 500MB chunk size
-
-    private final ValidationRule<DataAddress> validation = new S3DataAddressValidationRule();
-    private final ValidationRule<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidationRule();
+    private final Validator<DataAddress> validation = new S3DataAddressValidator();
+    private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
     private final ExecutorService executorService;
     private final Monitor monitor;
     private final Vault vault;
     private final TypeManager typeManager;
+    private final int chunkSizeInBytes;
 
-    public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault, TypeManager typeManager) {
+    public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault, TypeManager typeManager, int chunkSizeInBytes) {
         this.clientProvider = clientProvider;
         this.executorService = executorService;
         this.monitor = monitor;
         this.vault = vault;
         this.typeManager = typeManager;
+        this.chunkSizeInBytes = chunkSizeInBytes;
     }
 
     @Override
     public boolean canHandle(DataFlowRequest request) {
         return S3BucketSchema.TYPE.equals(request.getDestinationDataAddress().getType());
-    }
-
-    @Override
-    public @NotNull Result<Void> validateRequest(DataFlowRequest request) {
-        var destination = request.getDestinationDataAddress();
-
-        return validation.apply(destination).map(it -> null);
     }
 
     @Override
@@ -86,14 +80,21 @@ public class S3DataSinkFactory implements DataSinkFactory {
 
         S3Client client = createS3Client(destination);
         return S3DataSink.Builder.newInstance()
-            .bucketName(destination.getStringProperty(BUCKET_NAME))
-            .keyName(destination.getKeyName())
-            .requestId(request.getId())
-            .executorService(executorService)
-            .monitor(monitor)
-            .client(client)
-            .chunkSizeBytes(CHUNK_SIZE_IN_BYTES)
-            .build();
+                .bucketName(destination.getStringProperty(BUCKET_NAME))
+                .keyName(destination.getKeyName())
+                .requestId(request.getId())
+                .executorService(executorService)
+                .monitor(monitor)
+                .client(client)
+                .chunkSizeBytes(chunkSizeInBytes)
+                .build();
+    }
+
+    @Override
+    public @NotNull Result<Void> validateRequest(DataFlowRequest request) {
+        var destination = request.getDestinationDataAddress();
+
+        return validation.validate(destination).flatMap(ValidationResult::toResult);
     }
 
     private S3Client createS3Client(DataAddress destination) {
@@ -105,7 +106,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsTemporarySecretToken.class);
             client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));
-        } else if (credentialsValidation.apply(destination).succeeded()) {
+        } else if (credentialsValidation.validate(destination).succeeded()) {
             var secretToken = new AwsSecretToken(destination.getStringProperty(ACCESS_KEY_ID),
                     destination.getStringProperty(SECRET_ACCESS_KEY));
             client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));

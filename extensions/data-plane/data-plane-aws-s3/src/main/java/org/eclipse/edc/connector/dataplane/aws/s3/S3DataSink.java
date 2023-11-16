@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -40,10 +40,11 @@ class S3DataSink extends ParallelSink {
     private String keyName;
     private int chunkSize;
 
-    private S3DataSink() {}
+    private S3DataSink() {
+    }
 
     @Override
-    protected StreamResult<Void> transferParts(List<DataSource.Part> parts) {
+    protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
         for (var part : parts) {
             try (var input = part.openStream()) {
 
@@ -52,7 +53,7 @@ class S3DataSink extends ParallelSink {
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(keyName)
+                        .key(part.name())
                         .build()).uploadId();
 
                 while (true) {
@@ -64,11 +65,11 @@ class S3DataSink extends ParallelSink {
 
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
-                                .bucket(bucketName)
-                                .key(keyName)
-                                .uploadId(uploadId)
-                                .partNumber(partNumber)
-                                .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
+                                    .bucket(bucketName)
+                                    .key(keyName)
+                                    .uploadId(uploadId)
+                                    .partNumber(partNumber)
+                                    .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
                     partNumber++;
                 }
 
@@ -77,8 +78,8 @@ class S3DataSink extends ParallelSink {
                         .key(keyName)
                         .uploadId(uploadId)
                         .multipartUpload(CompletedMultipartUpload.builder()
-                            .parts(completedParts)
-                            .build())
+                                .parts(completedParts)
+                                .build())
                         .build());
 
             } catch (Exception e) {
@@ -90,7 +91,7 @@ class S3DataSink extends ParallelSink {
     }
 
     @Override
-    protected StreamResult<Void> complete() {
+    protected StreamResult<Object> complete() {
         var completeKeyName = keyName + ".complete";
         var request = PutObjectRequest.builder().bucket(bucketName).key(completeKeyName).build();
         try {
@@ -103,7 +104,7 @@ class S3DataSink extends ParallelSink {
     }
 
     @NotNull
-    private StreamResult<Void> uploadFailure(Exception e, String keyName) {
+    private StreamResult<Object> uploadFailure(Exception e, String keyName) {
         var message = format("Error writing the %s object on the %s bucket: %s", keyName, bucketName, e.getMessage());
         monitor.severe(message, e);
         return StreamResult.error(message);

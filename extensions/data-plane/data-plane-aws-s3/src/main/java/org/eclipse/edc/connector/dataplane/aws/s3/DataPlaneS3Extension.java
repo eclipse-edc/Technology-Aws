@@ -18,6 +18,7 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
+import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
@@ -25,10 +26,18 @@ import org.eclipse.edc.spi.types.TypeManager;
 
 import java.util.concurrent.Executors;
 
+import static java.lang.Integer.parseInt;
+
 @Extension(value = DataPlaneS3Extension.NAME)
 public class DataPlaneS3Extension implements ServiceExtension {
 
     public static final String NAME = "Data Plane S3 Storage";
+
+    static final String DEFAULT_CHUNK_SIZE_IN_MB = "500"; // 500MB chunk size
+
+    @Setting(value = "The maximum chunk of stream to be read, in mb", defaultValue = DEFAULT_CHUNK_SIZE_IN_MB, type = "int")
+    private static final String EDC_DATAPLANE_S3_SINK_CHUNK_SIZE_MB = "edc.dataplane.aws.sink.chunk.size.mb";
+
     @Inject
     private PipelineService pipelineService;
 
@@ -50,12 +59,18 @@ public class DataPlaneS3Extension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         var executorService = Executors.newFixedThreadPool(10); // TODO make configurable
 
+        var chunkSizeInMb = context.getSetting(EDC_DATAPLANE_S3_SINK_CHUNK_SIZE_MB, parseInt(DEFAULT_CHUNK_SIZE_IN_MB));
+        var chunkSizeInBytes = 1024 * 1024 * chunkSizeInMb;
+        if (chunkSizeInBytes < 1) {
+            throw new IllegalArgumentException("Chunk size must be greater than zero! Actual value is: " + chunkSizeInBytes);
+        }
         var monitor = context.getMonitor();
 
         var sourceFactory = new S3DataSourceFactory(awsClientProvider, vault, typeManager);
         pipelineService.registerFactory(sourceFactory);
 
-        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager);
+        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager, chunkSizeInBytes);
         pipelineService.registerFactory(sinkFactory);
     }
+
 }
