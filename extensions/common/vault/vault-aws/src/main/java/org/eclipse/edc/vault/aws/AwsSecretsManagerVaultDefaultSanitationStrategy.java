@@ -37,7 +37,8 @@ public class AwsSecretsManagerVaultDefaultSanitationStrategy implements AwsSecre
         var key = originalKey;
         boolean originalKeyReplaced = false;
 
-        if (originalKey.length() > 500) {
+        if (originalKey.length() > 512) {
+            //Substring to 500, to add the 12 char hashcode
             key = originalKey.substring(0, 500);
             originalKeyReplaced = true;
         }
