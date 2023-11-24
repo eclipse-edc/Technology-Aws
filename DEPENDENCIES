@@ -186,6 +186,7 @@ maven/mavencentral/org.junit.platform/junit-platform-engine/1.9.2, EPL-2.0, appr
 maven/mavencentral/org.junit.platform/junit-platform-launcher/1.10.1, EPL-2.0, approved, #9704
 maven/mavencentral/org.junit/junit-bom/5.10.1, EPL-2.0, approved, #9844
 maven/mavencentral/org.junit/junit-bom/5.9.2, EPL-2.0, approved, #4711
+maven/mavencentral/org.junit/junit-bom/5.9.3, EPL-2.0, approved, #4711
 maven/mavencentral/org.jvnet.mimepull/mimepull/1.9.15, CDDL-1.1 OR GPL-2.0-only WITH Classpath-exception-2.0, approved, CQ21484
 maven/mavencentral/org.mockito/mockito-core/5.2.0, MIT AND (Apache-2.0 AND MIT) AND Apache-2.0, approved, #7401
 maven/mavencentral/org.mockito/mockito-inline/5.2.0, MIT, approved, clearlydefined
