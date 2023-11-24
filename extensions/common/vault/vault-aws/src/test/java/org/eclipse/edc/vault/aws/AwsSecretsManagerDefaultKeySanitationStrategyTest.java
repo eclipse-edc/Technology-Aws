@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Amazon Web Services - Initial Implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - Fix hashcode append logic
  *
  */
 
@@ -45,7 +46,7 @@ class AwsSecretsManagerDefaultKeySanitationStrategyTest {
         for (var validCharacter : List.of('_', '+', '-', '@', '/', '.')) {
             var validKey = "valid" + validCharacter + "key";
 
-            assertThat(sanitizer.sanitizeKey(validKey)).isEqualTo(validKey + '_' + validKey.hashCode());
+            assertThat(sanitizer.sanitizeKey(validKey)).isEqualTo(validKey);
         }
     }
 
@@ -56,8 +57,8 @@ class AwsSecretsManagerDefaultKeySanitationStrategyTest {
         var sanitized = sanitizer.sanitizeKey(key);
 
         assertThat(sanitized)
-                .isEqualTo("-".repeat(500) + "_" + key.hashCode());
-        assertThat(sanitized.length()).isEqualTo(512);
+                .isEqualTo("-".repeat(500));
+        assertThat(sanitized.length()).isEqualTo(500);
     }
 
     @Test
@@ -67,7 +68,7 @@ class AwsSecretsManagerDefaultKeySanitationStrategyTest {
         var sanitized = sanitizer.sanitizeKey(key);
 
         assertThat(sanitized)
-                .isEqualTo("-".repeat(500) + "_" + key.hashCode());
+                .isEqualTo("-".repeat(500));
         assertThat(sanitized.length()).isLessThanOrEqualTo(512);
     }
 

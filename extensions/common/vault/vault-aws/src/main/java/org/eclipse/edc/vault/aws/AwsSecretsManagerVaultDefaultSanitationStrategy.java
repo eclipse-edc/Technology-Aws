@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Amazon Web Services - initial implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - Fix hashcode append logic
  *
  */
 
@@ -25,8 +26,8 @@ public class AwsSecretsManagerVaultDefaultSanitationStrategy implements AwsSecre
 
     /**
      * Many-to-one mapping from all strings into set of strings that only contains valid AWS Secrets Manager key names.
-     * The implementation replaces all illegal characters with '_' and attaches the hash code of the original string to
-     * minimize the likelihood of key collisions.
+     * The implementation replaces all illegal characters with '_' and attaches the hash code of the original string,
+     * when illegal characters are replaced, to minimize the likelihood of key collisions.
      *
      * @param originalKey any key
      * @return Valid AWS Secrets Manager key
@@ -34,25 +35,31 @@ public class AwsSecretsManagerVaultDefaultSanitationStrategy implements AwsSecre
     @Override
     public String sanitizeKey(String originalKey) {
         var key = originalKey;
+        boolean originalKeyReplaced = false;
+
         if (originalKey.length() > 500) {
             key = originalKey.substring(0, 500);
+            originalKeyReplaced = true;
         }
+
         var sb = new StringBuilder();
-        boolean replacedIllegalCharacters = false;
         for (int i = 0; i < key.length(); i++) {
             var c = key.charAt(i);
             if (!Character.isLetterOrDigit(c) && c != '/' && c != '_' && c != '+' && c != '.' && c != '@' && c != '-') {
-                replacedIllegalCharacters = true;
+                originalKeyReplaced = true;
                 sb.append('-');
             } else {
                 sb.append(c);
             }
         }
-        var newKey = sb.append('_').append(originalKey.hashCode()).toString();
-        if (replacedIllegalCharacters) {
+        
+        if (originalKeyReplaced) {
+            // Only add the hashcode if the original key has been replaced
+            sb.append('_').append(originalKey.hashCode());
             monitor.warning(String.format("AWS Secret Manager vault reduced length or replaced illegal characters " +
-                    "in original key name: %s. New name is %s", originalKey, newKey));
+                    "in original key name: %s. New name is %s", originalKey, sb.toString()));
         }
+        var newKey = sb.toString();
         return newKey;
     }
 }
