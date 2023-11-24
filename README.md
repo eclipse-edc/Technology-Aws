@@ -11,5 +11,5 @@ captured as [decision records](docs/developer/decision-records/).
 
 ## Contributing
 
-See [how to contribute](https://github.com/eclipse-edc/Connector/blob/main/CONTRIBUTING.md) for
+See [how to contribute](https://github.com/eclipse-edc/docs/blob/main/CONTRIBUTING.md) for
 details.
