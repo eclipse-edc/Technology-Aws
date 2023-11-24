@@ -57,8 +57,8 @@ class AwsSecretsManagerDefaultKeySanitationStrategyTest {
         var sanitized = sanitizer.sanitizeKey(key);
 
         assertThat(sanitized)
-                .isEqualTo("-".repeat(500));
-        assertThat(sanitized.length()).isEqualTo(500);
+                .isEqualTo("-".repeat(500) + "_" + key.hashCode());
+        assertThat(sanitized.length()).isEqualTo(512);
     }
 
     @Test
@@ -69,7 +69,7 @@ class AwsSecretsManagerDefaultKeySanitationStrategyTest {
 
         assertThat(sanitized)
                 .isEqualTo("-".repeat(500));
-        assertThat(sanitized.length()).isLessThanOrEqualTo(512);
+        assertThat(sanitized.length()).isLessThanOrEqualTo(500);
     }
 
 }
