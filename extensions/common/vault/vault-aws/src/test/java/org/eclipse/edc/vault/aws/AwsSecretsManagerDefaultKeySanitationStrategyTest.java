@@ -21,10 +21,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
 import static org.eclipse.edc.vault.aws.AwsSecretsManagerVaultDefaultSanitationStrategy.AWS_KEY_SIZE_LIMIT;
-
+import static org.mockito.Mockito.mock;
 
 class AwsSecretsManagerDefaultKeySanitationStrategyTest {
 
