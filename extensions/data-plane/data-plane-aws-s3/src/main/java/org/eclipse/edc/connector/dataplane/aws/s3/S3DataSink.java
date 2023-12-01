@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import org.eclipse.edc.connector.dataplane.util.sink.ParallelSink;
+import org.eclipse.edc.util.string.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -38,7 +39,12 @@ class S3DataSink extends ParallelSink {
     private S3Client client;
     private String bucketName;
     private String keyName;
+    private String keyPrefix;
     private int chunkSize;
+
+    public static final String COMPLETE_BLOB_NAME = ".complete";
+
+    private final List<String> completedFiles = new ArrayList<>();
 
     private S3DataSink() {
     }
@@ -46,14 +52,14 @@ class S3DataSink extends ParallelSink {
     @Override
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
         for (var part : parts) {
+            var key = StringUtils.isNullOrBlank(keyPrefix) ? keyName : part.name();
             try (var input = part.openStream()) {
-
                 var partNumber = 1;
                 var completedParts = new ArrayList<CompletedPart>();
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(part.name())
+                        .key(key)
                         .build()).uploadId();
 
                 while (true) {
@@ -66,7 +72,7 @@ class S3DataSink extends ParallelSink {
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
                                     .bucket(bucketName)
-                                    .key(keyName)
+                                    .key(key)
                                     .uploadId(uploadId)
                                     .partNumber(partNumber)
                                     .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
@@ -75,7 +81,7 @@ class S3DataSink extends ParallelSink {
 
                 client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(keyName)
+                        .key(key)
                         .uploadId(uploadId)
                         .multipartUpload(CompletedMultipartUpload.builder()
                                 .parts(completedParts)
@@ -83,23 +89,30 @@ class S3DataSink extends ParallelSink {
                         .build());
 
             } catch (Exception e) {
-                return uploadFailure(e, keyName);
+                return uploadFailure(e, key);
             }
+            registerCompletedFile(key);
         }
 
         return StreamResult.success();
     }
 
+    void registerCompletedFile(String name) {
+        completedFiles.add(name + COMPLETE_BLOB_NAME);
+    }
+
     @Override
     protected StreamResult<Object> complete() {
-        var completeKeyName = keyName + ".complete";
-        var request = PutObjectRequest.builder().bucket(bucketName).key(completeKeyName).build();
-        try {
-            client.putObject(request, RequestBody.empty());
-            return super.complete();
-        } catch (Exception e) {
-            return uploadFailure(e, completeKeyName);
+        for (var completedFile : completedFiles) {
+            var request = PutObjectRequest.builder().bucket(bucketName).key(completedFile).build();
+            try {
+                client.putObject(request, RequestBody.empty());
+
+            } catch (Exception e) {
+                return uploadFailure(e, completedFile);
+            }
         }
+        return super.complete();
 
     }
 
@@ -132,6 +145,11 @@ class S3DataSink extends ParallelSink {
 
         public Builder keyName(String keyName) {
             sink.keyName = keyName;
+            return this;
+        }
+
+        public Builder keyPrefix(String keyPrefix) {
+            sink.keyPrefix = keyPrefix;
             return this;
         }
 

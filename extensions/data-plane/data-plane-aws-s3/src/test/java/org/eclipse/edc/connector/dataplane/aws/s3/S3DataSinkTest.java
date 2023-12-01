@@ -20,7 +20,11 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -42,6 +46,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -78,12 +83,12 @@ public class S3DataSinkTest {
                 .thenReturn(UploadPartResponse.builder().eTag(ETAG).build());
     }
 
-    @Test
-    void transferParts_singlePart_succeeds() {
-        var result = dataSink.transferParts(
-                List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8)))));
+    @ParameterizedTest
+    @ArgumentsSource(SinglePartsInputs.class)
+    void transferParts_singlePart_succeeds(List inputStream) {
+        var result = dataSink.transferParts(inputStream);
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
@@ -91,14 +96,12 @@ public class S3DataSinkTest {
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(1);
     }
 
-    @Test
-    void transferParts_multiPart_succeeds() {
-        var result = dataSink.transferParts(
-                List.of(new InputStreamDataSource(KEY_NAME,
-                        new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload"
-                                .getBytes(UTF_8)))));
+    @ParameterizedTest
+    @ArgumentsSource(MultiPartsInputs.class)
+    void transferParts_multiPart_succeeds(List inputStream) {
+        var result = dataSink.transferParts(inputStream);
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
@@ -112,6 +115,8 @@ public class S3DataSinkTest {
         when(s3ClientMock.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(PutObjectResponse.builder().build());
 
+        dataSink.registerCompletedFile("any");
+
         var result = dataSink.complete();
 
         assertThat(result.succeeded()).isTrue();
@@ -121,6 +126,8 @@ public class S3DataSinkTest {
     void complete_failsIfPutObjectFails() {
         when(s3ClientMock.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenThrow(SdkException.builder().message("an error").build());
+
+        dataSink.registerCompletedFile("any");
 
         var result = dataSink.complete();
 
@@ -142,6 +149,30 @@ public class S3DataSinkTest {
                     .executorService(Executors.newFixedThreadPool(2))
                     .chunkSizeBytes(chunkSize)
                     .build();
+        }
+    }
+
+    private static class SinglePartsInputs implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8))))),
+                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8))),
+                            new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8)))))
+            );
+        }
+    }
+
+    private static class MultiPartsInputs implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8))))),
+                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8))),
+                            new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8)))))
+            );
         }
     }
 }
