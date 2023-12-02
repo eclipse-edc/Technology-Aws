@@ -47,13 +47,17 @@ class S3DataSink extends ParallelSink {
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
         for (var part : parts) {
             try (var input = part.openStream()) {
+                String keyName = this.keyName;
+                if (parts.size() != 1) {
+                    keyName = this.keyName + part.name();
+                }
 
                 var partNumber = 1;
                 var completedParts = new ArrayList<CompletedPart>();
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                         .bucket(bucketName)
-                        .key(part.name())
+                        .key(keyName)
                         .build()).uploadId();
 
                 while (true) {

@@ -15,9 +15,12 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import kotlin.Pair;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.testfixtures.AbstractS3Test;
 import org.eclipse.edc.aws.s3.testfixtures.annotations.AwsS3IntegrationTest;
+import org.eclipse.edc.connector.dataplane.aws.s3.arguments.S3DataPlaneIntegrationTestArgument;
+import org.eclipse.edc.connector.dataplane.aws.s3.arguments.S3DataPlaneIntegrationTestArgumentProvider;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
@@ -28,24 +31,27 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.*;
 import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_MB;
 import static org.mockito.Mockito.mock;
 
 @TestInstance(Lifecycle.PER_CLASS)
-@AwsS3IntegrationTest
+//@AwsS3IntegrationTest
 public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     private final String sourceBucketName = "source-" + UUID.randomUUID();
@@ -65,11 +71,15 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         destinationClient.deleteBucket(destinationBucketName);
     }
 
-    @Test
-    void shouldCopyFromSourceToSink() {
-        var body = UUID.randomUUID().toString();
-        var key = UUID.randomUUID().toString();
-        sourceClient.putStringOnBucket(sourceBucketName, key, body);
+    @ParameterizedTest
+    @ArgumentsSource(S3DataPlaneIntegrationTestArgumentProvider.class)
+    void shouldCopyFromSourceToSink(S3DataPlaneIntegrationTestArgument arguments) {
+        var expectedKey = arguments.getFirstKey();
+        var keys = arguments.getKeys();
+        var body = arguments.getBody();
+        var keyPrefix = arguments.getKeyPrefix();
+
+        keys.forEach(key -> sourceClient.putStringOnBucket(sourceBucketName, key, body));
 
         var vault = mock(Vault.class);
         var typeManager = new TypeManager();
@@ -78,21 +88,22 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
         var sourceAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
-                .keyName(key)
+                .keyName(expectedKey)
                 .property(BUCKET_NAME, sourceBucketName)
                 .property(S3BucketSchema.REGION, REGION)
                 .property(ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
                 .property(SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey())
+                .property(KEY_PREFIX, keyPrefix)
                 .build();
 
         var destinationAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
-                .keyName(key)
+                .keyName(expectedKey)
                 .property(BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
                 .property(ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
-                .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
+                .property(KEY_PREFIX, keyPrefix)
                 .build();
 
         var request = DataFlowRequest.Builder.newInstance()
@@ -108,11 +119,15 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var transferResult = sink.transfer(source);
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
-        assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
-                .extracting(ResponseBytes::response)
-                .extracting(GetObjectResponse::contentLength)
-                .extracting(Long::intValue)
-                .isEqualTo(body.length());
-        assertThat(destinationClient.getObject(destinationBucketName, key + ".complete")).succeedsWithin(5, SECONDS);
+        keys.forEach(key -> {
+                assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
+                        .extracting(ResponseBytes::response)
+                        .extracting(GetObjectResponse::contentLength)
+                        .extracting(Long::intValue)
+                        .isEqualTo(body.length());
+                assertThat(destinationClient.getObject(destinationBucketName, key + ".complete")).succeedsWithin(5, SECONDS);
+            }
+        );
     }
+
 }
