@@ -49,7 +49,7 @@ class S3DataSink extends ParallelSink {
             try (var input = part.openStream()) {
                 String keyName = this.keyName;
                 if (parts.size() != 1) {
-                    keyName = this.keyName + part.name();
+                    keyName = this.keyName + "/" + part.name();
                 }
 
                 var partNumber = 1;
