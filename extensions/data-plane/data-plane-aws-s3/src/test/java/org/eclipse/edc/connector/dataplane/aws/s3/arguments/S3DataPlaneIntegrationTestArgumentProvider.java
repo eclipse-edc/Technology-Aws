@@ -11,11 +11,21 @@ import java.util.stream.Stream;
 public class S3DataPlaneIntegrationTestArgumentProvider implements ArgumentsProvider {
     private final String keyPrefix = UUID.randomUUID().toString();
 
+    private final String keyPrefixDelimiter = "/";
+
     private final String body = UUID.randomUUID().toString();
 
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
         return Stream.of(
+                Arguments.of(
+                        Named.of("Simple file transfer",
+                                S3DataPlaneIntegrationTestArgument.Builder.newInstance()
+                                        .addKey(generateRandomKey())
+                                        .body(body)
+                                        .build()
+                        )
+                ),
                 Arguments.of(
                         Named.of("Multiple file transfer",
                                 S3DataPlaneIntegrationTestArgument.Builder.newInstance()
@@ -23,6 +33,7 @@ public class S3DataPlaneIntegrationTestArgumentProvider implements ArgumentsProv
                                         .addKey(generateRandomKeyWithPrefix())
                                         .addKey(generateRandomKeyWithPrefix())
                                         .keyPrefix(keyPrefix)
+                                        .keyPrefixDelimiter(keyPrefixDelimiter)
                                         .body(body)
                                         .build()
                         )
@@ -35,18 +46,6 @@ public class S3DataPlaneIntegrationTestArgumentProvider implements ArgumentsProv
     }
 
     private String generateRandomKeyWithPrefix() {
-        String prefixDelimiter = "/";
-        return keyPrefix + prefixDelimiter + generateRandomKey();
+        return keyPrefix + keyPrefixDelimiter + generateRandomKey();
     }
 }
-
-/*
- Arguments.of(
-                        Named.of("Simple file transfer",
-                                S3DataPlaneIntegrationTestArgument.Builder.newInstance()
-                                        .addKey(generateRandomKey())
-                                        .body(body)
-                                        .build()
-                        )
-                ),
- */
