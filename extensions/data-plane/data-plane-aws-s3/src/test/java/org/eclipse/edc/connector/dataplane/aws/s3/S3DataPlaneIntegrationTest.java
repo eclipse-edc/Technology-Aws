@@ -40,7 +40,10 @@ import java.util.concurrent.Executors;
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.*;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_MB;
 import static org.mockito.Mockito.mock;
 
@@ -116,12 +119,12 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
         expectedKeys.forEach(key -> {
-                assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
-                        .extracting(ResponseBytes::response)
-                        .extracting(GetObjectResponse::contentLength)
-                        .extracting(Long::intValue)
-                        .isEqualTo(body.length());
-                assertThat(destinationClient.getObject(destinationBucketName, expectedKeyName + ".complete")).succeedsWithin(5, SECONDS);
+            assertThat(destinationClient.getObject(destinationBucketName, key)).succeedsWithin(5, SECONDS)
+                    .extracting(ResponseBytes::response)
+                    .extracting(GetObjectResponse::contentLength)
+                    .extracting(Long::intValue)
+                    .isEqualTo(body.length());
+            assertThat(destinationClient.getObject(destinationBucketName, expectedKeyName + ".complete")).succeedsWithin(5, SECONDS);
             }
         );
     }
