@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.testfixtures.AbstractS3Test;
+import org.eclipse.edc.aws.s3.testfixtures.annotations.AwsS3IntegrationTest;
 import org.eclipse.edc.connector.dataplane.aws.s3.arguments.S3DataPlaneIntegrationTestArgument;
 import org.eclipse.edc.connector.dataplane.aws.s3.arguments.S3DataPlaneIntegrationTestArgumentProvider;
 import org.eclipse.edc.spi.monitor.Monitor;
@@ -34,7 +35,6 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import static java.lang.Integer.parseInt;
@@ -45,7 +45,7 @@ import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DE
 import static org.mockito.Mockito.mock;
 
 @TestInstance(Lifecycle.PER_CLASS)
-//@AwsS3IntegrationTest
+@AwsS3IntegrationTest
 public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
     private final String sourceBucketName = "source-" + UUID.randomUUID();

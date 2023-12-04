@@ -16,10 +16,6 @@ public class S3DataPlaneIntegrationTestArgument {
         return keyPrefix;
     }
 
-    public String getKeyPrefixDelimiter() {
-        return keyPrefixDelimiter;
-    }
-
     private List<String> keys;
     private String body;
     private String keyPrefix;
@@ -52,11 +48,6 @@ public class S3DataPlaneIntegrationTestArgument {
 
         public static S3DataPlaneIntegrationTestArgument.Builder newInstance() {
             return new S3DataPlaneIntegrationTestArgument.Builder();
-        }
-
-        public S3DataPlaneIntegrationTestArgument.Builder keys(List<String> keys) {
-            argument.keys = keys;
-            return this;
         }
 
         public S3DataPlaneIntegrationTestArgument.Builder addKey(String key) {
