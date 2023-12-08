@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -44,6 +45,7 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -132,6 +134,34 @@ public class S3DataSinkTest {
         var result = dataSink.complete();
 
         assertThat(result.failed()).isTrue();
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {"object, lob,  null, foo,  foo/lob",
+            "prefix/object, null, prefix, foo,  foo/prefix/object",
+            "object, ''  , null, foo,  foo/object",
+            "object, lob,  null, foo/, foo/lob",
+            "object, null, null, foo/, foo/object",
+            "prefix/object, ''  , prefix, foo/, foo/prefix/object",
+            "object, lob,  null, null, lob",
+            "object, lob,  null, '',   lob",
+            "prefix/object, '',   prefix, '',   prefix/object"},
+            nullValues = {"null"})
+    void getDestinationObjectName_shouldBeProperlyConcatenated(String partName, String keyName, String keyPrefix, String folderName, String expected) {
+
+        var dataSink = S3DataSink.Builder.newInstance()
+                .bucketName(BUCKET_NAME)
+                .keyName(keyName)
+                .folderName(folderName)
+                .keyPrefix(keyPrefix)
+                .client(s3ClientMock)
+                .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
+                .executorService(Executors.newFixedThreadPool(2))
+                .monitor(mock(Monitor.class))
+                .chunkSizeBytes(CHUNK_SIZE_BYTES)
+                .build();
+
+        assertEquals(expected, dataSink.getDestinationObjectName(partName));
     }
 
     @Nested

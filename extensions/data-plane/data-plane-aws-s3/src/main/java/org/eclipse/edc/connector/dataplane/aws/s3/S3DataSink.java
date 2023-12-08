@@ -40,6 +40,7 @@ class S3DataSink extends ParallelSink {
     private String bucketName;
     private String keyName;
     private String keyPrefix;
+    private String folderName;
     private int chunkSize;
 
     public static final String COMPLETE_BLOB_NAME = ".complete";
@@ -52,7 +53,7 @@ class S3DataSink extends ParallelSink {
     @Override
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
         for (var part : parts) {
-            var key = StringUtils.isNullOrBlank(keyPrefix) ? keyName : part.name();
+            var key = getDestinationObjectName(part.name());
             try (var input = part.openStream()) {
                 var partNumber = 1;
                 var completedParts = new ArrayList<CompletedPart>();
@@ -95,6 +96,14 @@ class S3DataSink extends ParallelSink {
         }
 
         return StreamResult.success();
+    }
+
+    String getDestinationObjectName(String partName) {
+        var name = !StringUtils.isNullOrEmpty(keyName) && StringUtils.isNullOrBlank(keyPrefix) ? keyName : partName;
+        if (!StringUtils.isNullOrEmpty(folderName)) {
+            name = folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
+        }
+        return name;
     }
 
     void registerCompletedFile(String name) {
@@ -150,6 +159,11 @@ class S3DataSink extends ParallelSink {
 
         public Builder keyPrefix(String keyPrefix) {
             sink.keyPrefix = keyPrefix;
+            return this;
+        }
+
+        public Builder folderName(String folderName) {
+            sink.folderName = folderName;
             return this;
         }
 
