@@ -39,7 +39,6 @@ class S3DataSink extends ParallelSink {
     private S3Client client;
     private String bucketName;
     private String keyName;
-    private String keyPrefix;
     private String folderName;
     private int chunkSize;
 
@@ -99,11 +98,10 @@ class S3DataSink extends ParallelSink {
     }
 
     String getDestinationObjectName(String partName) {
-        var name = !StringUtils.isNullOrEmpty(keyName) && StringUtils.isNullOrBlank(keyPrefix) ? keyName : partName;
         if (!StringUtils.isNullOrEmpty(folderName)) {
-            name = folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
+            return folderName.endsWith("/") ? folderName + partName : folderName + "/" + partName;
         }
-        return name;
+        return partName;
     }
 
     void registerCompletedFile(String name) {
@@ -154,11 +152,6 @@ class S3DataSink extends ParallelSink {
 
         public Builder keyName(String keyName) {
             sink.keyName = keyName;
-            return this;
-        }
-
-        public Builder keyPrefix(String keyPrefix) {
-            sink.keyPrefix = keyPrefix;
             return this;
         }
 
