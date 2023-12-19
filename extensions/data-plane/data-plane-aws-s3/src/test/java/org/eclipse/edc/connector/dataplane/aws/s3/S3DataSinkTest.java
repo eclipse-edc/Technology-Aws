@@ -19,21 +19,18 @@ import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.platform.commons.util.StringUtils;
 import org.mockito.ArgumentCaptor;
-import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 
@@ -110,30 +107,6 @@ public class S3DataSinkTest {
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(2);
     }
 
-    @Test
-    void complete_succeedIfPutObjectSucceeds() {
-        when(s3ClientMock.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
-                .thenReturn(PutObjectResponse.builder().build());
-
-        dataSink.registerCompletedFile("any");
-
-        var result = dataSink.complete();
-
-        assertThat(result.succeeded()).isTrue();
-    }
-
-    @Test
-    void complete_failsIfPutObjectFails() {
-        when(s3ClientMock.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
-                .thenThrow(SdkException.builder().message("an error").build());
-
-        dataSink.registerCompletedFile("any");
-
-        var result = dataSink.complete();
-
-        assertThat(result.failed()).isTrue();
-    }
-
     @Nested
     public class S3DataSinkBuilderTest {
         private static Stream<Arguments> invalidChunkSizes() {
@@ -154,25 +127,33 @@ public class S3DataSinkTest {
 
     private static class SinglePartsInputs implements ArgumentsProvider {
 
+        private String content = "content smaller than a chunk size";
+
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8))))),
-                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8))),
-                            new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content smaller than a chunk size".getBytes(UTF_8)))))
+                    Arguments.of(List.of(createDataSource(content))),
+                    Arguments.of(List.of(createDataSource(content)), List.of(createDataSource(content)))
             );
         }
     }
 
     private static class MultiPartsInputs implements ArgumentsProvider {
 
+        private String content = "content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload";
+
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8))))),
-                    Arguments.of(List.of(new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8))),
-                            new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream("content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload".getBytes(UTF_8)))))
+                    Arguments.of(List.of(createDataSource(content))),
+                    Arguments.of(List.of(createDataSource(content)), List.of(createDataSource(content)))
             );
         }
+
+    }
+
+    private static InputStreamDataSource createDataSource(String text) {
+        String content = StringUtils.isBlank(text) ? "test stream" : text;
+        return new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
     }
 }

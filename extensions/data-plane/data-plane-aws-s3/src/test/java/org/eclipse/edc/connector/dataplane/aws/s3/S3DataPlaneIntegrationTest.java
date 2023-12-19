@@ -117,7 +117,6 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                     .extracting(GetObjectResponse::contentLength)
                     .extracting(Long::intValue)
                     .isEqualTo(body.length());
-            assertThat(destinationClient.getObject(destinationBucketName, objectToTransfer + ".complete")).succeedsWithin(5, SECONDS);
         }
     }
 

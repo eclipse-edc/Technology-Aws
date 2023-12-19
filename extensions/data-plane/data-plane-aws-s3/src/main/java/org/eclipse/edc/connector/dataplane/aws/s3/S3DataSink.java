@@ -25,7 +25,6 @@ import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 
 import java.nio.ByteBuffer;
@@ -41,10 +40,6 @@ class S3DataSink extends ParallelSink {
     private String keyName;
     private String folderName;
     private int chunkSize;
-
-    public static final String COMPLETE_BLOB_NAME = ".complete";
-
-    private final List<String> completedFiles = new ArrayList<>();
 
     private S3DataSink() {
     }
@@ -91,7 +86,6 @@ class S3DataSink extends ParallelSink {
             } catch (Exception e) {
                 return uploadFailure(e, key);
             }
-            registerCompletedFile(key);
         }
 
         return StreamResult.success();
@@ -102,25 +96,6 @@ class S3DataSink extends ParallelSink {
             return folderName.endsWith("/") ? folderName + partName : folderName + "/" + partName;
         }
         return partName;
-    }
-
-    void registerCompletedFile(String name) {
-        completedFiles.add(name + COMPLETE_BLOB_NAME);
-    }
-
-    @Override
-    protected StreamResult<Object> complete() {
-        for (var completedFile : completedFiles) {
-            var request = PutObjectRequest.builder().bucket(bucketName).key(completedFile).build();
-            try {
-                client.putObject(request, RequestBody.empty());
-
-            } catch (Exception e) {
-                return uploadFailure(e, completedFile);
-            }
-        }
-        return super.complete();
-
     }
 
     @NotNull
