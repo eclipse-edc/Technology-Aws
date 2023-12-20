@@ -41,8 +41,10 @@ import java.util.concurrent.ExecutorService;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+
 
 
 public class S3DataSinkFactory implements DataSinkFactory {
@@ -82,6 +84,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
         return S3DataSink.Builder.newInstance()
                 .bucketName(destination.getStringProperty(BUCKET_NAME))
                 .keyName(destination.getKeyName())
+                .folderName(destination.getStringProperty(FOLDER_NAME))
                 .requestId(request.getId())
                 .executorService(executorService)
                 .monitor(monitor)
