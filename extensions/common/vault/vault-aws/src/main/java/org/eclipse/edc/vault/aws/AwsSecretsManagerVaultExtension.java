@@ -15,14 +15,11 @@
 package org.eclipse.edc.vault.aws;
 
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
+import org.eclipse.edc.runtime.metamodel.annotation.Provider;
 import org.eclipse.edc.runtime.metamodel.annotation.Provides;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.spi.EdcException;
-import org.eclipse.edc.spi.security.CertificateResolver;
-import org.eclipse.edc.spi.security.PrivateKeyResolver;
 import org.eclipse.edc.spi.security.Vault;
-import org.eclipse.edc.spi.security.VaultCertificateResolver;
-import org.eclipse.edc.spi.security.VaultPrivateKeyResolver;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import software.amazon.awssdk.regions.Region;
@@ -37,7 +34,7 @@ import static org.eclipse.edc.util.string.StringUtils.isNullOrEmpty;
  * using the AWS Secretes Manager Vault implementation.
  * The extension requires the "edc.vault.aws.region" parameter to be set to the AWS region in which secrets should be stored.
  */
-@Provides({ Vault.class, PrivateKeyResolver.class, CertificateResolver.class })
+@Provides({ Vault.class })
 @Extension(value = org.eclipse.edc.vault.aws.AwsSecretsManagerVaultExtension.NAME)
 public class AwsSecretsManagerVaultExtension implements ServiceExtension {
     public static final String NAME = "AWS Secrets Manager Vault";
@@ -50,17 +47,14 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
         return NAME;
     }
 
-    @Override
-    public void initialize(ServiceExtensionContext context) {
+    @Provider
+    public Vault createVault(ServiceExtensionContext context) {
         var vaultRegion = getMandatorySetting(context, VAULT_AWS_REGION);
 
         var smClient = buildSmClient(vaultRegion);
-        var vault = new AwsSecretsManagerVault(smClient, context.getMonitor(),
-                new AwsSecretsManagerVaultDefaultSanitationStrategy(context.getMonitor()));
 
-        context.registerService(Vault.class, vault);
-        context.registerService(PrivateKeyResolver.class, new VaultPrivateKeyResolver(vault));
-        context.registerService(CertificateResolver.class, new VaultCertificateResolver(vault));
+        return new AwsSecretsManagerVault(smClient, context.getMonitor(),
+                new AwsSecretsManagerVaultDefaultSanitationStrategy(context.getMonitor()));
     }
 
     private SecretsManagerClient buildSmClient(String vaultRegion) {

@@ -33,7 +33,7 @@ class AwsSecretsManagerVaultExtensionTest {
         ServiceExtensionContext invalidContext = mock(ServiceExtensionContext.class);
         when(invalidContext.getMonitor()).thenReturn(monitor);
 
-        Assertions.assertThrows(EdcException.class, () -> extension.initialize(invalidContext));
+        Assertions.assertThrows(EdcException.class, () -> extension.createVault(invalidContext));
     }
 
     @Test
@@ -42,7 +42,7 @@ class AwsSecretsManagerVaultExtensionTest {
         when(validContext.getSetting("edc.vault.aws.region", null)).thenReturn("eu-west-1");
         when(validContext.getMonitor()).thenReturn(monitor);
 
-        extension.initialize(validContext);
+        extension.createVault(validContext);
     }
 
 }
