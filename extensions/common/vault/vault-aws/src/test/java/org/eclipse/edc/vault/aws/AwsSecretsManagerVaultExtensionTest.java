@@ -14,9 +14,9 @@
 
 package org.eclipse.edc.vault.aws;
 
-import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.spi.system.configuration.Config;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,13 +33,15 @@ class AwsSecretsManagerVaultExtensionTest {
         ServiceExtensionContext invalidContext = mock(ServiceExtensionContext.class);
         when(invalidContext.getMonitor()).thenReturn(monitor);
 
-        Assertions.assertThrows(EdcException.class, () -> extension.createVault(invalidContext));
+        Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(invalidContext));
     }
 
     @Test
     void configOptionRegionProvided_shouldNotThrowException() {
         ServiceExtensionContext validContext = mock(ServiceExtensionContext.class);
-        when(validContext.getSetting("edc.vault.aws.region", null)).thenReturn("eu-west-1");
+        Config cfg = mock();
+        when(cfg.getString("edc.vault.aws.region")).thenReturn("eu-west-1");
+        when(validContext.getConfig()).thenReturn(cfg);
         when(validContext.getMonitor()).thenReturn(monitor);
 
         extension.createVault(validContext);

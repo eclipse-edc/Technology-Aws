@@ -16,17 +16,12 @@ package org.eclipse.edc.vault.aws;
 
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Provider;
-import org.eclipse.edc.runtime.metamodel.annotation.Provides;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
-import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-
-import static org.eclipse.edc.util.configuration.ConfigurationFunctions.propOrEnv;
-import static org.eclipse.edc.util.string.StringUtils.isNullOrEmpty;
 
 /**
  * This extension registers an implementation of the Vault interface for AWS Secrets Manager.
@@ -34,7 +29,6 @@ import static org.eclipse.edc.util.string.StringUtils.isNullOrEmpty;
  * using the AWS Secretes Manager Vault implementation.
  * The extension requires the "edc.vault.aws.region" parameter to be set to the AWS region in which secrets should be stored.
  */
-@Provides({ Vault.class })
 @Extension(value = org.eclipse.edc.vault.aws.AwsSecretsManagerVaultExtension.NAME)
 public class AwsSecretsManagerVaultExtension implements ServiceExtension {
     public static final String NAME = "AWS Secrets Manager Vault";
@@ -49,7 +43,7 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
 
     @Provider
     public Vault createVault(ServiceExtensionContext context) {
-        var vaultRegion = getMandatorySetting(context, VAULT_AWS_REGION);
+        var vaultRegion = context.getConfig().getString(VAULT_AWS_REGION);
 
         var smClient = buildSmClient(vaultRegion);
 
@@ -61,17 +55,6 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
         var builder = SecretsManagerClient.builder()
                 .region(Region.of(vaultRegion));
         return builder.build();
-    }
-
-    private String getMandatorySetting(ServiceExtensionContext context, String setting) {
-        var value = context.getSetting(setting, null);
-        if (isNullOrEmpty(value)) {
-            value = propOrEnv(setting, null);
-            if (isNullOrEmpty(value)) {
-                throw new EdcException(String.format("'%s' must be supplied but was null", setting));
-            }
-        }
-        return value;
     }
 
 }
