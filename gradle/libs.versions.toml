@@ -3,23 +3,23 @@ format.version = "1.1"
 
 [versions]
 awaitility = "4.2.0"
-aws = "2.21.15"
+aws = "2.22.9"
 bouncyCastle-jdk18on = "1.76"
-edc = "0.4.1-SNAPSHOT"
+edc = "0.4.2-SNAPSHOT"
 failsafe = "3.3.1"
 httpMockServer = "5.15.0"
 jakarta-json = "2.0.1"
 mockito = "5.2.0"
-nimbus = "9.37"
+nimbus = "9.37.3"
 openTelemetry = "1.18.0"
 opentelemetry-proto = "1.0.0-alpha"
-restAssured = "5.3.2"
+restAssured = "5.4.0"
 rsApi = "3.1.0"
 
 
 [libraries]
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
-assertj = { module = "org.assertj:assertj-core", version = "3.24.2" }
+assertj = { module = "org.assertj:assertj-core", version = "3.25.1" }
 bouncyCastle-bcpkixJdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 bouncyCastle-bcprovJdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 edc-api-management = { module = "org.eclipse.edc:management-api", version.ref = "edc" }

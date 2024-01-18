@@ -29,6 +29,7 @@ import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -89,7 +90,7 @@ public class S3DataSourceFactory implements DataSourceFactory {
         String endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
 
         S3Client client;
-        var secret = vault.resolveSecret(address.getKeyName());
+        var secret = StringUtils.isNullOrBlank(address.getKeyName()) ? null : vault.resolveSecret(address.getKeyName());
         if (secret != null) {
             var secretToken = typeManager.readValue(secret, AwsSecretToken.class);
             client = clientProvider.s3Client(S3ClientRequest.from(address.getStringProperty(REGION), endpointOverride, secretToken));

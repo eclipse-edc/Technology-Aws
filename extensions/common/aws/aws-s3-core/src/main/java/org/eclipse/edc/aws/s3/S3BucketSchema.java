@@ -20,6 +20,7 @@ public interface S3BucketSchema {
     String REGION = "region";
     String BUCKET_NAME = "bucketName";
     String KEY_PREFIX = "keyPrefix";
+    String FOLDER_NAME = "folderName";
     String ACCESS_KEY_ID = "accessKeyId";
     String SECRET_ACCESS_KEY = "secretAccessKey";
     String ENDPOINT_OVERRIDE = "endpointOverride";
