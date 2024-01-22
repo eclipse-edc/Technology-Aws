@@ -12,7 +12,7 @@ jakarta-json = "2.0.1"
 mockito = "5.2.0"
 nimbus = "9.37.3"
 openTelemetry = "1.18.0"
-opentelemetry-proto = "1.0.0-alpha"
+opentelemetry-proto = "1.1.0-alpha"
 restAssured = "5.4.0"
 rsApi = "3.1.0"
 
