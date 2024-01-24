@@ -19,7 +19,7 @@ rsApi = "3.1.0"
 
 [libraries]
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
-assertj = { module = "org.assertj:assertj-core", version = "3.25.1" }
+assertj = { module = "org.assertj:assertj-core", version = "3.25.2" }
 bouncyCastle-bcpkixJdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 bouncyCastle-bcprovJdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 edc-api-management = { module = "org.eclipse.edc:management-api", version.ref = "edc" }
