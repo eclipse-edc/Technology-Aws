@@ -79,7 +79,7 @@ restAssured = { module = "io.rest-assured:rest-assured", version.ref = "restAssu
 jakartaJson = { module = "org.glassfish:jakarta.json", version.ref = "jakarta-json" }
 jakarta-rsApi = { module = "jakarta.ws.rs:jakarta.ws.rs-api", version.ref = "rsApi" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version = "5.9.3" }
-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version = "5.9.3" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version = "5.10.2" }
 edc-jsonld = { module = "org.eclipse.edc:json-ld", version.ref = "edc" }
 mockserver-client = { module = "org.mock-server:mockserver-client-java", version.ref = "httpMockServer" }
 mockserver-netty = { module = "org.mock-server:mockserver-netty", version.ref = "httpMockServer" }
