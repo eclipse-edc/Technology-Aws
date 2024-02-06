@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
@@ -122,8 +123,12 @@ class S3DataSource implements DataSource {
 
         @Override
         public InputStream openStream() {
-            var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
-            return client.getObject(request);
+            try {
+                var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
+                return client.getObject(request);
+            } catch (Exception e) {
+                throw new S3DataSourceException(e.getMessage(), e);
+            }
         }
     }
 

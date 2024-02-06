@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import org.eclipse.edc.connector.dataplane.util.sink.ParallelSink;
@@ -46,9 +47,13 @@ class S3DataSink extends ParallelSink {
 
     @Override
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
+
         for (var part : parts) {
+
             var key = getDestinationObjectName(part.name());
+
             try (var input = part.openStream()) {
+
                 var partNumber = 1;
                 var completedParts = new ArrayList<CompletedPart>();
 
@@ -57,12 +62,9 @@ class S3DataSink extends ParallelSink {
                         .key(key)
                         .build()).uploadId();
 
-                while (true) {
-                    var bytesChunk = input.readNBytes(chunkSize);
+                var bytesChunk = input.readNBytes(chunkSize);
 
-                    if (bytesChunk.length < 1) {
-                        break;
-                    }
+                while (bytesChunk.length > 0) {
 
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
@@ -71,6 +73,9 @@ class S3DataSink extends ParallelSink {
                                     .uploadId(uploadId)
                                     .partNumber(partNumber)
                                     .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
+
+                    bytesChunk = input.readNBytes(chunkSize);
+
                     partNumber++;
                 }
 
@@ -83,6 +88,8 @@ class S3DataSink extends ParallelSink {
                                 .build())
                         .build());
 
+            } catch (S3DataSourceException e) {
+                return downloadFailure(e, key);
             } catch (Exception e) {
                 return uploadFailure(e, key);
             }
@@ -91,7 +98,7 @@ class S3DataSink extends ParallelSink {
         return StreamResult.success();
     }
 
-    String getDestinationObjectName(String partName) {
+    private String getDestinationObjectName(String partName) {
         if (!StringUtils.isNullOrEmpty(folderName)) {
             return folderName.endsWith("/") ? folderName + partName : folderName + "/" + partName;
         }
@@ -99,8 +106,15 @@ class S3DataSink extends ParallelSink {
     }
 
     @NotNull
+    private StreamResult<Object> downloadFailure(Exception e, String keyName) {
+        var message = format("Error downloading the %s object: %s", keyName, e.getMessage());
+        monitor.severe(message, e);
+        return StreamResult.error(message);
+    }
+
+    @NotNull
     private StreamResult<Object> uploadFailure(Exception e, String keyName) {
-        var message = format("Error writing the %s object on the %s bucket: %s", keyName, bucketName, e.getMessage());
+        var message = format("Error uploading the %s object: %s", keyName, e.getMessage());
         monitor.severe(message, e);
         return StreamResult.error(message);
     }
@@ -141,6 +155,7 @@ class S3DataSink extends ParallelSink {
         }
 
         @Override
-        protected void validate() {}
+        protected void validate() {
+        }
     }
 }
