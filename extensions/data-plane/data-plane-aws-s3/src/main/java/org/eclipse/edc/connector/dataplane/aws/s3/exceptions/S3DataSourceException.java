@@ -18,19 +18,7 @@ import org.eclipse.edc.spi.EdcException;
 
 public class S3DataSourceException extends EdcException {
 
-    public S3DataSourceException(String message) {
-        super(message);
-    }
-
     public S3DataSourceException(String message, Throwable cause) {
         super(message, cause);
-    }
-
-    public S3DataSourceException(Throwable cause) {
-        super(cause);
-    }
-
-    public S3DataSourceException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

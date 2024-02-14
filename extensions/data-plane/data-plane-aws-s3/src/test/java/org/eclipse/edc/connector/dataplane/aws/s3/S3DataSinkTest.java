@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 ZF Friedrichshafen AG
+ *  Copyright (c) 2022 - 2004 ZF Friedrichshafen AG
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -15,6 +15,8 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
+import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +34,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 
@@ -113,20 +114,15 @@ public class S3DataSinkTest {
     }
 
     @Test
-    void transferParts_fails_downloading() {
-        var s3DatasourceS3Client = mock(S3Client.class);
+    void transferParts_failed_to_download() {
+        var part = mock(DataSource.Part.class);
 
-        var s3Datasource = S3DataSource.Builder.newInstance()
-                .keyName(KEY_NAME)
-                .bucketName(BUCKET_NAME)
-                .client(s3DatasourceS3Client).build();
+        when(part.name()).thenReturn(KEY_NAME);
+        when(part.openStream()).thenThrow(new S3DataSourceException(ERROR_MESSAGE, new RuntimeException()));
 
-        when(s3DatasourceS3Client.getObject(any(GetObjectRequest.class)))
-                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+        var result = dataSink.transferParts(List.of(part));
 
-        var result = dataSink.transferParts(s3Datasource.openPartStream().getContent().toList());
-
-        var expectedMessage = "Error downloading the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+        var expectedMessage = "Failed to download the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
@@ -134,7 +130,7 @@ public class S3DataSinkTest {
 
     @ParameterizedTest
     @ArgumentsSource(MultiPartsInputs.class)
-    void transferParts_fails_uploading(List inputStream) {
+    void transferParts_fails_to_upload(List inputStream) {
         var s3DatasinkS3Client = mock(S3Client.class);
 
         var s3Datasink = S3DataSink.Builder.newInstance()
@@ -152,7 +148,7 @@ public class S3DataSinkTest {
 
         var result = s3Datasink.transferParts(inputStream);
 
-        var expectedMessage = "Error uploading the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+        var expectedMessage = "Failed to upload the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
