@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 ZF Friedrichshafen AG
+ *  Copyright (c) 2022 - 2004 ZF Friedrichshafen AG
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -15,10 +15,13 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
+import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -52,6 +55,7 @@ public class S3DataSinkTest {
     private static final String BUCKET_NAME = "bucketName";
     private static final String KEY_NAME = "keyName";
     private static final String ETAG = "eTag";
+    private static final String ERROR_MESSAGE = "Error message";
     private static final int CHUNK_SIZE_BYTES = 50;
 
     private S3Client s3ClientMock;
@@ -85,7 +89,8 @@ public class S3DataSinkTest {
     void transferParts_singlePart_succeeds(List inputStream) {
         var result = dataSink.transferParts(inputStream);
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor
+                .capture());
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
@@ -98,13 +103,55 @@ public class S3DataSinkTest {
     void transferParts_multiPart_succeeds(List inputStream) {
         var result = dataSink.transferParts(inputStream);
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor
+                .capture());
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
         assertThat(completeMultipartUploadRequest.key()).isEqualTo(KEY_NAME);
 
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(2);
+    }
+
+    @Test
+    void transferParts_failed_to_download() {
+        var part = mock(DataSource.Part.class);
+
+        when(part.name()).thenReturn(KEY_NAME);
+        when(part.openStream()).thenThrow(new S3DataSourceException(ERROR_MESSAGE, new RuntimeException()));
+
+        var result = dataSink.transferParts(List.of(part));
+
+        var expectedMessage = "Failed to download the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(MultiPartsInputs.class)
+    void transferParts_fails_to_upload(List inputStream) {
+        var s3DatasinkS3Client = mock(S3Client.class);
+
+        var s3Datasink = S3DataSink.Builder.newInstance()
+                .bucketName(BUCKET_NAME)
+                .keyName(KEY_NAME)
+                .client(s3DatasinkS3Client)
+                .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
+                .executorService(Executors.newFixedThreadPool(2))
+                .monitor(mock(Monitor.class))
+                .chunkSizeBytes(CHUNK_SIZE_BYTES)
+                .build();
+
+        when(s3DatasinkS3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class)))
+                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+
+        var result = s3Datasink.transferParts(inputStream);
+
+        var expectedMessage = "Failed to upload the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
     }
 
     @Nested

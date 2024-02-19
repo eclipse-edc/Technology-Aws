@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2024 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
@@ -122,8 +123,12 @@ class S3DataSource implements DataSource {
 
         @Override
         public InputStream openStream() {
-            var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
-            return client.getObject(request);
+            try {
+                var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
+                return client.getObject(request);
+            } catch (Exception e) {
+                throw new S3DataSourceException(e.getMessage(), e);
+            }
         }
     }
 

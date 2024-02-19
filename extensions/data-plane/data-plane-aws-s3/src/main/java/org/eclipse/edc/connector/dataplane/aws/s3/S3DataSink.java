@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 - 2023 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+ *  Copyright (c) 2022 - 2024 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import org.eclipse.edc.connector.dataplane.util.sink.ParallelSink;
@@ -31,8 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.String.format;
-
 class S3DataSink extends ParallelSink {
 
     private S3Client client;
@@ -49,7 +48,7 @@ class S3DataSink extends ParallelSink {
         for (var part : parts) {
             var key = getDestinationObjectName(part.name());
             try (var input = part.openStream()) {
-                var partNumber = 1;
+
                 var completedParts = new ArrayList<CompletedPart>();
 
                 var uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
@@ -57,13 +56,9 @@ class S3DataSink extends ParallelSink {
                         .key(key)
                         .build()).uploadId();
 
-                while (true) {
-                    var bytesChunk = input.readNBytes(chunkSize);
-
-                    if (bytesChunk.length < 1) {
-                        break;
-                    }
-
+                var partNumber = 1;
+                byte[] bytesChunk = input.readNBytes(chunkSize);
+                while (bytesChunk.length > 0) {
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
                                     .bucket(bucketName)
@@ -71,6 +66,7 @@ class S3DataSink extends ParallelSink {
                                     .uploadId(uploadId)
                                     .partNumber(partNumber)
                                     .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
+                    bytesChunk = input.readNBytes(chunkSize);
                     partNumber++;
                 }
 
@@ -83,15 +79,17 @@ class S3DataSink extends ParallelSink {
                                 .build())
                         .build());
 
+            } catch (S3DataSourceException e) {
+                return transferFailure(e, "download", key);
             } catch (Exception e) {
-                return uploadFailure(e, key);
+                return transferFailure(e, "upload", key);
             }
         }
 
         return StreamResult.success();
     }
 
-    String getDestinationObjectName(String partName) {
+    private String getDestinationObjectName(String partName) {
         if (!StringUtils.isNullOrEmpty(folderName)) {
             return folderName.endsWith("/") ? folderName + partName : folderName + "/" + partName;
         }
@@ -99,8 +97,8 @@ class S3DataSink extends ParallelSink {
     }
 
     @NotNull
-    private StreamResult<Object> uploadFailure(Exception e, String keyName) {
-        var message = format("Error writing the %s object on the %s bucket: %s", keyName, bucketName, e.getMessage());
+    private StreamResult<Object> transferFailure(Exception e, String operation, String objectKeyName) {
+        var message = "Failed to %s the %s object: %s".formatted(operation, objectKeyName, e.getMessage());
         monitor.severe(message, e);
         return StreamResult.error(message);
     }
@@ -141,6 +139,7 @@ class S3DataSink extends ParallelSink {
         }
 
         @Override
-        protected void validate() {}
+        protected void validate() {
+        }
     }
 }
