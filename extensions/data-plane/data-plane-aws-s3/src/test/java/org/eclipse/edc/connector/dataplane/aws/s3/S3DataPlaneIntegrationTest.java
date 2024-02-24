@@ -22,7 +22,7 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
@@ -96,7 +96,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                 .property(ENDPOINT_OVERRIDE, DESTINATION_MINIO_ENDPOINT)
                 .build();
 
-        var request = DataFlowRequest.Builder.newInstance()
+        var request = DataFlowStartMessage.Builder.newInstance()
                 .id(UUID.randomUUID().toString())
                 .processId(UUID.randomUUID().toString())
                 .sourceDataAddress(sourceAddress)
@@ -151,9 +151,9 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                     Arguments.of(ASSET_PREFIX, (Object) new String[]{
                             ASSET_PREFIX + 1 + ASSET_FILE,
                             ASSET_PREFIX + 2 + ASSET_FILE,
-                            ASSET_PREFIX + 3 + ASSET_FILE}),
+                            ASSET_PREFIX + 3 + ASSET_FILE }),
                     Arguments.of(ASSET_FILE, (Object) new String[]{
-                            ASSET_FILE}));
+                            ASSET_FILE }));
         }
     }
 }

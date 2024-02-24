@@ -17,7 +17,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 import org.eclipse.edc.connector.api.client.spi.transferprocess.TransferProcessApiClient;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.junit.extensions.EdcExtension;
-import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +37,7 @@ class DataPlaneS3ExtensionTest {
 
     @Test
     void shouldProvidePipelineServices(PipelineService pipelineService) {
-        var request = DataFlowRequest.Builder.newInstance()
+        var request = DataFlowStartMessage.Builder.newInstance()
                 .processId(UUID.randomUUID().toString())
                 .sourceDataAddress(TestFunctions.s3DataAddressWithCredentials())
                 .destinationDataAddress(TestFunctions.s3DataAddressWithCredentials())
