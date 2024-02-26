@@ -16,7 +16,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 
 import java.util.UUID;
 
@@ -50,8 +50,8 @@ public class TestFunctions {
                 .build();
     }
 
-    public static DataFlowRequest.Builder createRequest(String type) {
-        return DataFlowRequest.Builder.newInstance()
+    public static DataFlowStartMessage.Builder createRequest(String type) {
+        return DataFlowStartMessage.Builder.newInstance()
                 .id(UUID.randomUUID().toString())
                 .processId(UUID.randomUUID().toString())
                 .sourceDataAddress(createDataAddress(type).build())
