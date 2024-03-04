@@ -36,8 +36,8 @@ import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.succ
 class S3DataSource implements DataSource {
 
     private String bucketName;
-    private String keyName;
-    private String keyPrefix;
+    private String objectName;
+    private String objectPrefix;
     private S3Client client;
 
     private S3DataSource() {
@@ -46,7 +46,7 @@ class S3DataSource implements DataSource {
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
 
-        if (keyPrefix != null) {
+        if (objectPrefix != null) {
 
             var s3Objects = this.fetchPrefixedS3Objects();
 
@@ -62,7 +62,7 @@ class S3DataSource implements DataSource {
 
         }
 
-        return success(Stream.of(new S3Part(client, keyName, bucketName)));
+        return success(Stream.of(new S3Part(client, objectName, bucketName)));
     }
 
     /**
@@ -79,7 +79,7 @@ class S3DataSource implements DataSource {
 
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
-                    .prefix(keyPrefix)
+                    .prefix(objectPrefix)
                     .continuationToken(continuationToken)
                     .build();
 
@@ -101,30 +101,30 @@ class S3DataSource implements DataSource {
 
     private static class S3Part implements Part {
         private final S3Client client;
-        private final String keyName;
+        private final String objectName;
         private final String bucketName;
 
-        S3Part(S3Client client, String keyName, String bucketName) {
+        S3Part(S3Client client, String objectName, String bucketName) {
             this.client = client;
-            this.keyName = keyName;
+            this.objectName = objectName;
             this.bucketName = bucketName;
         }
 
         @Override
         public String name() {
-            return keyName;
+            return objectName;
         }
 
         @Override
         public long size() {
-            var request = HeadObjectRequest.builder().key(keyName).bucket(bucketName).build();
+            var request = HeadObjectRequest.builder().key(objectName).bucket(bucketName).build();
             return client.headObject(request).contentLength();
         }
 
         @Override
         public InputStream openStream() {
             try {
-                var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
+                var request = GetObjectRequest.builder().key(objectName).bucket(bucketName).build();
                 return client.getObject(request);
             } catch (Exception e) {
                 throw new S3DataSourceException(e.getMessage(), e);
@@ -148,13 +148,13 @@ class S3DataSource implements DataSource {
             return this;
         }
 
-        public Builder keyName(String keyName) {
-            source.keyName = keyName;
+        public Builder objectName(String objectName) {
+            source.objectName = objectName;
             return this;
         }
 
-        public Builder keyPrefix(String keyPrefix) {
-            source.keyPrefix = keyPrefix;
+        public Builder objectPrefix(String objectPrefix) {
+            source.objectPrefix = objectPrefix;
             return this;
         }
 

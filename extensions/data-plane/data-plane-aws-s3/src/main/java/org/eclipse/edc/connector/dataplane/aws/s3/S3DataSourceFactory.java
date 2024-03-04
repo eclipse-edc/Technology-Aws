@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
+import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
@@ -35,17 +36,14 @@ import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.s3.S3Client;
 
-import java.util.Objects;
-import java.util.stream.Stream;
-
+import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_PREFIX;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_TOKEN;
 
 public class S3DataSourceFactory implements DataSourceFactory {
 
@@ -77,8 +75,8 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
         return S3DataSource.Builder.newInstance()
                 .bucketName(source.getStringProperty(BUCKET_NAME))
-                .keyName(source.getKeyName())
-                .keyPrefix(source.getStringProperty(KEY_PREFIX))
+                .objectName(source.getStringProperty(OBJECT_NAME))
+                .objectPrefix(source.getStringProperty(OBJECT_PREFIX))
                 .client(getS3Client(source))
                 .build();
     }
@@ -90,25 +88,22 @@ public class S3DataSourceFactory implements DataSourceFactory {
     }
 
     private S3Client getS3Client(DataAddress address) {
-
         var endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
         var region = address.getStringProperty(REGION);
 
-        var secretToken = Stream.of(KEY_NAME, SECRET_TOKEN)
-                .map(address::getStringProperty)
-                .filter(prop -> !StringUtils.isNullOrBlank(prop))
+        var awsSecretToken = ofNullable(address.getKeyName())
+                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
                 .map(vault::resolveSecret)
-                .filter(Objects::nonNull)
-                .map(s -> typeManager.readValue(s, AwsSecretToken.class))
-                .findFirst();
+                .filter(secret -> !StringUtils.isNullOrBlank(secret))
+                .map(s -> typeManager.readValue(s, AwsTemporarySecretToken.class));
 
-        if (secretToken.isPresent()) {
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride, secretToken.get()));
+        if (awsSecretToken.isPresent()) {
+            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride, awsSecretToken.get()));
         } else if (credentialsValidation.validate(address).succeeded()) {
             var accessKeyId = address.getStringProperty(ACCESS_KEY_ID);
             var secretAccessKey = address.getStringProperty(SECRET_ACCESS_KEY);
-            var awsSecretToken = new AwsSecretToken(accessKeyId, secretAccessKey);
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride, awsSecretToken));
+            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride,
+                    new AwsSecretToken(accessKeyId, secretAccessKey)));
         } else {
             return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride));
         }

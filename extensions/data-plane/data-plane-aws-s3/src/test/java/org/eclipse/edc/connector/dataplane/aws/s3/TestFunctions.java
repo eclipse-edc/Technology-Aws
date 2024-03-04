@@ -37,7 +37,7 @@ public class TestFunctions {
                 .property(S3BucketSchema.REGION, VALID_REGION)
                 .property(S3BucketSchema.ACCESS_KEY_ID, VALID_ACCESS_KEY_ID)
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, VALID_SECRET_ACCESS_KEY)
-                .property(S3BucketSchema.SECRET_TOKEN, VALID_SECRET_TOKEN)
+                .property(S3BucketSchema.OBJECT_NAME, VALID_SECRET_TOKEN)
                 .build();
     }
 

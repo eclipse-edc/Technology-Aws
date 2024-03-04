@@ -45,6 +45,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_PREFIX;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.eclipse.edc.connector.dataplane.aws.s3.DataPlaneS3Extension.DEFAULT_CHUNK_SIZE_IN_MB;
 import static org.mockito.Mockito.mock;
@@ -125,6 +127,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                 .type(S3BucketSchema.TYPE)
                 .keyName(key)
                 .property(BUCKET_NAME, sourceBucketName)
+                .property(OBJECT_NAME, key)
                 .property(S3BucketSchema.REGION, REGION)
                 .property(ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
                 .property(SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey())
@@ -134,7 +137,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
     private DataAddress createObjectInFolderAddress(String prefix) {
         return DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
-                .property("keyPrefix", prefix)
+                .property(OBJECT_PREFIX, prefix)
                 .property(BUCKET_NAME, sourceBucketName)
                 .property(S3BucketSchema.REGION, REGION)
                 .property(ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())

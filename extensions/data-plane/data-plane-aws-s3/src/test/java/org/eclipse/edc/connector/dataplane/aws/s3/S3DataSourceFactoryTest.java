@@ -16,7 +16,7 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
+import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
@@ -39,14 +39,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_ACCESS_KEY_ID;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_BUCKET_NAME;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_KEY_NAME;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_REGION;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_SECRET_ACCESS_KEY;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_SECRET_TOKEN;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithCredentials;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithoutCredentials;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -146,7 +143,7 @@ class S3DataSourceFactoryTest {
     @Test
     void createSource_shouldGetTheSecretTokenFromTheVault() {
         var source = TestFunctions.s3DataAddressWithCredentials();
-        var temporaryKey = new AwsSecretToken("temporaryId", "temporarySecret");
+        var temporaryKey = new AwsTemporarySecretToken("temporaryId", "temporarySecret", null, 0);
         when(vault.resolveSecret(source.getKeyName())).thenReturn(typeManager.writeValueAsString(temporaryKey));
         var request = createRequest(source);
 
@@ -159,45 +156,8 @@ class S3DataSourceFactoryTest {
         S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
 
         assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsTemporarySecretToken.class);
         assertThat(s3ClientRequest.endpointOverride()).isNull();
-    }
-
-    @Test
-    void createSource_should_get_secretToken_from_vault_using_its_key_alias_when_present() {
-
-        var dataAddress = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .keyName(VALID_KEY_NAME)
-                .property(S3BucketSchema.BUCKET_NAME, VALID_BUCKET_NAME)
-                .property(S3BucketSchema.REGION, VALID_REGION)
-                .property(S3BucketSchema.SECRET_TOKEN, VALID_SECRET_TOKEN)
-                .build();
-
-        var accessKeyIdFromSecretTokenAlias = "accessKeyIdFromSecretTokenAlias";
-        var secretAccessKeyFromSecretTokenAlias = "secretAccessKeyFromSecretTokenAlias";
-        var secretToken = new AwsSecretToken(accessKeyIdFromSecretTokenAlias, secretAccessKeyFromSecretTokenAlias);
-
-        when(vault.resolveSecret(dataAddress.getStringProperty(S3BucketSchema.SECRET_TOKEN)))
-                .thenReturn(typeManager.writeValueAsString(secretToken));
-
-        var dataFlowRequest = createRequest(dataAddress);
-
-        var dataSource = factory.createSource(dataFlowRequest);
-
-        verify(vault, times(1)).resolveSecret(VALID_KEY_NAME);
-        verify(vault, times(1)).resolveSecret(VALID_SECRET_TOKEN);
-
-        assertThat(dataSource).isNotNull().isInstanceOf(S3DataSource.class);
-        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
-        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
-        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.endpointOverride()).isNull();
-
-        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
-        var awsSecretToken = (AwsSecretToken) s3ClientRequest.secretToken();
-        assertThat(awsSecretToken.getAccessKeyId()).isEqualTo(accessKeyIdFromSecretTokenAlias);
-        assertThat(awsSecretToken.getSecretAccessKey()).isEqualTo(secretAccessKeyFromSecretTokenAlias);
     }
 
     private DataFlowStartMessage createRequest(DataAddress source) {

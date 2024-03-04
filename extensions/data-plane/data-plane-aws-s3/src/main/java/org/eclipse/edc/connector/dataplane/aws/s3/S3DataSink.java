@@ -36,7 +36,7 @@ class S3DataSink extends ParallelSink {
 
     private S3Client client;
     private String bucketName;
-    private String keyName;
+    private String objectName;
     private String folderName;
     private int chunkSize;
 
@@ -46,7 +46,7 @@ class S3DataSink extends ParallelSink {
     @Override
     protected StreamResult<Object> transferParts(List<DataSource.Part> parts) {
         for (var part : parts) {
-            var key = getDestinationObjectName(part.name());
+            var key = getDestinationObjectName(part.name(), parts.size());
             try (var input = part.openStream()) {
 
                 var completedParts = new ArrayList<CompletedPart>();
@@ -89,11 +89,13 @@ class S3DataSink extends ParallelSink {
         return StreamResult.success();
     }
 
-    private String getDestinationObjectName(String partName) {
+    private String getDestinationObjectName(String partName, int partsSize) {
+        var name = (partsSize == 1 && !StringUtils.isNullOrEmpty(objectName)) ? objectName : partName;
         if (!StringUtils.isNullOrEmpty(folderName)) {
-            return folderName.endsWith("/") ? folderName + partName : folderName + "/" + partName;
+            return folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
+        } else {
+            return name;
         }
-        return partName;
     }
 
     @NotNull
@@ -123,8 +125,8 @@ class S3DataSink extends ParallelSink {
             return this;
         }
 
-        public Builder keyName(String keyName) {
-            sink.keyName = keyName;
+        public Builder objectName(String objectName) {
+            sink.objectName = objectName;
             return this;
         }
 

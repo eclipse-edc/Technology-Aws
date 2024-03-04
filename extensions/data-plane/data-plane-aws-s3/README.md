@@ -1,33 +1,148 @@
-## Aws S3 Data Plane module
+# Aws S3 Data Plane module
 
-### About this module
+## About this module
 
 This module contains a Data Plane extension to copy data to and from Aws S3.
 
 When as a source, it supports copying a single or multiple objects.
 
-#### AmazonS3 DataAddress Configuration
+### Configuration
+
+#### Properties
+
+| Key                | Description                                                       | Applies at              | Mandatory               | Expected value                                                                                    | 
+|:-------------------|:------------------------------------------------------------------|-------------------------|-------------------------|---------------------------------------------------------------------------------------------------|
+| `type`             | Defines the Asset type                                            | `source`, `destination` | `true`                  | AmazonS3                                                                                          |
+| `region`           | Defines the region of the bucket                                  | `source`, `destination` | `true`                  | Valid region (`us-east-1`, `eu-west-1` ...)                                                       |
+| `endpointOverride` | Defines a custom endpoint URL                                     | `source`, `destination` | `false`                 | Valid URL                                                                                         |
+| `bucketName`       | Defines the name of the S3 bucket                                 | `source`, `destination` | `true`                  | [Valid bucket name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html) |
+| `objectName`       | Defines the name of the S3 object                                 | `source`, `destination` | `true` (only in source) | [Valid object name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)       |
+| `objectPrefix`     | Defines the prefix of the S3 objects to be fetched                | `source`                | `false`                 | [Valid prefix](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html)         |
+| `folderName`       | Defines the folder name for S3 objects to be grouped              | `destination`           | `false`                 | [Valid folder name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html)    |
+| `keyName`          | Defines the `vault` entry containing the secret token/credentials | `source`, `destination` | `false`                 | Valid `vault` entry (Varies from `vault` implementations)                                         |
+| `accessKeyId`      | Defines the access key id to access S3 Bucket/Object              | `source`, `destination` | `false`                 | Valid access key id                                                                               |
+| `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object       | `source`, `destination` | `false`                 | Valid secret access key                                                                           |
+
+#### S3DataSource Properties and behavior
 
 The behavior of object transfers can be customized using `DataAddress` properties.
 
-- When `keyPrefix` is present, transfer all objects with keys that start with the specified prefix.
-- When `keyPrefix` is not present, transfer only the object with a key matching the `keyName` property.
-- Precedence: `keyPrefix` takes precedence over `keyName` when determining which objects to transfer. It allows for both multiple object transfers and fetching a single object when necessary.
+- When `objectPrefix` is present, transfer all objects with keys that start with the specified prefix.
+- When `objectPrefix` is not present, transfer only the object with a key matching the `objectName` property.
+- Precedence: `objectPrefix` takes precedence over `objectName` when determining which objects to transfer. It allows
+  for both multiple object transfers and fetching a single object when necessary.
 
->Note: Using `keyPrefix` introduces an additional step to list all objects whose keys match the specified prefix.
- 
-#### Example Usage:
+> Note: Using `objectPrefix` introduces an additional step to list all objects whose keys match the specified prefix.
 
-Configuration with `keyPrefix`:
+#### S3DataSink Properties and behavior
 
+The destination's object naming can be tailored further through the utilization of `DataAddress` properties.
+
+- The `objectName` property allows specifying the desired name for the object in the destination. It comes into effect
+  when the `DataSource` comprises a single Part or object. If there are multiple `Part`s or the property is undefined,
+  the name of the `Part` (source object name) will be used.
+- The `folderName` property can consistently group objects in the destination, whether there is a single object or
+  multiple objects.
+
+#### Secret Resolution
+
+The `keyName` property should point to a `vault` entry that contains a JSON-serialized `SecretToken` object. The
+possible values are:
+
+- `AwsSecretToken`: Using `accessKeyId` and `secretAccessKey`, it's a form of basic AWS access key authentication. This
+  method relies on a set of long-term credentials (access key ID and secret access key) associated with an IAM user or
+  role.
+  ```json
+  {
+    "accessKeyId": "<ACCESS_KEY_ID>",
+    "secretAccessKey": "<SECRET_ACCESS_KEY>"
+  }
+  ```
+- `AwsTemporatySecretToken`: Has a `sessionToken` in addition to the `accessKeyId` and `secretAccessKey`, it is
+  typically
+  referred to as AWS temporary security credentials. This process involves assuming an IAM role to obtain short-term
+  credentials, which include an `accessKeyId`, `secretAccessKey`, and a session token.
+  ```json
+  {
+    "sessionToken": "<SESSION_TOKEN>",
+    "expiration": "<EXPIRATION>",
+    "accessKeyId":"<ACCESS_KEY_ID>",
+    "secretAccessKey": "<SECRET_ACCESS_KEY>"
+  }
+  ```
+
+#### Plain text credentials
+
+This feature has been introduced to provide flexibility by not mandating the use of a `vault`. However, it is important
+to note that this functionality is not recommended for production environments.
+
+- The properties `accessKeyId` and `secretAccessKey`, can be used for basic AWS access key authentication.
+
+#### Source - Data Address Example
+
+- Single object:
 ```json
 {
   "dataAddress": {
-    "keyName": "my-key-name",
-    "keyPrefix": "my-key-prefix/"
+    "properties": {
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "objectName": "test/object.bin",
+      "keyName": "(see above)"
+    }
+  }
+}
+```
+- Multiple objects:
+```json
+{
+  "dataAddress": {
+    "properties": {
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "objectPrefix": "test/",
+      "keyName": "(see above)"
+    }
   }
 }
 ```
 
-#### AmazonS3 Chunk size Configuration
-The maximum chunk of stream to be read, by default, is 500mb. It can be changed in the EDC config file as `edc.dataplane.aws.sink.chunk.size.mb` or in the env variables as `EDC_DATAPLANE_AWS_SINK_CHUNK_SIZE_MB`.
+#### Destination - Data Address Example
+
+- Single object:
+```json
+{
+    "dataDestination": {
+        "properties": {
+            "type": "AmazonS3",
+            "bucketName": "bucketName",
+            "region": "us-east-1",
+            "folderName": "destinationFolder/",
+            "objectName": "newName",
+            "keyName": "(see above)"
+        }
+    }
+}
+```
+
+- Multiple objects:
+```json
+{
+  "dataDestination": {
+    "properties": {
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "folderName": "destinationFolder/",
+      "keyName": "(see above)"
+    }
+  }
+}
+```
+
+### AmazonS3 Chunk size Configuration
+
+The maximum chunk of stream to be read, by default, is 500mb. It can be changed in the EDC config file
+as `edc.dataplane.aws.sink.chunk.size.mb` or in the env variables as `EDC_DATAPLANE_AWS_SINK_CHUNK_SIZE_MB`.

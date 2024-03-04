@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 public class S3DataSinkTest {
 
     private static final String BUCKET_NAME = "bucketName";
-    private static final String KEY_NAME = "keyName";
+    private static final String OBJECT_NAME = "objectName";
     private static final String ETAG = "eTag";
     private static final String ERROR_MESSAGE = "Error message";
     private static final int CHUNK_SIZE_BYTES = 50;
@@ -70,7 +70,7 @@ public class S3DataSinkTest {
 
         dataSink = S3DataSink.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
+                .objectName(OBJECT_NAME)
                 .client(s3ClientMock)
                 .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
                 .executorService(Executors.newFixedThreadPool(2))
@@ -94,21 +94,22 @@ public class S3DataSinkTest {
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
-        assertThat(completeMultipartUploadRequest.key()).isEqualTo(KEY_NAME);
+        assertThat(completeMultipartUploadRequest.key()).isEqualTo(OBJECT_NAME);
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(1);
     }
 
     @ParameterizedTest
     @ArgumentsSource(MultiPartsInputs.class)
     void transferParts_multiPart_succeeds(List inputStream) {
-        var result = dataSink.transferParts(inputStream);
-        assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor
-                .capture());
 
+        var result = dataSink.transferParts(inputStream);
+
+        assertThat(result.succeeded()).isTrue();
+        verify(s3ClientMock, times(inputStream.size()))
+                .completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
-        assertThat(completeMultipartUploadRequest.key()).isEqualTo(KEY_NAME);
+        assertThat(completeMultipartUploadRequest.key()).isEqualTo(OBJECT_NAME);
 
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(2);
     }
@@ -117,12 +118,12 @@ public class S3DataSinkTest {
     void transferParts_failed_to_download() {
         var part = mock(DataSource.Part.class);
 
-        when(part.name()).thenReturn(KEY_NAME);
+        when(part.name()).thenReturn(OBJECT_NAME);
         when(part.openStream()).thenThrow(new S3DataSourceException(ERROR_MESSAGE, new RuntimeException()));
 
         var result = dataSink.transferParts(List.of(part));
 
-        var expectedMessage = "Failed to download the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+        var expectedMessage = "Failed to download the %s object: %s".formatted(OBJECT_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
@@ -135,7 +136,7 @@ public class S3DataSinkTest {
 
         var s3Datasink = S3DataSink.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
+                .objectName(OBJECT_NAME)
                 .client(s3DatasinkS3Client)
                 .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
                 .executorService(Executors.newFixedThreadPool(2))
@@ -148,7 +149,7 @@ public class S3DataSinkTest {
 
         var result = s3Datasink.transferParts(inputStream);
 
-        var expectedMessage = "Failed to upload the %s object: %s".formatted(KEY_NAME, ERROR_MESSAGE);
+        var expectedMessage = "Failed to upload the %s object: %s".formatted(OBJECT_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
@@ -201,6 +202,6 @@ public class S3DataSinkTest {
 
     private static InputStreamDataSource createDataSource(String text) {
         String content = StringUtils.isBlank(text) ? "test stream" : text;
-        return new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
+        return new InputStreamDataSource(OBJECT_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
     }
 }
