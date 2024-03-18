@@ -10,18 +10,18 @@ When as a source, it supports copying a single or multiple objects.
 
 #### Properties
 
-| Key                | Description                                                       | Applies at              | Mandatory               | Expected value                                                                                    | 
-|:-------------------|:------------------------------------------------------------------|-------------------------|-------------------------|---------------------------------------------------------------------------------------------------|
-| `type`             | Defines the Asset type                                            | `source`, `destination` | `true`                  | AmazonS3                                                                                          |
-| `region`           | Defines the region of the bucket                                  | `source`, `destination` | `true`                  | Valid region (`us-east-1`, `eu-west-1` ...)                                                       |
-| `endpointOverride` | Defines a custom endpoint URL                                     | `source`, `destination` | `false`                 | Valid URL                                                                                         |
-| `bucketName`       | Defines the name of the S3 bucket                                 | `source`, `destination` | `true`                  | [Valid bucket name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html) |
-| `objectName`       | Defines the name of the S3 object                                 | `source`, `destination` | `true` (only in source) | [Valid object name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)       |
-| `objectPrefix`     | Defines the prefix of the S3 objects to be fetched                | `source`                | `false`                 | [Valid prefix](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html)         |
-| `folderName`       | Defines the folder name for S3 objects to be grouped              | `destination`           | `false`                 | [Valid folder name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html)    |
-| `keyName`          | Defines the `vault` entry containing the secret token/credentials | `source`, `destination` | `false`                 | Valid `vault` entry (Varies from `vault` implementations)                                         |
-| `accessKeyId`      | Defines the access key id to access S3 Bucket/Object              | `source`, `destination` | `false`                 | Valid access key id                                                                               |
-| `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object       | `source`, `destination` | `false`                 | Valid secret access key                                                                           |
+| Key                | Description                                                            | Applies at              | Mandatory               |
+|:-------------------|:-----------------------------------------------------------------------|-------------------------|-------------------------|
+| `type`             | Defines the Asset type ( `AmazonS3` )                                  | `source`, `destination` | `true`                  |
+| `region`           | Defines the region of the bucket (`us-east-1`, `eu-west-1` ...)        | `source`, `destination` | `true`                  |
+| `endpointOverride` | Defines a custom endpoint URL                                          | `source`, `destination` | `false`                 |
+| `bucketName`       | Defines the name of the S3 bucket                                      | `source`, `destination` | `true`                  |
+| `objectName`       | Defines the name of the S3 object                                      | `source`, `destination` | `true` (only in source) |
+| `objectPrefix`     | Defines the prefix of the S3 objects to be fetched ( `objectPrefix/` ) | `source`                | `false`                 |
+| `folderName`       | Defines the folder name for S3 objects to be grouped ( `folderName/` ) | `destination`           | `false`                 |
+| `keyName`          | Defines the `vault` entry containing the secret token/credentials      | `source`, `destination` | `false`                 |
+| `accessKeyId`      | Defines the access key id to access S3 Bucket/Object                   | `source`, `destination` | `false`                 |
+| `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object            | `source`, `destination` | `false`                 |
 
 #### S3DataSource Properties and behavior
 
@@ -65,9 +65,7 @@ possible values are:
   ```json
   {
     "sessionToken": "<SESSION_TOKEN>",
-    "expiration": "<EXPIRATION>",
-    "accessKeyId":"<ACCESS_KEY_ID>",
-    "secretAccessKey": "<SECRET_ACCESS_KEY>"
+    "expiration": "<EXPIRATION>"
   }
   ```
 
