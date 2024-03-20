@@ -110,15 +110,17 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        if(isSingleObject) {
-            assertThat(destinationClient.getObject(destinationBucketName, objectNameInDestination)).succeedsWithin(5, SECONDS)
+        if (isSingleObject) {
+            assertThat(destinationClient.getObject(destinationBucketName, objectNameInDestination))
+                    .succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
                     .extracting(Long::intValue)
                     .isEqualTo(objectContent.length());
         } else {
             for (var objectName : objectNames) {
-                assertThat(destinationClient.getObject(destinationBucketName, objectName)).succeedsWithin(5, SECONDS)
+                assertThat(destinationClient.getObject(destinationBucketName, objectName))
+                        .succeedsWithin(5, SECONDS)
                         .extracting(ResponseBytes::response)
                         .extracting(GetObjectResponse::contentLength)
                         .extracting(Long::intValue)
@@ -173,16 +175,17 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        if(isSingleObject) {
-            System.out.println("Fetching: " + folderNameInDestination + objectNameInDestination);
-            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination + objectNameInDestination)).succeedsWithin(5, SECONDS)
+        if (isSingleObject) {
+            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
+                    objectNameInDestination)).succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
                     .extracting(Long::intValue)
                     .isEqualTo(objectBody.length());
         } else {
             for (var objectName : objectNames) {
-                assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination + objectName)).succeedsWithin(5, SECONDS)
+                assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
+                        objectName)).succeedsWithin(5, SECONDS)
                         .extracting(ResponseBytes::response)
                         .extracting(GetObjectResponse::contentLength)
                         .extracting(Long::intValue)
