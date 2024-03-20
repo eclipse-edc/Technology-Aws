@@ -69,12 +69,43 @@ possible values are:
   }
   ```
 
+Example:
+```json
+{
+  "dataAddress": {
+    "properties": {
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "objectName": "test/object.bin",
+      "keyName": "<SECRET_KEY_IN_VAULT>"
+    }
+  }
+}
+```
+
 #### Plain text credentials
 
 This feature has been introduced to provide flexibility by not mandating the use of a `vault`. However, it is important
 to note that this functionality is not recommended for production environments.
 
-- The properties `accessKeyId` and `secretAccessKey`, can be used for basic AWS access key authentication.
+The properties `accessKeyId` and `secretAccessKey`, can be used for basic AWS access key authentication.
+
+Example:
+```json
+{
+  "dataAddress": {
+    "properties": {
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "objectName": "test/object.bin",
+      "accessKeyId": "<ACCESS_KEY_ID>",
+      "secretAccessKey": "<SECRET_ACCESS_KEY>"
+    }
+  }
+}
+```
 
 #### Source - Data Address Example
 
