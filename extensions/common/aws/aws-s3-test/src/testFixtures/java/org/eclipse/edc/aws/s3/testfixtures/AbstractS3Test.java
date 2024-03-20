@@ -49,9 +49,11 @@ public abstract class AbstractS3Test {
 
     protected S3TestClient destinationClient = S3TestClient.create(DESTINATION_MINIO_ENDPOINT, REGION);
 
-    protected static final String ASSET_PREFIX = "folderName/";
+    protected static final String OBJECT_PREFIX = "object-prefix/";
 
-    protected static final String ASSET_FILE = "text-document.txt";
+    protected static final String OBJECT_NAME = "text-document.txt";
+
+    protected static final String KEY_NAME = "key-name";
 
     @BeforeAll
     void prepareAll() {
