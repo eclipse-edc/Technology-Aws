@@ -16,7 +16,6 @@
 package org.eclipse.edc.connector.provision.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
-import org.eclipse.edc.connector.transfer.spi.types.DataRequest;
 import org.eclipse.edc.connector.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -47,7 +46,7 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
                 .property(S3BucketSchema.REGION, Region.EU_WEST_2.id())
                 .build();
         var asset = Asset.Builder.newInstance().build();
-        var dr = TransferProcess.Builder.newInstance().dataRequest(DataRequest.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).processId("process-id").build()).build();
+        var dr = TransferProcess.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build();
         var policy = Policy.Builder.newInstance().build();
 
         var definition = generator.generate(dr, policy);
@@ -71,7 +70,7 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
                 .property(S3BucketSchema.BUCKET_NAME, "test-name")
                 .build();
         var asset = Asset.Builder.newInstance().build();
-        var dr = TransferProcess.Builder.newInstance().dataRequest(DataRequest.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).processId("process-id").build()).build();
+        var dr = TransferProcess.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build();
         var policy = Policy.Builder.newInstance().build();
 
         var definition = generator.generate(dr, policy);
@@ -89,7 +88,7 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
                 .property(S3BucketSchema.REGION, Region.EU_WEST_2.id())
                 .build();
         var asset = Asset.Builder.newInstance().build();
-        var dr = TransferProcess.Builder.newInstance().dataRequest(DataRequest.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).processId("process-id").build()).build();
+        var dr = TransferProcess.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build();
         var policy = Policy.Builder.newInstance().build();
 
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> generator.generate(dr, policy));
@@ -102,7 +101,7 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
                 .property(S3BucketSchema.REGION, Region.US_EAST_1.id())
                 .build();
         var asset = Asset.Builder.newInstance().build();
-        var dr = TransferProcess.Builder.newInstance().dataRequest(DataRequest.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).processId("process-id").build()).build();
+        var dr = TransferProcess.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build();
         var policy = Policy.Builder.newInstance().build();
 
         var definition = generator.canGenerate(dr, policy);
@@ -117,7 +116,7 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
                 .property(S3BucketSchema.REGION, Region.US_EAST_1.id())
                 .build();
         var asset = Asset.Builder.newInstance().build();
-        var dataRequest = TransferProcess.Builder.newInstance().dataRequest(DataRequest.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build()).build();
+        var dataRequest = TransferProcess.Builder.newInstance().dataDestination(destination).assetId(asset.getId()).build();
         var policy = Policy.Builder.newInstance().build();
 
         var definition = generator.canGenerate(dataRequest, policy);
