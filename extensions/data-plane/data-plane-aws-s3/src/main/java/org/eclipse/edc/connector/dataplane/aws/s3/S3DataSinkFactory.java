@@ -21,7 +21,7 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
-import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
+import org.eclipse.edc.aws.s3.validation.S3DestinationDataAddressValidator;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSinkFactory;
 import org.eclipse.edc.spi.EdcException;
@@ -50,7 +50,7 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
 
 public class S3DataSinkFactory implements DataSinkFactory {
-    private final Validator<DataAddress> validation = new S3DataAddressValidator();
+    private final Validator<DataAddress> validation = new S3DestinationDataAddressValidator();
     private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
     private final ExecutorService executorService;
@@ -84,6 +84,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
 
         return S3DataSink.Builder.newInstance()
                 .bucketName(destination.getStringProperty(BUCKET_NAME))
+                .keyName(destination.getKeyName())
                 .objectName(destination.getStringProperty(OBJECT_NAME))
                 .folderName(destination.getStringProperty(FOLDER_NAME))
                 .requestId(request.getId())

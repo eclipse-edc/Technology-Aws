@@ -20,6 +20,7 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
+import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -52,7 +53,7 @@ class S3DataSourceFactoryTest {
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final TypeManager typeManager = new TypeManager();
     private final Vault vault = mock(Vault.class);
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, vault, typeManager);
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(Monitor.class), vault, typeManager);
     private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
 
     @Test

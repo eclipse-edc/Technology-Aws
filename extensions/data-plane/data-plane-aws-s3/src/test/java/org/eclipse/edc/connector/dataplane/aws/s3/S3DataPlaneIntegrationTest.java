@@ -82,7 +82,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var typeManager = new TypeManager();
 
         var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
-        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
+        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(Monitor.class), vault, typeManager);
         var sourceAddress = createDataAddress(objectNames, isSingleObject);
 
         var destinationAddress = DataAddress.Builder.newInstance()
@@ -146,7 +146,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         var typeManager = new TypeManager();
 
         var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
-        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), vault, typeManager);
+        var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(Monitor.class), vault, typeManager);
         var sourceAddress = createDataAddress(objectNames, isSingleObject);
 
         var destinationAddress = DataAddress.Builder.newInstance()

@@ -28,7 +28,7 @@ import static org.eclipse.edc.validator.spi.Violation.violation;
 /**
  * Validator for AmazonS3 DataAddress type
  */
-public class S3DataAddressValidator implements Validator<DataAddress> {
+public class S3DestinationDataAddressValidator implements Validator<DataAddress> {
 
     @Override
     public ValidationResult validate(DataAddress dataAddress) {

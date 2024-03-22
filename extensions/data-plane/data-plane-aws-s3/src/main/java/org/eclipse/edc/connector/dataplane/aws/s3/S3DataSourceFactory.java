@@ -21,10 +21,11 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
-import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
+import org.eclipse.edc.aws.s3.validation.S3SourceDataAddressValidator;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSourceFactory;
 import org.eclipse.edc.spi.EdcException;
+import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
@@ -40,6 +41,7 @@ import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_PREFIX;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
@@ -47,14 +49,16 @@ import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
 public class S3DataSourceFactory implements DataSourceFactory {
 
-    private final Validator<DataAddress> validation = new S3DataAddressValidator();
+    private final Validator<DataAddress> validation = new S3SourceDataAddressValidator();
     private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
+    private final Monitor monitor;
     private final Vault vault;
     private final TypeManager typeManager;
 
-    public S3DataSourceFactory(AwsClientProvider clientProvider, Vault vault, TypeManager typeManager) {
+    public S3DataSourceFactory(AwsClientProvider clientProvider, Monitor monitor, Vault vault, TypeManager typeManager) {
         this.clientProvider = clientProvider;
+        this.monitor = monitor;
         this.vault = vault;
         this.typeManager = typeManager;
     }
@@ -75,9 +79,12 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
         return S3DataSource.Builder.newInstance()
                 .bucketName(source.getStringProperty(BUCKET_NAME))
+                .keyName(source.getKeyName())
                 .objectName(source.getStringProperty(OBJECT_NAME))
+                .keyPrefix(source.getStringProperty(KEY_PREFIX))
                 .objectPrefix(source.getStringProperty(OBJECT_PREFIX))
                 .client(getS3Client(source))
+                .monitor(monitor)
                 .build();
     }
 

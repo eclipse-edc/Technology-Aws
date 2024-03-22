@@ -6,22 +6,22 @@ This module contains a Data Plane extension to copy data to and from Aws S3.
 
 When as a source, it supports copying a single or multiple objects.
 
-### Configuration
+### DataAddress Schema
 
 #### Properties
 
-| Key                | Description                                                            | Applies at              | Mandatory               |
-|:-------------------|:-----------------------------------------------------------------------|-------------------------|-------------------------|
-| `type`             | Defines the Asset type ( `AmazonS3` )                                  | `source`, `destination` | `true`                  |
-| `region`           | Defines the region of the bucket (`us-east-1`, `eu-west-1` ...)        | `source`, `destination` | `true`                  |
-| `endpointOverride` | Defines a custom endpoint URL                                          | `source`, `destination` | `false`                 |
-| `bucketName`       | Defines the name of the S3 bucket                                      | `source`, `destination` | `true`                  |
-| `objectName`       | Defines the name of the S3 object                                      | `source`, `destination` | `true` (only in source) |
-| `objectPrefix`     | Defines the prefix of the S3 objects to be fetched ( `objectPrefix/` ) | `source`                | `false`                 |
-| `folderName`       | Defines the folder name for S3 objects to be grouped ( `folderName/` ) | `destination`           | `false`                 |
-| `keyName`          | Defines the `vault` entry containing the secret token/credentials      | `source`, `destination` | `false`                 |
-| `accessKeyId`      | Defines the access key id to access S3 Bucket/Object                   | `source`, `destination` | `false`                 |
-| `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object            | `source`, `destination` | `false`                 |
+| Key                | Description                                                            | Applies at              | Mandatory                                             |
+|:-------------------|:-----------------------------------------------------------------------|-------------------------|-------------------------------------------------------|
+| `type`             | Defines the Asset type ( `AmazonS3` )                                  | `source`, `destination` | `true`                                                |
+| `region`           | Defines the region of the bucket (`us-east-1`, `eu-west-1` ...)        | `source`, `destination` | `true`                                                |
+| `endpointOverride` | Defines a custom endpoint URL                                          | `source`, `destination` | `false`                                               |
+| `bucketName`       | Defines the name of the S3 bucket                                      | `source`, `destination` | `true`                                                |
+| `objectName`       | Defines the name of the S3 object                                      | `source`, `destination` | `true` (in `source` if `objectPrefix` is not present) |
+| `objectPrefix`     | Defines the prefix of the S3 objects to be fetched ( `objectPrefix/` ) | `source`                | `true` (if `objectName` is not present)               |
+| `folderName`       | Defines the folder name for S3 objects to be grouped ( `folderName/` ) | `destination`           | `false`                                               |
+| `keyName`          | Defines the `vault` entry containing the secret token/credentials      | `source`, `destination` | `false`                                               |
+| `accessKeyId`      | Defines the access key id to access S3 Bucket/Object                   | `source`, `destination` | `false`                                               |
+| `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object            | `source`, `destination` | `false`                                               |
 
 #### S3DataSource Properties and behavior
 
@@ -73,13 +73,11 @@ Example:
 ```json
 {
   "dataAddress": {
-    "properties": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "objectName": "test/object.bin",
-      "keyName": "<SECRET_KEY_IN_VAULT>"
-    }
+    "type": "AmazonS3", 
+    "bucketName": "bucketName", 
+    "region": "us-east-1", 
+    "objectName": "test/object.bin", 
+    "keyName": "<SECRET_KEY_IN_VAULT>"
   }
 }
 ```
@@ -95,14 +93,12 @@ Example:
 ```json
 {
   "dataAddress": {
-    "properties": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "objectName": "test/object.bin",
-      "accessKeyId": "<ACCESS_KEY_ID>",
-      "secretAccessKey": "<SECRET_ACCESS_KEY>"
-    }
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "objectName": "test/object.bin",
+    "accessKeyId": "<ACCESS_KEY_ID>",
+    "secretAccessKey": "<SECRET_ACCESS_KEY>"
   }
 }
 ```
@@ -113,13 +109,11 @@ Example:
 ```json
 {
   "dataAddress": {
-    "properties": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "objectName": "test/object.bin",
-      "keyName": "(see above)"
-    }
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "objectName": "test/object.bin",
+    "keyName": "(see above)"
   }
 }
 ```
@@ -127,13 +121,11 @@ Example:
 ```json
 {
   "dataAddress": {
-    "properties": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "objectPrefix": "test/",
-      "keyName": "(see above)"
-    }
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "objectPrefix": "test/",
+    "keyName": "(see above)"
   }
 }
 ```
@@ -144,14 +136,12 @@ Example:
 ```json
 {
     "dataDestination": {
-        "properties": {
-            "type": "AmazonS3",
-            "bucketName": "bucketName",
-            "region": "us-east-1",
-            "folderName": "destinationFolder/",
-            "objectName": "newName",
-            "keyName": "(see above)"
-        }
+      "type": "AmazonS3",
+      "bucketName": "bucketName",
+      "region": "us-east-1",
+      "folderName": "destinationFolder/",
+      "objectName": "newName",
+      "keyName": "(see above)"
     }
 }
 ```
@@ -160,13 +150,11 @@ Example:
 ```json
 {
   "dataDestination": {
-    "properties": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "folderName": "destinationFolder/",
-      "keyName": "(see above)"
-    }
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "folderName": "destinationFolder/",
+    "keyName": "(see above)"
   }
 }
 ```

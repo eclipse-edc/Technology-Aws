@@ -32,10 +32,14 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.edc.util.string.StringUtils.isNullOrEmpty;
+
 class S3DataSink extends ParallelSink {
 
     private S3Client client;
     private String bucketName;
+    @Deprecated(since = "0.5.2")
+    private String keyName;
     private String objectName;
     private String folderName;
     private int chunkSize;
@@ -90,6 +94,12 @@ class S3DataSink extends ParallelSink {
     }
 
     private String getDestinationObjectName(String partName, int partsSize) {
+        if (isNullOrEmpty(objectName) && !isNullOrEmpty(keyName)) {
+            monitor.warning("The usage of the property \"keyName\" to define the object name is deprecated" +
+                    " since version 0.5.2. Please use the \"objectName\" property instead to name objects in " +
+                    "destination.");
+            this.objectName = keyName;
+        }
         var name = (partsSize == 1 && !StringUtils.isNullOrEmpty(objectName)) ? objectName : partName;
         if (!StringUtils.isNullOrEmpty(folderName)) {
             return folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
@@ -122,6 +132,11 @@ class S3DataSink extends ParallelSink {
 
         public Builder bucketName(String bucketName) {
             sink.bucketName = bucketName;
+            return this;
+        }
+
+        public Builder keyName(String keyName) {
+            sink.keyName = keyName;
             return this;
         }
 
