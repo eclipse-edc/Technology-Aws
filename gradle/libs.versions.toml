@@ -70,6 +70,7 @@ edc-transfer-dataplane = { module = "org.eclipse.edc:transfer-data-plane", versi
 edc-transfer-httppull-receiver = { module = "org.eclipse.edc:transfer-pull-http-receiver", version.ref = "edc" }
 edc-transfer-httppull-receiver-dynamic = { module = "org.eclipse.edc:transfer-pull-http-dynamic-receiver", version.ref = "edc" }
 edc-util = { module = "org.eclipse.edc:util", version.ref = "edc" }
+edc-lib-http = { module = "org.eclipse.edc:http-lib", version.ref = "edc" }
 
 # third-party deps
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
