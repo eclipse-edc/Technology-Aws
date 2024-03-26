@@ -35,7 +35,6 @@ import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
@@ -76,6 +75,7 @@ public class S3DataSourceFactory implements DataSourceFactory {
         }
 
         var source = request.getSourceDataAddress();
+        var s3ClientRequest = createS3ClientRequest(source);
 
         return S3DataSource.Builder.newInstance()
                 .bucketName(source.getStringProperty(BUCKET_NAME))
@@ -83,7 +83,7 @@ public class S3DataSourceFactory implements DataSourceFactory {
                 .objectName(source.getStringProperty(OBJECT_NAME))
                 .keyPrefix(source.getStringProperty(KEY_PREFIX))
                 .objectPrefix(source.getStringProperty(OBJECT_PREFIX))
-                .client(getS3Client(source))
+                .client(this.clientProvider.s3Client(s3ClientRequest))
                 .monitor(monitor)
                 .build();
     }
@@ -94,10 +94,9 @@ public class S3DataSourceFactory implements DataSourceFactory {
         return validation.validate(source).flatMap(ValidationResult::toResult);
     }
 
-    private S3Client getS3Client(DataAddress address) {
+    private S3ClientRequest createS3ClientRequest(DataAddress address) {
         var endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
         var region = address.getStringProperty(REGION);
-
         var awsSecretToken = ofNullable(address.getKeyName())
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
                 .map(vault::resolveSecret)
@@ -105,14 +104,14 @@ public class S3DataSourceFactory implements DataSourceFactory {
                 .map(s -> typeManager.readValue(s, AwsTemporarySecretToken.class));
 
         if (awsSecretToken.isPresent()) {
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride, awsSecretToken.get()));
+            return S3ClientRequest.from(region, endpointOverride, awsSecretToken.get());
         } else if (credentialsValidation.validate(address).succeeded()) {
             var accessKeyId = address.getStringProperty(ACCESS_KEY_ID);
             var secretAccessKey = address.getStringProperty(SECRET_ACCESS_KEY);
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride,
-                    new AwsSecretToken(accessKeyId, secretAccessKey)));
+            return S3ClientRequest.from(region, endpointOverride,
+                    new AwsSecretToken(accessKeyId, secretAccessKey));
         } else {
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride));
+            return S3ClientRequest.from(region, endpointOverride);
         }
     }
 

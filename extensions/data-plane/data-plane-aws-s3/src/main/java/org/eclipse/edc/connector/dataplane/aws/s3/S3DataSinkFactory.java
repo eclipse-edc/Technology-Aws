@@ -35,7 +35,6 @@ import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.concurrent.ExecutorService;
 
@@ -81,6 +80,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
         }
 
         var destination = request.getDestinationDataAddress();
+        var s3ClientRequest = createS3ClientRequest(destination);
 
         return S3DataSink.Builder.newInstance()
                 .bucketName(destination.getStringProperty(BUCKET_NAME))
@@ -90,7 +90,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
                 .requestId(request.getId())
                 .executorService(executorService)
                 .monitor(monitor)
-                .client(createS3Client(destination))
+                .client(this.clientProvider.s3Client(s3ClientRequest))
                 .chunkSizeBytes(chunkSizeInBytes)
                 .build();
     }
@@ -102,10 +102,9 @@ public class S3DataSinkFactory implements DataSinkFactory {
         return validation.validate(destination).flatMap(ValidationResult::toResult);
     }
 
-    private S3Client createS3Client(DataAddress address) {
+    private S3ClientRequest createS3ClientRequest(DataAddress address) {
         var endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
         var region = address.getStringProperty(REGION);
-
         var awsSecretToken = ofNullable(address.getKeyName())
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
                 .map(vault::resolveSecret)
@@ -113,14 +112,13 @@ public class S3DataSinkFactory implements DataSinkFactory {
                 .map(s -> typeManager.readValue(s, AwsTemporarySecretToken.class));
 
         if (awsSecretToken.isPresent()) {
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride, awsSecretToken.get()));
+            return S3ClientRequest.from(region, endpointOverride, awsSecretToken.get());
         } else if (credentialsValidation.validate(address).succeeded()) {
             var accessKeyId = address.getStringProperty(ACCESS_KEY_ID);
             var secretAccessKey = address.getStringProperty(SECRET_ACCESS_KEY);
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride,
-                    new AwsSecretToken(accessKeyId, secretAccessKey)));
+            return S3ClientRequest.from(region, endpointOverride, new AwsSecretToken(accessKeyId, secretAccessKey));
         } else {
-            return clientProvider.s3Client(S3ClientRequest.from(region, endpointOverride));
+            return S3ClientRequest.from(region, endpointOverride);
         }
     }
 }
