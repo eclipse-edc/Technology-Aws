@@ -22,6 +22,7 @@ dependencies {
     testFixturesApi(libs.edc.junit)
     testFixturesImplementation(project(":extensions:common:aws:aws-s3-core"))
 
+    testFixturesImplementation(testFixtures(libs.edc.lib.http))
     testFixturesImplementation(libs.awaitility)
     testFixturesImplementation(libs.assertj)
     testFixturesImplementation(libs.junit.jupiter.api)
