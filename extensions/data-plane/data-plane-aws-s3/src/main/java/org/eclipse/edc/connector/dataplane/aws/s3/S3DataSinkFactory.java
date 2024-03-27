@@ -21,7 +21,7 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
-import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
+import org.eclipse.edc.aws.s3.validation.S3DestinationDataAddressValidator;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSinkFactory;
 import org.eclipse.edc.spi.EdcException;
@@ -31,23 +31,25 @@ import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
+import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.concurrent.ExecutorService;
 
+import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.FOLDER_NAME;
+import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
 import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
 
 
 public class S3DataSinkFactory implements DataSinkFactory {
-    private final Validator<DataAddress> validation = new S3DataAddressValidator();
+    private final Validator<DataAddress> validation = new S3DestinationDataAddressValidator();
     private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
     private final ExecutorService executorService;
@@ -78,16 +80,17 @@ public class S3DataSinkFactory implements DataSinkFactory {
         }
 
         var destination = request.getDestinationDataAddress();
+        var s3ClientRequest = createS3ClientRequest(destination);
 
-        S3Client client = createS3Client(destination);
         return S3DataSink.Builder.newInstance()
                 .bucketName(destination.getStringProperty(BUCKET_NAME))
                 .keyName(destination.getKeyName())
+                .objectName(destination.getStringProperty(OBJECT_NAME))
                 .folderName(destination.getStringProperty(FOLDER_NAME))
                 .requestId(request.getId())
                 .executorService(executorService)
                 .monitor(monitor)
-                .client(client)
+                .client(this.clientProvider.s3Client(s3ClientRequest))
                 .chunkSizeBytes(chunkSizeInBytes)
                 .build();
     }
@@ -99,22 +102,23 @@ public class S3DataSinkFactory implements DataSinkFactory {
         return validation.validate(destination).flatMap(ValidationResult::toResult);
     }
 
-    private S3Client createS3Client(DataAddress destination) {
+    private S3ClientRequest createS3ClientRequest(DataAddress address) {
+        var endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
+        var region = address.getStringProperty(REGION);
+        var awsSecretToken = ofNullable(address.getKeyName())
+                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
+                .map(vault::resolveSecret)
+                .filter(secret -> !StringUtils.isNullOrBlank(secret))
+                .map(s -> typeManager.readValue(s, AwsTemporarySecretToken.class));
 
-        String endpointOverride = destination.getStringProperty(ENDPOINT_OVERRIDE);
-
-        S3Client client;
-        var secret = vault.resolveSecret(destination.getKeyName());
-        if (secret != null) {
-            var secretToken = typeManager.readValue(secret, AwsTemporarySecretToken.class);
-            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));
-        } else if (credentialsValidation.validate(destination).succeeded()) {
-            var secretToken = new AwsSecretToken(destination.getStringProperty(ACCESS_KEY_ID),
-                    destination.getStringProperty(SECRET_ACCESS_KEY));
-            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride, secretToken));
+        if (awsSecretToken.isPresent()) {
+            return S3ClientRequest.from(region, endpointOverride, awsSecretToken.get());
+        } else if (credentialsValidation.validate(address).succeeded()) {
+            var accessKeyId = address.getStringProperty(ACCESS_KEY_ID);
+            var secretAccessKey = address.getStringProperty(SECRET_ACCESS_KEY);
+            return S3ClientRequest.from(region, endpointOverride, new AwsSecretToken(accessKeyId, secretAccessKey));
         } else {
-            client = clientProvider.s3Client(S3ClientRequest.from(destination.getStringProperty(REGION), endpointOverride));
+            return S3ClientRequest.from(region, endpointOverride);
         }
-        return client;
     }
 }

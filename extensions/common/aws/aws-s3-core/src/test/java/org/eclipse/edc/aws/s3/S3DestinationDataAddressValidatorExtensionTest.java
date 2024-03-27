@@ -15,7 +15,8 @@
 package org.eclipse.edc.aws.s3;
 
 
-import org.eclipse.edc.aws.s3.validation.S3DataAddressValidator;
+import org.eclipse.edc.aws.s3.validation.S3DestinationDataAddressValidator;
+import org.eclipse.edc.aws.s3.validation.S3SourceDataAddressValidator;
 import org.eclipse.edc.junit.extensions.DependencyInjectionExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(DependencyInjectionExtension.class)
-public class S3DataAddressValidatorExtensionTest {
+public class S3DestinationDataAddressValidatorExtensionTest {
 
     private final DataAddressValidatorRegistry registry = mock();
 
@@ -42,10 +43,9 @@ public class S3DataAddressValidatorExtensionTest {
     @Test
     void initialize(S3DataAddressValidatorExtension extension, ServiceExtensionContext context) {
         extension.initialize(context);
-
         assertThat(extension.name()).isEqualTo(S3DataAddressValidatorExtension.NAME);
+        verify(registry).registerSourceValidator(eq(S3BucketSchema.TYPE), isA(S3SourceDataAddressValidator.class));
+        verify(registry).registerDestinationValidator(eq(S3BucketSchema.TYPE), isA(S3DestinationDataAddressValidator.class));
 
-        verify(registry).registerDestinationValidator(eq(S3BucketSchema.TYPE), isA(S3DataAddressValidator.class));
-        verify(registry).registerSourceValidator(eq(S3BucketSchema.TYPE), isA(S3DataAddressValidator.class));
     }
 }

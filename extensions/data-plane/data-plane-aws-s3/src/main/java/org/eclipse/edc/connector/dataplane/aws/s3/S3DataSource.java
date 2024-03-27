@@ -18,6 +18,7 @@ import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceExcepti
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
+import org.eclipse.edc.spi.monitor.Monitor;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -32,13 +33,19 @@ import java.util.stream.Stream;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.failure;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
+import static org.eclipse.edc.util.string.StringUtils.isNullOrEmpty;
 
 class S3DataSource implements DataSource {
 
     private String bucketName;
+    @Deprecated(since = "0.5.2")
     private String keyName;
+    private String objectName;
+    @Deprecated(since = "0.5.2")
     private String keyPrefix;
+    private String objectPrefix;
     private S3Client client;
+    private Monitor monitor;
 
     private S3DataSource() {
     }
@@ -46,12 +53,20 @@ class S3DataSource implements DataSource {
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
 
-        if (keyPrefix != null) {
+        if (isNullOrEmpty(objectPrefix) && !isNullOrEmpty(keyPrefix)) {
+            monitor.warning("The usage of the property \"keyPrefix\" to define the object prefix is deprecated" +
+                    " since version 0.5.2. Please use the \"objectPrefix\" property instead to store this value for" +
+                    " new assets. Additionally, update existing assets to use the \"objectPrefix\" property.");
+            this.objectPrefix = keyPrefix;
+        }
+
+        if (objectPrefix != null) {
 
             var s3Objects = this.fetchPrefixedS3Objects();
 
             if (s3Objects.isEmpty()) {
-                return failure(new StreamFailure(List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
+                return failure(new StreamFailure(
+                        List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
             }
 
             var s3PartStream = s3Objects.stream()
@@ -62,7 +77,14 @@ class S3DataSource implements DataSource {
 
         }
 
-        return success(Stream.of(new S3Part(client, keyName, bucketName)));
+        if (isNullOrEmpty(objectName) && !isNullOrEmpty(keyName)) {
+            monitor.warning("The usage of the property \"keyName\" to define the object name is deprecated" +
+                    " since version 0.5.2. Please use the \"objectName\" property instead to store this value for" +
+                    " new assets. Additionally, update existing assets to use the \"objectName\" property.");
+            this.objectName = keyName;
+        }
+
+        return success(Stream.of(new S3Part(client, objectName, bucketName)));
     }
 
     /**
@@ -79,7 +101,7 @@ class S3DataSource implements DataSource {
 
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
-                    .prefix(keyPrefix)
+                    .prefix(objectPrefix)
                     .continuationToken(continuationToken)
                     .build();
 
@@ -101,30 +123,30 @@ class S3DataSource implements DataSource {
 
     private static class S3Part implements Part {
         private final S3Client client;
-        private final String keyName;
+        private final String objectName;
         private final String bucketName;
 
-        S3Part(S3Client client, String keyName, String bucketName) {
+        S3Part(S3Client client, String objectName, String bucketName) {
             this.client = client;
-            this.keyName = keyName;
+            this.objectName = objectName;
             this.bucketName = bucketName;
         }
 
         @Override
         public String name() {
-            return keyName;
+            return objectName;
         }
 
         @Override
         public long size() {
-            var request = HeadObjectRequest.builder().key(keyName).bucket(bucketName).build();
+            var request = HeadObjectRequest.builder().key(objectName).bucket(bucketName).build();
             return client.headObject(request).contentLength();
         }
 
         @Override
         public InputStream openStream() {
             try {
-                var request = GetObjectRequest.builder().key(keyName).bucket(bucketName).build();
+                var request = GetObjectRequest.builder().key(objectName).bucket(bucketName).build();
                 return client.getObject(request);
             } catch (Exception e) {
                 throw new S3DataSourceException(e.getMessage(), e);
@@ -153,13 +175,28 @@ class S3DataSource implements DataSource {
             return this;
         }
 
+        public Builder objectName(String objectName) {
+            source.objectName = objectName;
+            return this;
+        }
+
         public Builder keyPrefix(String keyPrefix) {
             source.keyPrefix = keyPrefix;
             return this;
         }
 
+        public Builder objectPrefix(String objectPrefix) {
+            source.objectPrefix = objectPrefix;
+            return this;
+        }
+
         public Builder client(S3Client client) {
             source.client = client;
+            return this;
+        }
+
+        public Builder monitor(Monitor monitor) {
+            source.monitor = monitor;
             return this;
         }
 

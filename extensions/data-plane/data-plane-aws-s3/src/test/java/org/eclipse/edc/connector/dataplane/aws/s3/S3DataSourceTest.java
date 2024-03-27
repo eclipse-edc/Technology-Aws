@@ -35,8 +35,8 @@ import static org.mockito.Mockito.when;
 public class S3DataSourceTest {
 
     private static final String BUCKET_NAME = "bucketName";
-    private static final String KEY_NAME = "object-1";
-    private static final String KEY_PREFIX = "my-prefix/";
+    private static final String OBJECT_NAME = "object-1";
+    private static final String OBJECT_PREFIX = "my-prefix/";
     private static final String ERROR_MESSAGE = "Error message";
     private final S3Client s3ClientMock = mock(S3Client.class);
 
@@ -50,8 +50,8 @@ public class S3DataSourceTest {
 
         var s3Datasource = S3DataSource.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
-                .keyPrefix(KEY_PREFIX)
+                .objectName(OBJECT_NAME)
+                .objectPrefix(OBJECT_PREFIX)
                 .client(s3ClientMock)
                 .build();
 
@@ -71,8 +71,8 @@ public class S3DataSourceTest {
 
         var s3Datasource = S3DataSource.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
-                .keyPrefix(KEY_PREFIX)
+                .objectName(OBJECT_NAME)
+                .objectPrefix(OBJECT_PREFIX)
                 .client(s3ClientMock)
                 .build();
 
@@ -89,8 +89,8 @@ public class S3DataSourceTest {
 
         var s3Datasource = S3DataSource.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
-                .keyPrefix(null)
+                .objectName(OBJECT_NAME)
+                .objectPrefix(null)
                 .client(s3ClientMock)
                 .build();
 
@@ -113,8 +113,8 @@ public class S3DataSourceTest {
 
         var s3Datasource = S3DataSource.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
-                .keyPrefix(KEY_PREFIX)
+                .objectName(OBJECT_NAME)
+                .objectPrefix(OBJECT_PREFIX)
                 .client(s3ClientMock)
                 .build();
 
