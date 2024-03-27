@@ -14,37 +14,32 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.connector.api.client.spi.transferprocess.TransferProcessApiClient;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
-import org.eclipse.edc.junit.extensions.EdcExtension;
-import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
+import org.eclipse.edc.junit.extensions.DependencyInjectionExtension;
+import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.UUID;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-@ExtendWith(EdcExtension.class)
+@ExtendWith(DependencyInjectionExtension.class)
 class DataPlaneS3ExtensionTest {
 
+    private final PipelineService pipelineService = mock();
+
     @BeforeEach
-    void setup(EdcExtension extension) {
-        extension.registerServiceMock(TransferProcessApiClient.class, mock(TransferProcessApiClient.class));
+    void setup(ServiceExtensionContext context) {
+        context.registerService(PipelineService.class, pipelineService);
     }
 
     @Test
-    void shouldProvidePipelineServices(PipelineService pipelineService) {
-        var request = DataFlowStartMessage.Builder.newInstance()
-                .processId(UUID.randomUUID().toString())
-                .sourceDataAddress(TestFunctions.s3DataAddressWithCredentials())
-                .destinationDataAddress(TestFunctions.s3DataAddressWithCredentials())
-                .build();
+    void shouldProvidePipelineServices(DataPlaneS3Extension extension, ServiceExtensionContext context) {
+        extension.initialize(context);
 
-        var result = pipelineService.validate(request);
-
-        assertThat(result.succeeded()).isTrue();
+        verify(pipelineService).registerFactory(isA(S3DataSinkFactory.class));
+        verify(pipelineService).registerFactory(isA(S3DataSourceFactory.class));
     }
 }
