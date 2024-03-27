@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 ZF Friedrichshafen AG
+ *  Copyright (c) 2022 - 2004 ZF Friedrichshafen AG
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -15,10 +15,12 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
+import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -50,8 +52,10 @@ import static org.mockito.Mockito.when;
 public class S3DataSinkTest {
 
     private static final String BUCKET_NAME = "bucketName";
-    private static final String KEY_NAME = "keyName";
+    private static final String SOURCE_OBJECT_NAME = "sourceObjectName";
+    private static final String DESTINATION_OBJECT_NAME = "destinationObjectName";
     private static final String ETAG = "eTag";
+    private static final String ERROR_MESSAGE = "Error message";
     private static final int CHUNK_SIZE_BYTES = 50;
 
     private S3Client s3ClientMock;
@@ -66,7 +70,7 @@ public class S3DataSinkTest {
 
         dataSink = S3DataSink.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
-                .keyName(KEY_NAME)
+                .objectName(DESTINATION_OBJECT_NAME)
                 .client(s3ClientMock)
                 .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
                 .executorService(Executors.newFixedThreadPool(2))
@@ -82,70 +86,97 @@ public class S3DataSinkTest {
 
     @ParameterizedTest
     @ArgumentsSource(SinglePartsInputs.class)
-    void transferParts_singlePart_succeeds(List inputStream) {
+    void transferParts_singlePart_succeeds(List<DataSource.Part> inputStream) {
+        var isSingleObject = inputStream.size() == 1;
+
         var result = dataSink.transferParts(inputStream);
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor
+                .capture());
 
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
-        assertThat(completeMultipartUploadRequest.key()).isEqualTo(KEY_NAME);
+        assertThat(completeMultipartUploadRequest.key())
+                .isEqualTo(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME);
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(1);
     }
 
     @ParameterizedTest
     @ArgumentsSource(MultiPartsInputs.class)
-    void transferParts_multiPart_succeeds(List inputStream) {
-        var result = dataSink.transferParts(inputStream);
-        assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, times(inputStream.size())).completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
+    void transferParts_multiPart_succeeds(List<DataSource.Part> inputStream) {
+        var isSingleObject = inputStream.size() == 1;
 
+        var result = dataSink.transferParts(inputStream);
+
+        assertThat(result.succeeded()).isTrue();
+        verify(s3ClientMock, times(inputStream.size()))
+                .completeMultipartUpload(completeMultipartUploadRequestCaptor.capture());
         var completeMultipartUploadRequest = completeMultipartUploadRequestCaptor.getValue();
         assertThat(completeMultipartUploadRequest.bucket()).isEqualTo(BUCKET_NAME);
-        assertThat(completeMultipartUploadRequest.key()).isEqualTo(KEY_NAME);
-
+        assertThat(completeMultipartUploadRequest.key())
+                .isEqualTo(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME);
         assertThat(completeMultipartUploadRequest.multipartUpload().parts()).hasSize(2);
     }
 
-    @Nested
-    public class S3DataSinkBuilderTest {
-        private static Stream<Arguments> invalidChunkSizes() {
-            return Stream.of(
-                    Arguments.of(0),
-                    Arguments.of(-1)
-            );
-        }
+    @Test
+    void transferParts_failed_to_download() {
+        var part = mock(DataSource.Part.class);
 
-        private S3DataSink createInvalidS3DataSink(int chunkSize) {
-            return S3DataSink.Builder.newInstance()
-                    .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
-                    .executorService(Executors.newFixedThreadPool(2))
-                    .chunkSizeBytes(chunkSize)
-                    .build();
-        }
+        when(part.name()).thenReturn(SOURCE_OBJECT_NAME);
+        when(part.openStream()).thenThrow(new S3DataSourceException(ERROR_MESSAGE, new RuntimeException()));
+
+        var result = dataSink.transferParts(List.of(part));
+
+        String expectedMessage = "Failed to download the %s object: %s".formatted(DESTINATION_OBJECT_NAME, ERROR_MESSAGE);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(MultiPartsInputs.class)
+    void transferParts_fails_to_upload(List<DataSource.Part> inputStream) {
+        var isSingleObject = inputStream.size() == 1;
+
+        var s3DatasinkS3Client = mock(S3Client.class);
+
+        var s3Datasink = S3DataSink.Builder.newInstance()
+                .bucketName(BUCKET_NAME)
+                .objectName(DESTINATION_OBJECT_NAME)
+                .client(s3DatasinkS3Client)
+                .requestId(TestFunctions.createRequest(S3BucketSchema.TYPE).build().getId())
+                .executorService(Executors.newFixedThreadPool(2))
+                .monitor(mock(Monitor.class))
+                .chunkSizeBytes(CHUNK_SIZE_BYTES)
+                .build();
+
+        when(s3DatasinkS3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class)))
+                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+
+        var result = s3Datasink.transferParts(inputStream);
+
+        var expectedMessage = "Failed to upload the %s object: %s"
+                .formatted(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME, ERROR_MESSAGE);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
     }
 
     private static class SinglePartsInputs implements ArgumentsProvider {
-
-        private String content = "content smaller than a chunk size";
-
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return Stream.of(
-                    Arguments.of(List.of(createDataSource(content))),
+            var content = "content smaller than a chunk size";
+            return Stream.of(Arguments.of(List.of(createDataSource(content))),
                     Arguments.of(List.of(createDataSource(content)), List.of(createDataSource(content)))
             );
         }
     }
 
     private static class MultiPartsInputs implements ArgumentsProvider {
-
-        private String content = "content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload";
-
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return Stream.of(
-                    Arguments.of(List.of(createDataSource(content))),
+            var content = "content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload";
+            return Stream.of(Arguments.of(List.of(createDataSource(content))),
                     Arguments.of(List.of(createDataSource(content)), List.of(createDataSource(content)))
             );
         }
@@ -153,7 +184,7 @@ public class S3DataSinkTest {
     }
 
     private static InputStreamDataSource createDataSource(String text) {
-        String content = StringUtils.isBlank(text) ? "test stream" : text;
-        return new InputStreamDataSource(KEY_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
+        var content = StringUtils.isBlank(text) ? "test stream" : text;
+        return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
     }
 }

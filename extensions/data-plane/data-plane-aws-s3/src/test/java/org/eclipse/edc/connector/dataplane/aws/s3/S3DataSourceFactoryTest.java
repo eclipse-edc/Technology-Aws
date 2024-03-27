@@ -16,14 +16,15 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
+import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.EdcException;
+import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
-import org.eclipse.edc.spi.types.domain.transfer.DataFlowRequest;
+import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,7 +53,7 @@ class S3DataSourceFactoryTest {
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final TypeManager typeManager = new TypeManager();
     private final Vault vault = mock(Vault.class);
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, vault, typeManager);
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(Monitor.class), vault, typeManager);
     private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
 
     @Test
@@ -143,7 +144,7 @@ class S3DataSourceFactoryTest {
     @Test
     void createSource_shouldGetTheSecretTokenFromTheVault() {
         var source = TestFunctions.s3DataAddressWithCredentials();
-        var temporaryKey = new AwsSecretToken("temporaryId", "temporarySecret");
+        var temporaryKey = new AwsTemporarySecretToken("temporaryId", "temporarySecret", null, 0);
         when(vault.resolveSecret(source.getKeyName())).thenReturn(typeManager.writeValueAsString(temporaryKey));
         var request = createRequest(source);
 
@@ -156,12 +157,12 @@ class S3DataSourceFactoryTest {
         S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
 
         assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
-        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsTemporarySecretToken.class);
         assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
-    private DataFlowRequest createRequest(DataAddress source) {
-        return DataFlowRequest.Builder.newInstance()
+    private DataFlowStartMessage createRequest(DataAddress source) {
+        return DataFlowStartMessage.Builder.newInstance()
                 .id(UUID.randomUUID().toString())
                 .processId(UUID.randomUUID().toString())
                 .sourceDataAddress(source)

@@ -2,24 +2,18 @@
 format.version = "1.1"
 
 [versions]
-awaitility = "4.2.0"
-aws = "2.22.9"
+awaitility = "4.2.1"
+aws = "2.24.10"
 bouncyCastle-jdk18on = "1.76"
-edc = "0.5.1-SNAPSHOT"
+edc = "0.5.2-SNAPSHOT"
 failsafe = "3.3.1"
-httpMockServer = "5.15.0"
-jakarta-json = "2.0.1"
-mockito = "5.2.0"
-nimbus = "9.37.3"
-openTelemetry = "1.18.0"
-opentelemetry-proto = "1.0.0-alpha"
+junit = "5.10.2"
 restAssured = "5.4.0"
-rsApi = "3.1.0"
 
 
 [libraries]
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
-assertj = { module = "org.assertj:assertj-core", version = "3.25.1" }
+assertj = { module = "org.assertj:assertj-core", version = "3.25.3" }
 bouncyCastle-bcpkixJdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 bouncyCastle-bcprovJdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle-jdk18on" }
 edc-api-management = { module = "org.eclipse.edc:management-api", version.ref = "edc" }
@@ -69,23 +63,13 @@ edc-transfer-dataplane = { module = "org.eclipse.edc:transfer-data-plane", versi
 edc-transfer-httppull-receiver = { module = "org.eclipse.edc:transfer-pull-http-receiver", version.ref = "edc" }
 edc-transfer-httppull-receiver-dynamic = { module = "org.eclipse.edc:transfer-pull-http-dynamic-receiver", version.ref = "edc" }
 edc-util = { module = "org.eclipse.edc:util", version.ref = "edc" }
+edc-lib-http = { module = "org.eclipse.edc:http-lib", version.ref = "edc" }
 
 # third-party deps
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
-opentelemetry-annotations = { module = "io.opentelemetry:opentelemetry-extension-annotations", version.ref = "openTelemetry" }
-opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "openTelemetry" }
-opentelemetry-proto = { module = "io.opentelemetry.proto:opentelemetry-proto", version.ref = "opentelemetry-proto" }
 restAssured = { module = "io.rest-assured:rest-assured", version.ref = "restAssured" }
-jakartaJson = { module = "org.glassfish:jakarta.json", version.ref = "jakarta-json" }
-jakarta-rsApi = { module = "jakarta.ws.rs:jakarta.ws.rs-api", version.ref = "rsApi" }
-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version = "5.9.3" }
-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version = "5.9.3" }
-edc-jsonld = { module = "org.eclipse.edc:json-ld", version.ref = "edc" }
-mockserver-client = { module = "org.mock-server:mockserver-client-java", version.ref = "httpMockServer" }
-mockserver-netty = { module = "org.mock-server:mockserver-netty", version.ref = "httpMockServer" }
-nimbus-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus" }
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
-mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockito" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 
 # AWS dependencies
 aws-sts = { module = "software.amazon.awssdk:sts", version.ref = "aws" }

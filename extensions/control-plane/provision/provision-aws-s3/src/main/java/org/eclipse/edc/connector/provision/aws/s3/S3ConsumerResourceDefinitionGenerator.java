@@ -18,8 +18,8 @@ package org.eclipse.edc.connector.provision.aws.s3;
 
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.connector.transfer.spi.provision.ConsumerResourceDefinitionGenerator;
-import org.eclipse.edc.connector.transfer.spi.types.DataRequest;
 import org.eclipse.edc.connector.transfer.spi.types.ResourceDefinition;
+import org.eclipse.edc.connector.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;
 import software.amazon.awssdk.regions.Region;
 
@@ -31,19 +31,19 @@ import static java.util.UUID.randomUUID;
 public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDefinitionGenerator {
 
     @Override
-    public ResourceDefinition generate(DataRequest dataRequest, Policy policy) {
-        if (dataRequest.getDataDestination().getStringProperty(S3BucketSchema.REGION) == null) {
+    public ResourceDefinition generate(TransferProcess transferProcess, Policy policy) {
+        if (transferProcess.getDataDestination().getStringProperty(S3BucketSchema.REGION) == null) {
             // FIXME generate region from policy engine
-            return S3BucketResourceDefinition.Builder.newInstance().id(randomUUID().toString()).bucketName(dataRequest.getDataDestination().getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(Region.US_EAST_1.id()).build();
+            return S3BucketResourceDefinition.Builder.newInstance().id(randomUUID().toString()).bucketName(transferProcess.getDataDestination().getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(Region.US_EAST_1.id()).build();
         }
-        var destination = dataRequest.getDataDestination();
+        var destination = transferProcess.getDataDestination();
         var id = randomUUID().toString();
 
         return S3BucketResourceDefinition.Builder.newInstance().id(id).bucketName(destination.getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(destination.getStringProperty(S3BucketSchema.REGION)).build();
     }
 
     @Override
-    public boolean canGenerate(DataRequest dataRequest, Policy policy) {
+    public boolean canGenerate(TransferProcess dataRequest, Policy policy) {
         return S3BucketSchema.TYPE.equals(dataRequest.getDestinationType());
     }
 }
