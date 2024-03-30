@@ -15,7 +15,8 @@
 
 package org.eclipse.edc.connector.provision.aws.s3;
 
-import org.eclipse.edc.connector.transfer.spi.types.ResourceDefinition;
+
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 
 import java.util.Objects;
 import java.util.function.Supplier;

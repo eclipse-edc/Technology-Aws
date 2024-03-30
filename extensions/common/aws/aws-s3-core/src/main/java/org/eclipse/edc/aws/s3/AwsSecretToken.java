@@ -15,7 +15,7 @@
 package org.eclipse.edc.aws.s3;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.eclipse.edc.connector.transfer.spi.types.SecretToken;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 
 import java.util.Objects;
 
