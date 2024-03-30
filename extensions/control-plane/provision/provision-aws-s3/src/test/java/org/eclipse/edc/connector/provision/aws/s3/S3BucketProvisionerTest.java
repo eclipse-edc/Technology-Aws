@@ -94,9 +94,9 @@ class S3BucketProvisionerTest {
 
         assertThat(response.getResource()).isInstanceOfSatisfying(S3BucketProvisionedResource.class, resource -> assertThat(resource.getRole()).isEqualTo("roleName"));
         assertThat(response.getSecretToken()).isInstanceOfSatisfying(AwsTemporarySecretToken.class, secretToken -> {
-            assertThat(secretToken.getAccessKeyId()).isEqualTo("accessKeyId");
-            assertThat(secretToken.getSecretAccessKey()).isEqualTo("secretAccessKey");
-            assertThat(secretToken.getSessionToken()).isEqualTo("sessionToken");
+            assertThat(secretToken.accessKeyId()).isEqualTo("accessKeyId");
+            assertThat(secretToken.secretAccessKey()).isEqualTo("secretAccessKey");
+            assertThat(secretToken.sessionToken()).isEqualTo("sessionToken");
         });
         verify(iamClient).putRolePolicy(isA(PutRolePolicyRequest.class));
     }
