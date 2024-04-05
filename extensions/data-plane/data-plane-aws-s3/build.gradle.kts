@@ -19,7 +19,7 @@ plugins {
 
 dependencies {
     api(libs.edc.spi.dataplane)
-    implementation(libs.edc.util)
+    implementation(libs.edc.lib.util)
     implementation(libs.edc.core.dataPlane.util)
     implementation(project(":extensions:common:aws:aws-s3-core"))
 

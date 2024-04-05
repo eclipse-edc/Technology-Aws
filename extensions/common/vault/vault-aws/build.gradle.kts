@@ -19,5 +19,5 @@ plugins {
 dependencies {
     api(libs.edc.spi.core)
     implementation(libs.aws.secretsmanager)
-    implementation(libs.edc.util)
+    implementation(libs.edc.lib.util)
 }
