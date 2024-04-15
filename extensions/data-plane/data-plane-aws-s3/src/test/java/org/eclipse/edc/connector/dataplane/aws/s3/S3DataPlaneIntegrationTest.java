@@ -18,9 +18,9 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.testfixtures.AbstractS3Test;
 import org.eclipse.edc.aws.s3.testfixtures.annotations.AwsS3IntegrationTest;
+import org.eclipse.edc.json.JacksonTypeManager;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
-import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.junit.jupiter.api.AfterEach;
@@ -79,7 +79,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         }
 
         var vault = mock(Vault.class);
-        var typeManager = new TypeManager();
+        var typeManager = new JacksonTypeManager();
 
         var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
         var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(Monitor.class), vault, typeManager);
@@ -143,7 +143,7 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
         }
 
         var vault = mock(Vault.class);
-        var typeManager = new TypeManager();
+        var typeManager = new JacksonTypeManager();
 
         var sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(Monitor.class), vault, typeManager, defaultChunkSizeInBytes);
         var sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(Monitor.class), vault, typeManager);
@@ -215,9 +215,9 @@ public class S3DataPlaneIntegrationTest extends AbstractS3Test {
                     Arguments.of((Object) new String[]{
                             OBJECT_PREFIX + "1-" + OBJECT_NAME,
                             OBJECT_PREFIX + "2-" + OBJECT_NAME,
-                            OBJECT_PREFIX + "3-" + OBJECT_NAME}),
+                            OBJECT_PREFIX + "3-" + OBJECT_NAME }),
                     Arguments.of((Object) new String[]{
-                            OBJECT_NAME}));
+                            OBJECT_NAME }));
         }
     }
 }

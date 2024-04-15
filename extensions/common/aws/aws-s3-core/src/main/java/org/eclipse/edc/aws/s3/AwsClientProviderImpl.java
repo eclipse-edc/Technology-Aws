@@ -92,8 +92,8 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
         if (token != null) {
             if (token instanceof AwsTemporarySecretToken temporary) {
-                var credentials = AwsSessionCredentials.create(temporary.getAccessKeyId(), temporary.getSecretAccessKey(),
-                        temporary.getSessionToken());
+                var credentials = AwsSessionCredentials.create(temporary.accessKeyId(), temporary.secretAccessKey(),
+                        temporary.sessionToken());
                 return createS3Client(StaticCredentialsProvider.create(credentials), region, endpointOverride);
             }
             if (token instanceof AwsSecretToken secretToken) {

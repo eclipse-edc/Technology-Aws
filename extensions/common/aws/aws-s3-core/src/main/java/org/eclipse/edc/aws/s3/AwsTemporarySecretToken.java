@@ -15,35 +15,19 @@
 package org.eclipse.edc.aws.s3;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.eclipse.edc.connector.transfer.spi.types.SecretToken;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 
-public class AwsTemporarySecretToken implements SecretToken {
-    private final String sessionToken;
-    private final long expiration;
-    private final String accessKeyId;
-    private final String secretAccessKey;
+public record AwsTemporarySecretToken(@JsonProperty("accessKeyId") String accessKeyId,
+                                      @JsonProperty("secretAccessKey") String secretAccessKey,
+                                      @JsonProperty("sessionToken") String sessionToken,
+                                      @JsonProperty("expiration") long expiration) implements SecretToken {
 
-    public AwsTemporarySecretToken(@JsonProperty("accessKeyId") String accessKeyId, @JsonProperty("secretAccessKey") String secretAccessKey, @JsonProperty("sessionToken") String sessionToken, @JsonProperty("expiration") long expiration) {
-        this.sessionToken = sessionToken;
-        this.expiration = expiration;
-        this.accessKeyId = accessKeyId;
-        this.secretAccessKey = secretAccessKey;
-    }
-
-    public String getSessionToken() {
+    public String sessionToken() {
         return sessionToken;
     }
 
     @Override
     public long getExpiration() {
-        return expiration;
-    }
-
-    public String getAccessKeyId() {
-        return accessKeyId;
-    }
-
-    public String getSecretAccessKey() {
-        return secretAccessKey;
+        return expiration();
     }
 }

@@ -5,7 +5,7 @@ format.version = "1.1"
 awaitility = "4.2.1"
 aws = "2.24.10"
 bouncyCastle-jdk18on = "1.76"
-edc = "0.5.2-SNAPSHOT"
+edc = "0.6.1-SNAPSHOT"
 failsafe = "3.3.1"
 junit = "5.10.2"
 restAssured = "5.4.0"
@@ -62,7 +62,7 @@ edc-spi-dataplane = { module = "org.eclipse.edc:data-plane-spi", version.ref = "
 edc-transfer-dataplane = { module = "org.eclipse.edc:transfer-data-plane", version.ref = "edc" }
 edc-transfer-httppull-receiver = { module = "org.eclipse.edc:transfer-pull-http-receiver", version.ref = "edc" }
 edc-transfer-httppull-receiver-dynamic = { module = "org.eclipse.edc:transfer-pull-http-dynamic-receiver", version.ref = "edc" }
-edc-util = { module = "org.eclipse.edc:util", version.ref = "edc" }
+edc-lib-util = { module = "org.eclipse.edc:util-lib", version.ref = "edc" }
 edc-lib-http = { module = "org.eclipse.edc:http-lib", version.ref = "edc" }
 
 # third-party deps
