@@ -14,7 +14,7 @@
 
 package org.eclipse.edc.connector.provision.aws.s3;
 
-import org.eclipse.edc.spi.types.TypeManager;
+import org.eclipse.edc.json.JacksonTypeManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +31,7 @@ class S3BucketProvisionedResourceTest {
 
     @Test
     void verifyDeserialize() throws IOException {
-        var mapper = new TypeManager().getMapper();
+        var mapper = new JacksonTypeManager().getMapper();
 
         StringWriter writer = new StringWriter();
         mapper.writeValue(writer, provisionedResource);
