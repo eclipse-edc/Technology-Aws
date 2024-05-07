@@ -68,6 +68,11 @@ public class S3DataSinkFactory implements DataSinkFactory {
     }
 
     @Override
+    public String supportedType() {
+        return S3BucketSchema.TYPE;
+    }
+
+    @Override
     public boolean canHandle(DataFlowStartMessage request) {
         return S3BucketSchema.TYPE.equals(request.getDestinationDataAddress().getType());
     }
