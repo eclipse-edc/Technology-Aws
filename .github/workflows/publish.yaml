@@ -1,4 +1,4 @@
-name: Nightly
+name: Create and Publish Release
 
 on:
   workflow_dispatch:
@@ -29,6 +29,7 @@ jobs:
           [ ! -z "${{ secrets.DISCORD_WEBHOOK_GITHUB }}" ] && echo "HAS_WEBHOOK=true" >> $GITHUB_OUTPUT
           exit 0
 
+
   Determine-Version:
     runs-on: ubuntu-latest
     outputs:
@@ -43,6 +44,7 @@ jobs:
           else
             echo "VERSION=${{ env.INPUT_VERSION }}" >> "$GITHUB_OUTPUT"
           fi
+
 
   Run-Tests:
     needs: [ Secrets-Presence, Determine-Version ]
@@ -83,6 +85,15 @@ jobs:
           echo "Publishing Version $VERSION to Sonatype"
           ./gradlew publishToSonatype ${cmd} --no-parallel -Pversion=$VERSION -Psigning.gnupg.executable=gpg -Psigning.gnupg.passphrase="${{ secrets.ORG_GPG_PASSPHRASE }}"
 
+
+  # If we have a release version, also invoke the GH release job, bump versions, etc.
+  Create-GitHub-Release:
+    needs: [ Publish-Artefacts, Determine-Version ]
+    if: ${{ !endsWith(needs.Determine-Version.outputs.VERSION, '-SNAPSHOT') }}
+    uses: ./.github/workflows/release-tech-aws.yml
+    with:
+      edc_version: ${{ needs.Determine-Version.outputs.VERSION }}
+
   Post-To-Discord:
     needs: [ Publish-Artefacts, Determine-Version, Secrets-Presence ]
     if: "needs.Secrets-Presence.outputs.HAS_WEBHOOK && always()"
@@ -94,6 +105,6 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK_GITHUB }}
           # if the publishing is skipped, that means the preceding test run failed
           status: ${{ needs.Publish-Components.result == 'skipped' && 'Failure' || needs.Publish-Artefacts.result }}
-          title: "Nightly Build Technology AWS"
+          title: "Release Build Technology AWS"
           description: "Build and publish ${{ needs.Determine-Version.outputs.VERSION }}"
           username: GitHub Actions
