@@ -1,0 +1,98 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic Version string to use for this nightly build
+        required: false
+  schedule:
+    - cron: "0 3 * * *" # run at 03:00 UTC
+
+env:
+  INPUT_VERSION: ${{ github.event.inputs.version || inputs.version }}
+
+jobs:
+  Secrets-Presence:
+    name: "Check for required credentials"
+    runs-on: ubuntu-latest
+    outputs:
+      HAS_OSSRH: ${{ steps.secrets-presence.outputs.HAS_OSSRH }}
+      HAS_WEBHOOK: ${{ steps.secrets-presence.outputs.HAS_WEBHOOK }}
+    steps:
+      - name: Check whether secrets exist
+        id: secrets-presence
+        run: |
+          [ ! -z "${{ secrets.ORG_GPG_PASSPHRASE }}" ] &&
+          [ ! -z "${{ secrets.ORG_GPG_PRIVATE_KEY }}" ] &&
+          [ ! -z "${{ secrets.ORG_OSSRH_USERNAME }}" ] && echo "HAS_OSSRH=true" >> $GITHUB_OUTPUT
+          [ ! -z "${{ secrets.DISCORD_WEBHOOK_GITHUB }}" ] && echo "HAS_WEBHOOK=true" >> $GITHUB_OUTPUT
+          exit 0
+
+  Determine-Version:
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get-version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Get version"
+        id: get-version
+        run: |
+          if [ -z ${{ env.INPUT_VERSION }} ]; then
+            echo "VERSION=$(IFS=.- read -r RELEASE_VERSION_MAJOR RELEASE_VERSION_MINOR RELEASE_VERSION_PATCH SNAPSHOT<<<$(grep "version" gradle.properties | awk -F= '{print $2}') && echo $RELEASE_VERSION_MAJOR.$RELEASE_VERSION_MINOR.$RELEASE_VERSION_PATCH-$(date +"%Y%m%d")-SNAPSHOT)" >> "$GITHUB_OUTPUT"
+          else
+            echo "VERSION=${{ env.INPUT_VERSION }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  Run-Tests:
+    needs: [ Secrets-Presence, Determine-Version ]
+    uses: ./.github/workflows/verify.yaml
+    secrets: inherit
+
+  Publish-Artefacts:
+    runs-on: ubuntu-latest
+    needs: [ Run-Tests, Determine-Version ]
+    if: |
+      needs.Secrets-Presence.outputs.HAS_OSSRH
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+
+      # Import GPG Key
+      - uses: eclipse-edc/.github/.github/actions/import-gpg-key@main
+        if: |
+          needs.secrets-presence.outputs.HAS_OSSRH
+        name: "Import GPG Key"
+        with:
+          gpg-private-key: ${{ secrets.ORG_GPG_PRIVATE_KEY }}
+
+      - name: "Publish To OSSRH/MavenCentral"
+        if: |
+          needs.secrets-presence.outputs.HAS_OSSRH
+        env:
+          OSSRH_PASSWORD: ${{ secrets.ORG_OSSRH_PASSWORD }}
+          OSSRH_USER: ${{ secrets.ORG_OSSRH_USERNAME }}
+        run: |-
+          cmd=""
+          if [[ $VERSION != *-SNAPSHOT ]]
+          then
+            cmd="closeAndReleaseSonatypeStagingRepository";
+          fi
+          echo "Publishing Version $VERSION to Sonatype"
+          ./gradlew publishToSonatype ${cmd} --no-parallel -Pversion=$VERSION -Psigning.gnupg.executable=gpg -Psigning.gnupg.passphrase="${{ secrets.ORG_GPG_PASSPHRASE }}"
+
+  Post-To-Discord:
+    needs: [ Publish-Artefacts, Determine-Version, Secrets-Presence ]
+    if: "needs.Secrets-Presence.outputs.HAS_WEBHOOK && always()"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: sarisia/actions-status-discord@v1
+        name: "Invoke discord webhook"
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_GITHUB }}
+          # if the publishing is skipped, that means the preceding test run failed
+          status: ${{ needs.Publish-Components.result == 'skipped' && 'Failure' || needs.Publish-Artefacts.result }}
+          title: "Nightly Build Technology AWS"
+          description: "Build and publish ${{ needs.Determine-Version.outputs.VERSION }}"
+          username: GitHub Actions

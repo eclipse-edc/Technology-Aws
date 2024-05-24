@@ -28,7 +28,7 @@ buildscript {
 }
 
 allprojects {
-    apply(plugin = "${group}.edc-build")
+    apply(plugin = "org.eclipse.edc.edc-build")
 
     // configure which version of the annotation processor to use. defaults to the same version as the plugin
     configure<org.eclipse.edc.plugins.autodoc.AutodocExtension> {
@@ -40,6 +40,7 @@ allprojects {
         pom {
             scmUrl.set(techAwsScmConnection)
             scmConnection.set(techAwsScmConnection)
+            groupId = project.group.toString()
         }
     }
 
