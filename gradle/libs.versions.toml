@@ -3,7 +3,7 @@ format.version = "1.1"
 
 [versions]
 awaitility = "4.2.1"
-aws = "2.25.48"
+aws = "2.25.62"
 bouncyCastle-jdk18on = "1.78.1"
 edc = "0.7.1-SNAPSHOT"
 failsafe = "3.3.1"
