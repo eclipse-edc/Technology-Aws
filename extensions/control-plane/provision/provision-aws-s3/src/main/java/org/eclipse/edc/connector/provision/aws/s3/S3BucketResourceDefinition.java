@@ -16,6 +16,8 @@
 package org.eclipse.edc.connector.provision.aws.s3;
 
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 
 import java.util.Objects;
@@ -24,6 +26,7 @@ import java.util.function.Supplier;
 /**
  * An S3 bucket and access credentials to be provisioned.
  */
+@JsonDeserialize(builder = S3BucketResourceDefinition.Builder.class)
 public class S3BucketResourceDefinition extends ResourceDefinition {
     private String regionId;
     private String bucketName;
@@ -47,6 +50,7 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
                 .bucketName(bucketName);
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static class Builder extends ResourceDefinition.Builder<S3BucketResourceDefinition, Builder> {
 
         private Builder() {

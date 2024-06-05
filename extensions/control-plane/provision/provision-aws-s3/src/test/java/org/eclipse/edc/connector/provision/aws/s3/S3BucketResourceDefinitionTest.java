@@ -14,6 +14,8 @@
 
 package org.eclipse.edc.connector.provision.aws.s3;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.eclipse.edc.json.JacksonTypeManager;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,4 +36,21 @@ class S3BucketResourceDefinitionTest {
         assertThat(rebuiltDefinition).usingRecursiveComparison().isEqualTo(definition);
     }
 
+    @Test
+    void deserialization() throws JsonProcessingException {
+        var objectMapper = new JacksonTypeManager().getMapper();
+
+        var definition = S3BucketResourceDefinition.Builder.newInstance()
+                .id("resourceDefinitionId")
+                .transferProcessId("transferProcessId")
+                .regionId("regionId")
+                .bucketName("bucketName")
+                .build();
+
+        var json = objectMapper.writeValueAsString(definition);
+
+        var deserialized = objectMapper.readValue(json, S3BucketResourceDefinition.class);
+
+        assertThat(deserialized).usingRecursiveComparison().isEqualTo(definition);
+    }
 }
