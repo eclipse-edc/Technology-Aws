@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.edc.aws.s3.validation;
+package org.eclipse.edc.aws.s3.validator;
 
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.validator.spi.ValidationResult;
@@ -21,8 +21,8 @@ import org.eclipse.edc.validator.spi.Validator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.validator.spi.Violation.violation;
 
 /**

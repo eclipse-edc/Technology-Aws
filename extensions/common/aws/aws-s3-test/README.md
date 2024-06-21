@@ -25,7 +25,7 @@ for running integration tests against AWS S3 by environment variable:
 $ IT_AWS_ENDPOINT=https://s3.us-east-1.amazonaws.com/ \
   IT_AWS_REGION=us-east-1 \
   IT_AWS_PROFILE=myprofie \
-  ./gradlew clean test -DincludeTags="AwsS3IntegrationTest"
+  ./gradlew clean test -DincludeTags="EndToEndTest"
 ```
 
 `IT_AWS_REGION` must be set to your region code in order to avoid
