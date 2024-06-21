@@ -16,7 +16,6 @@
 package org.eclipse.edc.aws.s3.testfixtures;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import software.amazon.awssdk.regions.Region;
 
@@ -30,7 +29,10 @@ import static org.eclipse.edc.util.configuration.ConfigurationFunctions.propOrEn
 
 /**
  * Base class for tests that need an S3 bucket created and deleted on every test run.
+ *
+ * @deprecated it is not used anymore in the Technology-Aws repository, so it will be removed.
  */
+@Deprecated(since = "0.7.1")
 public abstract class AbstractS3Test {
 
     protected static final String REGION = propOrEnv("it.aws.region", Region.US_EAST_1.id());
@@ -46,16 +48,13 @@ public abstract class AbstractS3Test {
     protected String bucketName = "test-bucket-" + UUID.randomUUID() + "-" + REGION;
 
     protected S3TestClient sourceClient = S3TestClient.create(SOURCE_MINIO_ENDPOINT, REGION);
-
     protected S3TestClient destinationClient = S3TestClient.create(DESTINATION_MINIO_ENDPOINT, REGION);
 
     protected static final String OBJECT_PREFIX = "object-prefix/";
-
     protected static final String OBJECT_NAME = "text-document.txt";
-
     protected static final String KEY_NAME = "key-name";
 
-    @BeforeAll
+    @BeforeEach
     void prepareAll() {
         await().atLeast(Duration.ofSeconds(2))
             .atMost(Duration.ofSeconds(15))

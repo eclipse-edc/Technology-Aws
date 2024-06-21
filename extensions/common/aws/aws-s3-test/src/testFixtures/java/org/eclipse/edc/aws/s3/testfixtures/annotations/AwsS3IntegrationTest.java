@@ -24,10 +24,13 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation for AWS S3 integration testing.  It applies specific Junit Tag.
+ *
+ * @deprecated not used anymore, please use {@link org.eclipse.edc.junit.annotations.EndToEndTest}.
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @IntegrationTest
 @Tag("AwsS3IntegrationTest")
+@Deprecated(since = "0.7.1")
 public @interface AwsS3IntegrationTest {
 }

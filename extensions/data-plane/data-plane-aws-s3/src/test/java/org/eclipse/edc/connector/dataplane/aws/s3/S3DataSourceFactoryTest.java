@@ -17,45 +17,39 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
-import org.eclipse.edc.aws.s3.S3BucketSchema;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.json.JacksonTypeManager;
 import org.eclipse.edc.spi.EdcException;
-import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
+import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
+import org.eclipse.edc.validator.spi.ValidationResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.ArgumentCaptor;
 
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_ACCESS_KEY_ID;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_BUCKET_NAME;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_REGION;
-import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.VALID_SECRET_ACCESS_KEY;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithCredentials;
 import static org.eclipse.edc.connector.dataplane.aws.s3.TestFunctions.s3DataAddressWithoutCredentials;
+import static org.eclipse.edc.validator.spi.Violation.violation;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class S3DataSourceFactoryTest {
 
-    private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
+    private final AwsClientProvider clientProvider = mock();
     private final TypeManager typeManager = new JacksonTypeManager();
-    private final Vault vault = mock(Vault.class);
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(Monitor.class), vault, typeManager);
-    private final ArgumentCaptor<S3ClientRequest> s3ClientRequestArgumentCaptor = ArgumentCaptor.forClass(S3ClientRequest.class);
+    private final Vault vault = mock();
+    private final DataAddressValidatorRegistry validator = mock();
+
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(), vault, typeManager, validator);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -76,36 +70,33 @@ class S3DataSourceFactoryTest {
     }
 
     @Test
-    void validate_shouldSucceedIfPropertiesAreValid() {
+    void validate_shouldSucceed_whenValidatorSucceeds() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.success());
         var source = s3DataAddressWithCredentials();
         var request = createRequest(source);
 
         var result = factory.validateRequest(request);
 
         assertThat(result.succeeded()).isTrue();
+        verify(validator).validateSource(source);
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(InvalidInputs.class)
-    void validate_shouldFailIfMandatoryPropertiesAreMissing(String bucketName, String region, String accessKeyId, String secretAccessKey) {
-        var source = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .property(S3BucketSchema.BUCKET_NAME, bucketName)
-                .property(S3BucketSchema.REGION, region)
-                .property(S3BucketSchema.ACCESS_KEY_ID, accessKeyId)
-                .property(S3BucketSchema.SECRET_ACCESS_KEY, secretAccessKey)
-                .build();
-
+    @Test
+    void validate_shouldFail_whenValidatorFails() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.failure(violation("error", "path")));
+        var source = s3DataAddressWithCredentials();
         var request = createRequest(source);
 
         var result = factory.validateRequest(request);
 
-        assertThat(result.failed()).isTrue();
+        assertThat(result.succeeded()).isFalse();
+        verify(validator).validateSource(source);
     }
 
     @Test
     void createSource_shouldCreateDataSource() {
-        DataAddress source = s3DataAddressWithCredentials();
+        when(validator.validateSource(any())).thenReturn(ValidationResult.success());
+        var source = s3DataAddressWithCredentials();
         var request = createRequest(source);
 
         var dataSource = factory.createSource(request);
@@ -115,35 +106,24 @@ class S3DataSourceFactoryTest {
 
     @Test
     void createSink_shouldLetTheProviderGetTheCredentialsIfNotProvidedByTheAddress() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.success());
         var destination = s3DataAddressWithoutCredentials();
         var request = createRequest(destination);
 
         var sink = factory.createSource(request);
 
         assertThat(sink).isNotNull().isInstanceOf(S3DataSource.class);
-
-        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
-
-        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
-
+        var captor = ArgumentCaptor.forClass(S3ClientRequest.class);
+        verify(clientProvider).s3Client(captor.capture());
+        var s3ClientRequest = captor.getValue();
         assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
         assertThat(s3ClientRequest.secretToken()).isNull();
         assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test
-    void createSource_shouldThrowExceptionIfValidationFails() {
-        var source = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .build();
-
-        var request = createRequest(source);
-
-        assertThatThrownBy(() -> factory.createSource(request)).isInstanceOf(EdcException.class);
-    }
-
-    @Test
     void createSource_shouldGetTheSecretTokenFromTheVault() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.success());
         var source = TestFunctions.s3DataAddressWithCredentials();
         var temporaryKey = new AwsTemporarySecretToken("temporaryId", "temporarySecret", null, 0);
         when(vault.resolveSecret(source.getKeyName())).thenReturn(typeManager.writeValueAsString(temporaryKey));
@@ -152,14 +132,24 @@ class S3DataSourceFactoryTest {
         var s3Source = factory.createSource(request);
 
         assertThat(s3Source).isNotNull().isInstanceOf(S3DataSource.class);
-
-        verify(clientProvider).s3Client(s3ClientRequestArgumentCaptor.capture());
-
-        S3ClientRequest s3ClientRequest = s3ClientRequestArgumentCaptor.getValue();
-
+        var captor = ArgumentCaptor.forClass(S3ClientRequest.class);
+        verify(clientProvider).s3Client(captor.capture());
+        var s3ClientRequest = captor.getValue();
         assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
         assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsTemporarySecretToken.class);
         assertThat(s3ClientRequest.endpointOverride()).isNull();
+    }
+
+    @Test
+    void createSource_shouldThrowExceptionIfValidationFails() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.failure(violation("error", "path")));
+        var source = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .build();
+
+        var request = createRequest(source);
+
+        assertThatThrownBy(() -> factory.createSource(request)).isInstanceOf(EdcException.class);
     }
 
     private DataFlowStartMessage createRequest(DataAddress source) {
@@ -171,14 +161,4 @@ class S3DataSourceFactoryTest {
                 .build();
     }
 
-    private static class InvalidInputs implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return Stream.of(
-                    Arguments.of(VALID_BUCKET_NAME, " ", VALID_ACCESS_KEY_ID, VALID_SECRET_ACCESS_KEY),
-                    Arguments.of(" ", VALID_REGION, VALID_ACCESS_KEY_ID, VALID_SECRET_ACCESS_KEY)
-            );
-        }
-    }
 }

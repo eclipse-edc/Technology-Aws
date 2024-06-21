@@ -36,14 +36,15 @@ dependencyResolutionManagement {
     }
 }
 
-// common modules
 include(":extensions:common:aws:aws-s3-test")
 include(":extensions:common:aws:aws-s3-core")
 include(":extensions:common:vault:vault-aws")
+include(":extensions:common:validator:validator-data-address-s3")
 
-// control plane modules
 include(":extensions:control-plane:provision:provision-aws-s3")
 
-// data plane
 include(":extensions:data-plane:data-plane-aws-s3")
+
+include(":spi:common:aws-spi")
+
 include(":version-catalog")

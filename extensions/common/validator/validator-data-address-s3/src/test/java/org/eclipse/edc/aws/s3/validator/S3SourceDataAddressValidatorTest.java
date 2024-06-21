@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.edc.aws.s3.validation;
+package org.eclipse.edc.aws.s3.validator;
 
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.validator.spi.ValidationFailure;
@@ -20,11 +20,11 @@ import org.eclipse.edc.validator.spi.Violation;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_PREFIX;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.TYPE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_PREFIX;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.TYPE;
 import static org.eclipse.edc.junit.assertions.AbstractResultAssert.assertThat;
 
 public class S3SourceDataAddressValidatorTest {

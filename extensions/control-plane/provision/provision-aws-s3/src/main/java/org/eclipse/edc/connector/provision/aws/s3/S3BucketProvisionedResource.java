@@ -18,11 +18,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedDataDestinationResource;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
 
 /**

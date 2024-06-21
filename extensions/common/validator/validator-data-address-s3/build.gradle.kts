@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, 2021 Microsoft Corporation
+ *  Copyright (c) 2024 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -8,7 +8,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Contributors:
- *       Microsoft Corporation - initial API and implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - initial API and implementation
  *
  */
 
@@ -18,13 +18,7 @@ plugins {
 
 dependencies {
     api(project(":spi:common:aws-spi"))
-    api(libs.edc.spi.transfer)
     api(libs.edc.spi.validation)
-
-    api(libs.failsafe.core)
-    api(libs.aws.iam)
-    api(libs.aws.s3)
-    api(libs.aws.sts)
 
     testImplementation(libs.edc.junit)
 }

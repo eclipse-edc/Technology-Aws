@@ -28,6 +28,7 @@ dependencies {
     testImplementation(libs.edc.core.dataplane)
     testImplementation(testFixtures(project(":extensions:common:aws:aws-s3-test")))
     testImplementation(libs.edc.junit)
+    testImplementation(libs.testcontainers.junit.jupiter)
 }
 
 

@@ -15,7 +15,7 @@
 
 package org.eclipse.edc.connector.provision.aws.s3;
 
-import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.asset.spi.domain.Asset;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;

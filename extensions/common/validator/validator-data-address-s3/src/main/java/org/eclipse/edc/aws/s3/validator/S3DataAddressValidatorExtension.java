@@ -12,17 +12,16 @@
  *
  */
 
-package org.eclipse.edc.aws.s3;
+package org.eclipse.edc.aws.s3.validator;
 
-import org.eclipse.edc.aws.s3.validation.S3DestinationDataAddressValidator;
-import org.eclipse.edc.aws.s3.validation.S3SourceDataAddressValidator;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 
-import static org.eclipse.edc.aws.s3.S3DataAddressValidatorExtension.NAME;
+import static org.eclipse.edc.aws.s3.validator.S3DataAddressValidatorExtension.NAME;
 
 @Extension(NAME)
 public class S3DataAddressValidatorExtension implements ServiceExtension {

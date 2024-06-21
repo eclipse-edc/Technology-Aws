@@ -14,7 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
