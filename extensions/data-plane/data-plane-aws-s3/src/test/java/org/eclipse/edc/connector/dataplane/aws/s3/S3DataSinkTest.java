@@ -14,7 +14,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import org.eclipse.edc.aws.s3.S3BucketSchema;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.InputStreamDataSource;
@@ -62,6 +62,11 @@ public class S3DataSinkTest {
     private S3DataSink dataSink;
 
     private ArgumentCaptor<CompleteMultipartUploadRequest> completeMultipartUploadRequestCaptor;
+
+    private static InputStreamDataSource createDataSource(String text) {
+        var content = StringUtils.isBlank(text) ? "test stream" : text;
+        return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
+    }
 
     @BeforeEach
     void setup() {
@@ -127,7 +132,7 @@ public class S3DataSinkTest {
 
         var result = dataSink.transferParts(List.of(part));
 
-        String expectedMessage = "Failed to download the %s object: %s".formatted(DESTINATION_OBJECT_NAME, ERROR_MESSAGE);
+        String expectedMessage = "GENERAL_ERROR: Failed to download the %s object: %s".formatted(DESTINATION_OBJECT_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.getFailureDetail()).isEqualTo(expectedMessage);
@@ -155,7 +160,7 @@ public class S3DataSinkTest {
 
         var result = s3Datasink.transferParts(inputStream);
 
-        var expectedMessage = "Failed to upload the %s object: %s"
+        var expectedMessage = "GENERAL_ERROR: Failed to upload the %s object: %s"
                 .formatted(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME, ERROR_MESSAGE);
 
         assertThat(result.failed()).isTrue();
@@ -181,10 +186,5 @@ public class S3DataSinkTest {
             );
         }
 
-    }
-
-    private static InputStreamDataSource createDataSource(String text) {
-        var content = StringUtils.isBlank(text) ? "test stream" : text;
-        return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
     }
 }

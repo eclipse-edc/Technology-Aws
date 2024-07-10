@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.edc.aws.s3.validation;
+package org.eclipse.edc.aws.s3.validator;
 
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.validator.spi.ValidationResult;
@@ -22,12 +22,12 @@ import org.eclipse.edc.validator.spi.Violation;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.KEY_PREFIX;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_NAME;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.OBJECT_PREFIX;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.REGION;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.KEY_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.KEY_PREFIX;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_PREFIX;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.validator.spi.Violation.violation;
 
 /**

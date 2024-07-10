@@ -13,4 +13,3 @@
 #
 
 org.eclipse.edc.aws.s3.S3CoreExtension
-org.eclipse.edc.aws.s3.S3DataAddressValidatorExtension

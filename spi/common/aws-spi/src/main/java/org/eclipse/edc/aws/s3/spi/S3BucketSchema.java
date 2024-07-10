@@ -13,7 +13,7 @@
  *
  */
 
-package org.eclipse.edc.aws.s3;
+package org.eclipse.edc.aws.s3.spi;
 
 public interface S3BucketSchema {
     String TYPE = "AmazonS3";

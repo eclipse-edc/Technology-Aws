@@ -20,9 +20,9 @@ import org.eclipse.edc.validator.spi.Violation;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.TYPE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.TYPE;
 import static org.eclipse.edc.junit.assertions.AbstractResultAssert.assertThat;
 
 public class S3DataAddressCredentialsValidatorTest {

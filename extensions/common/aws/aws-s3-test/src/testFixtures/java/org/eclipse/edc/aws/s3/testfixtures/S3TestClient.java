@@ -62,7 +62,7 @@ public class S3TestClient {
     private S3TestClient(String url, String region) {
         this.url = url;
         this.s3Endpoint = URI.create(propOrEnv("it.aws.endpoint", url));
-        AwsClientProviderConfiguration configuration = AwsClientProviderConfiguration.Builder.newInstance()
+        var configuration = AwsClientProviderConfiguration.Builder.newInstance()
                 .credentialsProvider(this::getCredentials)
                 .endpointOverride(this.s3Endpoint)
                 .build();
@@ -93,7 +93,7 @@ public class S3TestClient {
      *
      * @return true if HTTP status [200..300[
      */
-    protected boolean isAvailable()  throws IOException {
+    public boolean isAvailable()  throws IOException {
         var httpClient = testHttpClient();
         var healthRq = new Request.Builder().url(s3Endpoint + "/minio/health/live").get().build();
         try (var response = httpClient.execute(healthRq)) {
@@ -178,7 +178,7 @@ public class S3TestClient {
              .getObject(GetObjectRequest.builder().bucket(bucketName).key(key).build(), new ByteArrayAsyncResponseTransformer<>());
     }
 
-    protected boolean isMinio() {
+    public boolean isMinio() {
         return url.equals(s3Endpoint.toString());
     }
 

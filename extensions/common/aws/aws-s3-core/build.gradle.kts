@@ -17,6 +17,7 @@ plugins {
 }
 
 dependencies {
+    api(project(":spi:common:aws-spi"))
     api(libs.edc.spi.transfer)
     api(libs.edc.spi.validation)
 

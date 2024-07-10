@@ -21,8 +21,8 @@ import org.eclipse.edc.validator.spi.Validator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static org.eclipse.edc.aws.s3.S3BucketSchema.ACCESS_KEY_ID;
-import static org.eclipse.edc.aws.s3.S3BucketSchema.SECRET_ACCESS_KEY;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_KEY;
 import static org.eclipse.edc.validator.spi.Violation.violation;
 
 /**

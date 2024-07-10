@@ -12,11 +12,10 @@
  *
  */
 
-package org.eclipse.edc.aws.s3;
+package org.eclipse.edc.aws.s3.validator;
 
 
-import org.eclipse.edc.aws.s3.validation.S3DestinationDataAddressValidator;
-import org.eclipse.edc.aws.s3.validation.S3SourceDataAddressValidator;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.junit.extensions.DependencyInjectionExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
@@ -31,7 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(DependencyInjectionExtension.class)
-public class S3DestinationDataAddressValidatorExtensionTest {
+public class S3DataAddressValidatorExtensionTest {
 
     private final DataAddressValidatorRegistry registry = mock();
 
