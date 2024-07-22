@@ -87,6 +87,9 @@ public class AwsSecretsManagerVault implements Vault {
                 monitor.severe(serviceException.getMessage(), serviceException);
                 return Result.failure(serviceException.getMessage());
             }
+        } catch (RuntimeException serviceException) {
+            monitor.severe(serviceException.getMessage(), serviceException);
+            return Result.failure(serviceException.getMessage());
         }
     }
 
