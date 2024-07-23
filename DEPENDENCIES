@@ -17,7 +17,7 @@ maven/mavencentral/com.fasterxml.jackson/jackson-bom/2.17.2, Apache-2.0, approve
 maven/mavencentral/com.github.docker-java/docker-java-api/3.3.6, Apache-2.0, approved, #10346
 maven/mavencentral/com.github.docker-java/docker-java-api/3.4.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/com.github.docker-java/docker-java-transport-zerodep/3.3.6, Apache-2.0 AND (Apache-2.0 AND BSD-3-Clause), approved, #15251
-maven/mavencentral/com.github.docker-java/docker-java-transport-zerodep/3.4.0, Apache-2.0, restricted, clearlydefined
+maven/mavencentral/com.github.docker-java/docker-java-transport-zerodep/3.4.0, Apache-2.0 AND (Apache-2.0 AND BSD-3-Clause), approved, #15745
 maven/mavencentral/com.github.docker-java/docker-java-transport/3.3.6, Apache-2.0, approved, #7942
 maven/mavencentral/com.github.docker-java/docker-java-transport/3.4.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/com.google.code.findbugs/jsr305/3.0.2, CC-BY-2.5, approved, #15220
@@ -237,7 +237,7 @@ maven/mavencentral/org.slf4j/slf4j-api/2.0.9, MIT, approved, #5915
 maven/mavencentral/org.testcontainers/junit-jupiter/1.19.8, MIT, approved, #10344
 maven/mavencentral/org.testcontainers/junit-jupiter/1.20.0, MIT, approved, clearlydefined
 maven/mavencentral/org.testcontainers/testcontainers/1.19.8, MIT, approved, #15203
-maven/mavencentral/org.testcontainers/testcontainers/1.20.0, MIT, restricted, clearlydefined
+maven/mavencentral/org.testcontainers/testcontainers/1.20.0, None, restricted, #15747
 maven/mavencentral/org.xmlresolver/xmlresolver/5.2.2, Apache-2.0, approved, clearlydefined
 maven/mavencentral/software.amazon.awssdk/annotations/2.25.66, Apache-2.0, approved, #13691
 maven/mavencentral/software.amazon.awssdk/apache-client/2.25.66, Apache-2.0, approved, #13687
