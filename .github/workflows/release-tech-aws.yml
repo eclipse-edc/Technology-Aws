@@ -32,6 +32,7 @@ jobs:
       - name: Create tag on current branch (main)
         run: |
           git tag v${{ env.EDC_VERSION }}
+          git push origin tag v${{ env.EDC_VERSION }}
 
       # create merge commit main -> releases encoding the version in the commit message
       - name: Merge main -> releases
