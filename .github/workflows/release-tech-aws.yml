@@ -23,26 +23,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Initialize mandatory git config
+        run: |
+          git config user.name "eclipse-edc-bot"
+          git config user.email "edc-bot@eclipse.org"
+
       # create tag on the current branch using GitHub's own API
       - name: Create tag on current branch (main)
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/v${{ env.EDC_VERSION }}',
-              sha: context.sha
-            })
+        run: |
+          git tag v${{ env.EDC_VERSION }}
+          git push origin tag v${{ env.EDC_VERSION }}
 
       # create merge commit main -> releases encoding the version in the commit message
       - name: Merge main -> releases
-        uses: everlytic/branch-merge@1.1.5
-        with:
-          github_token: ${{ github.token }}
-          source_ref: ${{ github.ref }}
-          target_branch: 'releases'
-          commit_message_template: 'Merge commit for release of version v${{ env.EDC_VERSION }}'
+        run: |
+          git fetch origin releases --unshallow
+          git checkout --track origin/releases 
+          git merge main -m "Merge commit for release of version v${{ env.EDC_VERSION }}"
+          git push origin releases
 
     outputs:
       edc-version: ${{ env.EDC_VERSION }}
