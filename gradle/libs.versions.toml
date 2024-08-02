@@ -9,7 +9,7 @@ edc = "0.8.2-SNAPSHOT"
 failsafe = "3.3.1"
 junit = "5.10.2"
 restAssured = "5.4.0"
-testcontainers = "1.19.8"
+testcontainers = "1.20.1"
 
 
 [libraries]
