@@ -70,7 +70,8 @@ jobs:
   Bump-Version:
     name: 'Update release version'
     # cannot use the workflow-level env yet as it does not yet exist, must take output from previous job
-    if: ${{ !endsWith( needs.Prepare-Release.outputs.edc-version, '-SNAPSHOT') }}
+    # only bump the version for releases, no snapshots, no bugfixes/patches
+    if: ${{ endsWith( needs.Prepare-Release.outputs.edc-version, '.0') }}
     needs: [ Prepare-Release, Github-Release ]
     runs-on: ubuntu-latest
     steps:
