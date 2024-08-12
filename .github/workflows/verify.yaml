@@ -2,7 +2,17 @@ name: Run Tests
 
 on:
   workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
+        description: optional version of upstream EDC components to use
   workflow_dispatch:
+    inputs:
+      version:
+        required: false
+        type: string
+        description: optional version of upstream EDC components to use
   push:
   pull_request:
     branches: [ main ]
@@ -11,6 +21,9 @@ on:
       - 'docs/**'
       - 'CODEOWNERS'
       - 'LICENSE'
+
+env:
+  VERSION: ${{ github.event.inputs.version || inputs.version }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,6 +36,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: "Set upstream EDC version"
+        run: |
+          # update EDC dependencies in the version catalog
+          if [ ! -z ${{ env.VERSION }} ]; then
+            echo "set EDC version to ${{ env.VERSION }}"
+            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
+            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
+            
+            # some debug print
+            head -20 gradle/libs.versions.toml
+          fi
 
       - name: Run Checkstyle
         run: ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
@@ -34,6 +58,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: "Set upstream EDC version"
+        run: |
+          # update EDC dependencies in the version catalog
+          if [ ! -z ${{ env.VERSION }} ]; then
+            echo "set EDC version to ${{ env.VERSION }}"
+            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
+            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
+          
+            # some debug print
+            head -20 gradle/libs.versions.toml
+          fi
 
       - name: Run unit tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
@@ -47,6 +82,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: "Set upstream EDC version"
+        run: |
+          # update EDC dependencies in the version catalog
+          if [ ! -z ${{ env.VERSION }} ]; then
+            echo "set EDC version to ${{ env.VERSION }}"
+            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
+            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
+          
+            # some debug print
+            head -20 gradle/libs.versions.toml
+          fi
 
       - name: End to End Integration Tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main

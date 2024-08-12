@@ -50,6 +50,8 @@ jobs:
     needs: [ Secrets-Presence, Determine-Version ]
     uses: ./.github/workflows/verify.yaml
     secrets: inherit
+    with:
+      version: ${{ needs.Determine-Version.outputs.VERSION }}
 
   Publish-Artefacts:
     runs-on: ubuntu-latest
@@ -68,6 +70,13 @@ jobs:
         name: "Import GPG Key"
         with:
           gpg-private-key: ${{ secrets.ORG_GPG_PRIVATE_KEY }}
+
+      - name: Set correct version
+        env:
+          VERSION: ${{ needs.Determine-Version.outputs.VERSION }}
+        run: |
+          existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
+          grep -rlz "$existingVersion" . --exclude=\*.{sh,bin} | xargs sed -i "s/$existingVersion/$VERSION/g"
 
       - name: "Publish To OSSRH/MavenCentral"
         if: |
