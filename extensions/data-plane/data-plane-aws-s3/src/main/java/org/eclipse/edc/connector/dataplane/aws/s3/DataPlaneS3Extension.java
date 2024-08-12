@@ -15,6 +15,9 @@
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
+import org.eclipse.edc.connector.dataplane.spi.Endpoint;
+import org.eclipse.edc.connector.dataplane.spi.iam.PublicEndpointGeneratorService;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
@@ -37,6 +40,9 @@ public class DataPlaneS3Extension implements ServiceExtension {
     @Setting(value = "The maximum chunk of stream to be read, in mb", defaultValue = DEFAULT_CHUNK_SIZE_IN_MB + "", type = "int")
     private static final String EDC_DATAPLANE_S3_SINK_CHUNK_SIZE_MB = "edc.dataplane.aws.sink.chunk.size.mb";
 
+    @Setting(value = "Base url of the public API endpoint without the trailing slash.")
+    private static final String PUBLIC_ENDPOINT = "edc.dataplane.api.public.baseurl";
+
     @Inject
     private PipelineService pipelineService;
 
@@ -51,6 +57,9 @@ public class DataPlaneS3Extension implements ServiceExtension {
 
     @Inject
     private DataAddressValidatorRegistry validator;
+
+    @Inject
+    private PublicEndpointGeneratorService generatorService;
 
     @Override
     public String name() {
@@ -67,6 +76,9 @@ public class DataPlaneS3Extension implements ServiceExtension {
             throw new IllegalArgumentException("Chunk size must be greater than zero! Actual value is: " + chunkSizeInBytes);
         }
         var monitor = context.getMonitor();
+
+        var endpoint = Endpoint.url(context.getSetting(PUBLIC_ENDPOINT, null));
+        generatorService.addGeneratorFunction(S3BucketSchema.TYPE, dataAddress -> endpoint);
 
         var sourceFactory = new S3DataSourceFactory(awsClientProvider, monitor, vault, typeManager, validator);
         pipelineService.registerFactory(sourceFactory);
