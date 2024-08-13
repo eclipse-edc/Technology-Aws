@@ -25,12 +25,15 @@ import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.DeleteSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.TestInstance.Lifecycle;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -63,16 +66,31 @@ class AwsSecretsManagerVaultTest {
 
         vault.storeSecret(KEY, value);
 
-        verify(secretClient).createSecret(CreateSecretRequest.builder().name(SANITIZED_KEY)
+        verify(secretClient).updateSecret(UpdateSecretRequest.builder().secretId(SANITIZED_KEY)
                 .secretString(value).build());
     }
 
     @Test
-    void storeSecret_shouldNotOverwriteSecrets() {
-        var value = "value";
+    void storeSecret_shouldUpdateSecretIfExist() {
+        String value = "value";
 
         vault.storeSecret(KEY, value);
 
+        verify(secretClient).updateSecret(UpdateSecretRequest.builder().secretId(SANITIZED_KEY)
+                .secretString(value).build());
+        verify(secretClient, never()).createSecret(any(CreateSecretRequest.class));
+
+    }
+
+    @Test
+    void storeSecret_shouldCreateSecretIfNotExist() {
+        String value = "value";
+
+        doThrow(ResourceNotFoundException.class).when(secretClient).updateSecret(any(UpdateSecretRequest.class));
+
+        vault.storeSecret(KEY, value);
+
+        verify(secretClient).updateSecret(any(UpdateSecretRequest.class));
         verify(secretClient).createSecret(CreateSecretRequest.builder().name(SANITIZED_KEY)
                 .secretString(value).build());
     }
