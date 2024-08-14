@@ -1,0 +1,10 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  Release:
+    uses: eclipse-edc/.github/.github/workflows/technology-release.yml@main
+    secrets: inherit
