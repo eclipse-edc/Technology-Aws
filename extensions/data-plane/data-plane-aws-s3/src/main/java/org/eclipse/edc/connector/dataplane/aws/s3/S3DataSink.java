@@ -32,6 +32,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.eclipse.edc.connector.dataplane.aws.s3.utils.S3DataUtils.DIRECTORY_SEPARATOR;
+
 class S3DataSink extends ParallelSink {
 
     private S3Client client;
@@ -72,6 +74,11 @@ class S3DataSink extends ParallelSink {
                     partNumber++;
                 }
 
+                if (completedParts.isEmpty()) {
+                    monitor.severe(String.format("The '%s' file cannot be empty, transfer will not be processed.", key));
+                    continue;
+                }
+
                 client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                         .bucket(bucketName)
                         .key(key)
@@ -92,12 +99,16 @@ class S3DataSink extends ParallelSink {
     }
 
     private String getDestinationObjectName(String partName, int partsSize) {
-        var name = (partsSize == 1 && !StringUtils.isNullOrEmpty(objectName)) ? objectName : partName;
-        if (!StringUtils.isNullOrEmpty(folderName)) {
-            return folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
-        } else {
-            return name;
+        var name = useObjectName(partName, partsSize) ? objectName : partName;
+        if (!StringUtils.isNullOrEmpty(folderName) && !name.startsWith(folderName + DIRECTORY_SEPARATOR)) {
+            return folderName.endsWith(DIRECTORY_SEPARATOR) ? folderName + name : folderName + DIRECTORY_SEPARATOR + name;
         }
+
+        return name;
+    }
+
+    private boolean useObjectName(String partName, int partsSize) {
+        return partsSize == 1 && partName.endsWith(DIRECTORY_SEPARATOR) && !StringUtils.isNullOrEmpty(objectName);
     }
 
     @NotNull
