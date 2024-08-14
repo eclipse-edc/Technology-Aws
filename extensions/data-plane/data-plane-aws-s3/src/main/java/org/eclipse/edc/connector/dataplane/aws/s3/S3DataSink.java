@@ -99,7 +99,7 @@ class S3DataSink extends ParallelSink {
     }
 
     private String getDestinationObjectName(String partName, int partsSize) {
-        var name = useObjectName(partName, partsSize) ? objectName : partName;
+        var name = useObjectName(partsSize) ? objectName : partName;
         if (!StringUtils.isNullOrEmpty(folderName) && !name.startsWith(folderName + DIRECTORY_SEPARATOR)) {
             return folderName.endsWith(DIRECTORY_SEPARATOR) ? folderName + name : folderName + DIRECTORY_SEPARATOR + name;
         }
@@ -107,8 +107,8 @@ class S3DataSink extends ParallelSink {
         return name;
     }
 
-    private boolean useObjectName(String partName, int partsSize) {
-        return partsSize == 1 && partName.endsWith(DIRECTORY_SEPARATOR) && !StringUtils.isNullOrEmpty(objectName);
+    private boolean useObjectName(int partsSize) {
+        return partsSize == 1 && !StringUtils.isNullOrEmpty(objectName);
     }
 
     @NotNull

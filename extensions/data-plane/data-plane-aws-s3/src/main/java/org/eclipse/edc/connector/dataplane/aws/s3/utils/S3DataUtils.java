@@ -11,6 +11,7 @@
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  */
+
 package org.eclipse.edc.connector.dataplane.aws.s3.utils;
 
 public class S3DataUtils {
