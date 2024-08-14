@@ -72,7 +72,7 @@ class AwsSecretsManagerVaultTest {
 
     @Test
     void storeSecret_shouldUpdateSecretIfExist() {
-        String value = "value";
+        var value = "value";
 
         vault.storeSecret(KEY, value);
 
