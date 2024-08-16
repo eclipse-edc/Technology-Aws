@@ -31,12 +31,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.TestInstance.Lifecycle;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -66,8 +67,11 @@ class AwsSecretsManagerVaultTest {
 
         vault.storeSecret(KEY, value);
 
-        verify(secretClient).updateSecret(UpdateSecretRequest.builder().secretId(SANITIZED_KEY)
-                .secretString(value).build());
+        verify(secretClient).updateSecret(argThat((UpdateSecretRequest request) -> {
+            var secretId = request.secretId();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
     }
 
     @Test
@@ -78,7 +82,8 @@ class AwsSecretsManagerVaultTest {
 
         verify(secretClient).updateSecret(UpdateSecretRequest.builder().secretId(SANITIZED_KEY)
                 .secretString(value).build());
-        verify(secretClient, never()).createSecret(any(CreateSecretRequest.class));
+
+        verifyNoMoreInteractions(secretClient);
 
     }
 
@@ -99,8 +104,8 @@ class AwsSecretsManagerVaultTest {
     void resolveSecret_shouldSanitizeKey() {
         vault.resolveSecret(KEY);
 
-        verify(secretClient).getSecretValue(GetSecretValueRequest.builder().secretId(SANITIZED_KEY)
-                .build());
+        verify(secretClient).getSecretValue(argThat((GetSecretValueRequest request) ->
+                SANITIZED_KEY.equals(request.secretId())));
     }
 
     @Test
