@@ -80,8 +80,11 @@ class AwsSecretsManagerVaultTest {
 
         vault.storeSecret(KEY, value);
 
-        verify(secretClient).updateSecret(UpdateSecretRequest.builder().secretId(SANITIZED_KEY)
-                .secretString(value).build());
+        verify(secretClient).updateSecret(argThat((UpdateSecretRequest request) -> {
+            var secretId = request.secretId();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
 
         verifyNoMoreInteractions(secretClient);
 
@@ -96,8 +99,11 @@ class AwsSecretsManagerVaultTest {
         vault.storeSecret(KEY, value);
 
         verify(secretClient).updateSecret(any(UpdateSecretRequest.class));
-        verify(secretClient).createSecret(CreateSecretRequest.builder().name(SANITIZED_KEY)
-                .secretString(value).build());
+        verify(secretClient).createSecret(argThat((CreateSecretRequest request) -> {
+            var secretId = request.name();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
     }
 
     @Test
