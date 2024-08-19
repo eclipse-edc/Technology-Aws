@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.DeleteSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
 
 /**
  * Vault adapter for AWS Secrets Manager.
@@ -62,7 +63,7 @@ public class AwsSecretsManagerVault implements Vault {
     }
 
     /**
-     * Creates a new secret. Does not overwrite secrets.
+     * Creates/Updates a secret.
      *
      * @param key   the secret key
      * @param value the serialized secret value
@@ -71,12 +72,21 @@ public class AwsSecretsManagerVault implements Vault {
     @Override
     public Result<Void> storeSecret(String key, String value) {
         var sanitizedKey = sanitizer.sanitizeKey(key);
-        var request = CreateSecretRequest.builder().name(sanitizedKey)
-                .secretString(value).build();
         try {
-            monitor.debug(String.format("Storing secret '%s' to AWS Secrets manager", sanitizedKey));
-            smClient.createSecret(request);
+            var updateSecretRequest = UpdateSecretRequest.builder().secretId(sanitizedKey).secretString(value).build();
+            smClient.updateSecret(updateSecretRequest);
+            monitor.debug(String.format("Secret '%s' updated in AWS Secrets Manager", sanitizedKey));
             return Result.success();
+        } catch (ResourceNotFoundException e) {
+            try {
+                var createSecretRequest = CreateSecretRequest.builder().name(sanitizedKey).secretString(value).build();
+                smClient.createSecret(createSecretRequest);
+                monitor.debug(String.format("Secret '%s' stored in AWS Secrets Manager", sanitizedKey));
+                return Result.success();
+            } catch (RuntimeException serviceException) {
+                monitor.severe(serviceException.getMessage(), serviceException);
+                return Result.failure(serviceException.getMessage());
+            }
         } catch (RuntimeException serviceException) {
             monitor.severe(serviceException.getMessage(), serviceException);
             return Result.failure(serviceException.getMessage());
@@ -103,6 +113,5 @@ public class AwsSecretsManagerVault implements Vault {
             return Result.failure(serviceException.getMessage());
         }
     }
-
 
 }

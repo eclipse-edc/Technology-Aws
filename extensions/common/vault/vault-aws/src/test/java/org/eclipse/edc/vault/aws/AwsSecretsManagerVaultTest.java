@@ -25,15 +25,19 @@ import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.DeleteSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.TestInstance.Lifecycle;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -63,26 +67,51 @@ class AwsSecretsManagerVaultTest {
 
         vault.storeSecret(KEY, value);
 
-        verify(secretClient).createSecret(CreateSecretRequest.builder().name(SANITIZED_KEY)
-                .secretString(value).build());
+        verify(secretClient).updateSecret(argThat((UpdateSecretRequest request) -> {
+            var secretId = request.secretId();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
     }
 
     @Test
-    void storeSecret_shouldNotOverwriteSecrets() {
+    void storeSecret_shouldUpdateSecretIfExist() {
         var value = "value";
 
         vault.storeSecret(KEY, value);
 
-        verify(secretClient).createSecret(CreateSecretRequest.builder().name(SANITIZED_KEY)
-                .secretString(value).build());
+        verify(secretClient).updateSecret(argThat((UpdateSecretRequest request) -> {
+            var secretId = request.secretId();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
+
+        verifyNoMoreInteractions(secretClient);
+
+    }
+
+    @Test
+    void storeSecret_shouldCreateSecretIfNotExist() {
+        String value = "value";
+
+        doThrow(ResourceNotFoundException.class).when(secretClient).updateSecret(any(UpdateSecretRequest.class));
+
+        vault.storeSecret(KEY, value);
+
+        verify(secretClient).updateSecret(any(UpdateSecretRequest.class));
+        verify(secretClient).createSecret(argThat((CreateSecretRequest request) -> {
+            var secretId = request.name();
+            var secretValue = request.secretString();
+            return SANITIZED_KEY.equals(secretId) && value.equals(secretValue);
+        }));
     }
 
     @Test
     void resolveSecret_shouldSanitizeKey() {
         vault.resolveSecret(KEY);
 
-        verify(secretClient).getSecretValue(GetSecretValueRequest.builder().secretId(SANITIZED_KEY)
-                .build());
+        verify(secretClient).getSecretValue(argThat((GetSecretValueRequest request) ->
+                SANITIZED_KEY.equals(request.secretId())));
     }
 
     @Test
