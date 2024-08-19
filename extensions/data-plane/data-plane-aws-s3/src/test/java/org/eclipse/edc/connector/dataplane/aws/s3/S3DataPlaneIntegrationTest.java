@@ -105,6 +105,10 @@ public class S3DataPlaneIntegrationTest {
         var objectNameInDestination = "object-name-in-destination";
         var objectContent = UUID.randomUUID().toString();
 
+        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
+        if(!isSingleObject)
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+
         for (var objectName : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
         }
@@ -163,6 +167,10 @@ public class S3DataPlaneIntegrationTest {
         var objectNameInDestination = "object-name-in-destination";
         var folderNameInDestination = "folder-name-in-destination/";
         var objectBody = UUID.randomUUID().toString();
+
+        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
+        if(!isSingleObject)
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
 
         for (var objectToTransfer : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectToTransfer, objectBody);
