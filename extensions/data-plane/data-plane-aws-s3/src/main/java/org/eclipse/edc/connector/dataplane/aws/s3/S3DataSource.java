@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.eclipse.edc.connector.dataplane.aws.s3.utils.S3DataUtils.DIRECTORY_SEPARATOR;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.failure;
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult.success;
@@ -120,7 +119,7 @@ class S3DataSource implements DataSource {
     }
 
     private Collection<S3Object> extractFiles(List<S3Object> contents, String objectPrefix) {
-        var folder = objectPrefix.endsWith(DIRECTORY_SEPARATOR) ? objectPrefix : objectPrefix + DIRECTORY_SEPARATOR;
+        var folder = objectPrefix.endsWith("/") ? objectPrefix : objectPrefix + "/";
         return contents.stream().filter(object -> !object.key().equalsIgnoreCase(folder)).collect(Collectors.toSet());
     }
 

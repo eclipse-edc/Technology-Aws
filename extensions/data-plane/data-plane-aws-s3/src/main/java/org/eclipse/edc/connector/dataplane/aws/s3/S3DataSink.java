@@ -32,8 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.eclipse.edc.connector.dataplane.aws.s3.utils.S3DataUtils.DIRECTORY_SEPARATOR;
-
 class S3DataSink extends ParallelSink {
 
     private S3Client client;
@@ -62,7 +60,7 @@ class S3DataSink extends ParallelSink {
 
                 var partNumber = 1;
                 byte[] bytesChunk = input.readNBytes(chunkSize);
-                while (bytesChunk.length > 0) {
+                do {
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
                                     .bucket(bucketName)
@@ -72,12 +70,7 @@ class S3DataSink extends ParallelSink {
                                     .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
                     bytesChunk = input.readNBytes(chunkSize);
                     partNumber++;
-                }
-
-                if (completedParts.isEmpty()) {
-                    monitor.severe(String.format("The '%s' file cannot be empty, transfer will not be processed.", key));
-                    continue;
-                }
+                } while (bytesChunk.length > 0);
 
                 client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                         .bucket(bucketName)
@@ -100,8 +93,8 @@ class S3DataSink extends ParallelSink {
 
     private String getDestinationObjectName(String partName, int partsSize) {
         var name = useObjectName(partsSize) ? objectName : partName;
-        if (!StringUtils.isNullOrEmpty(folderName) && !name.startsWith(folderName + DIRECTORY_SEPARATOR)) {
-            return folderName.endsWith(DIRECTORY_SEPARATOR) ? folderName + name : folderName + DIRECTORY_SEPARATOR + name;
+        if (!StringUtils.isNullOrEmpty(folderName)) {
+            return folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
         }
 
         return name;
