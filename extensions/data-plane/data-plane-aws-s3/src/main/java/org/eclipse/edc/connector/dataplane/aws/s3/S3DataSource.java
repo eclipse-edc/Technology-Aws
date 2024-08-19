@@ -109,7 +109,7 @@ class S3DataSource implements DataSource {
 
             var response = client.listObjectsV2(listObjectsRequest);
 
-            s3Objects.addAll(extractFiles(response.contents(), objectPrefix));
+            s3Objects.addAll(filterOutFolderFile(response.contents(), objectPrefix));
 
             continuationToken = response.nextContinuationToken();
 
@@ -118,7 +118,7 @@ class S3DataSource implements DataSource {
         return s3Objects;
     }
 
-    private Collection<S3Object> extractFiles(List<S3Object> contents, String objectPrefix) {
+    private Collection<S3Object> filterOutFolderFile(List<S3Object> contents, String objectPrefix) {
         var folder = objectPrefix.endsWith("/") ? objectPrefix : objectPrefix + "/";
         return contents.stream().filter(object -> !object.key().equalsIgnoreCase(folder)).collect(Collectors.toSet());
     }
