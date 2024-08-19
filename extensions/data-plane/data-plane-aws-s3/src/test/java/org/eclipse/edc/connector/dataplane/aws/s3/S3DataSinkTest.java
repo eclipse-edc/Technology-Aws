@@ -151,22 +151,20 @@ public class S3DataSinkTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             var emptyContent = "";
-            var smallContent = "content smaller than a chunk size";    
+            var smallContent = "content smaller than a chunk size";
             var bigContent = "content bigger than 50 bytes chunk size so that it gets chunked and uploaded as a multipart upload";
             return Stream.of(
-                Arguments.of(
-                        List.of(createDataSource(emptyContent)), 1),
-                Arguments.of(
-                        List.of(createDataSource(smallContent)), 1),
-                Arguments.of(
-                        List.of(createDataSource(bigContent)), 2),
-				Arguments.of(
-						List.of(createDataSource(emptyContent), createDataSource(smallContent)), 1),
-                Arguments.of(
-                        List.of(createDataSource(bigContent), createDataSource(bigContent)), 2)
-            );
+                    Arguments.of(
+                            List.of(createDataSource(emptyContent)), 1),
+                    Arguments.of(
+                            List.of(createDataSource(smallContent)), 1),
+                    Arguments.of(
+                            List.of(createDataSource(bigContent)), 2),
+                    Arguments.of(
+                            List.of(createDataSource(emptyContent), createDataSource(smallContent)), 1),
+                    Arguments.of(
+                            List.of(createDataSource(bigContent), createDataSource(bigContent)), 2));
         }
-
     }
 
     private static InputStreamDataSource createDataSource(String text) {
