@@ -110,6 +110,7 @@ public class S3DataPlaneIntegrationTest {
         //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
         if (!isSingleObject) {
             sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
         }
 
         for (var objectName : objectNames) {
@@ -179,6 +180,7 @@ public class S3DataPlaneIntegrationTest {
         //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
         if (!isSingleObject) {
             sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
         }
 
         for (var objectToTransfer : objectNames) {

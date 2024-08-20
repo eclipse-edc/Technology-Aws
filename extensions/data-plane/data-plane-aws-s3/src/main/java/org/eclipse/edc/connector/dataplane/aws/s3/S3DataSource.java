@@ -119,8 +119,7 @@ class S3DataSource implements DataSource {
     }
 
     private Collection<S3Object> filterOutFolderFile(List<S3Object> contents, String objectPrefix) {
-        var folder = objectPrefix.endsWith("/") ? objectPrefix : objectPrefix + "/";
-        return contents.stream().filter(object -> !object.key().equalsIgnoreCase(folder)).collect(Collectors.toSet());
+        return contents.stream().filter(object -> !object.key().endsWith("/")).collect(Collectors.toSet());
     }
 
     @Override
