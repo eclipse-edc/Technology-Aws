@@ -108,8 +108,9 @@ public class S3DataPlaneIntegrationTest {
         var objectContent = UUID.randomUUID().toString();
 
         //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
-        if(!isSingleObject)
+        if (!isSingleObject) {
             sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+        }
 
         for (var objectName : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
@@ -160,9 +161,9 @@ public class S3DataPlaneIntegrationTest {
             }
 
             assertThat(destinationClient.getObject(destinationBucketName,
-                        OBJECT_PREFIX)).failsWithin(5, SECONDS)
-                        .withThrowableOfType(ExecutionException.class)
-                        .withCauseInstanceOf(NoSuchKeyException.class);
+                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
+                    .withThrowableOfType(ExecutionException.class)
+                    .withCauseInstanceOf(NoSuchKeyException.class);
         }
     }
 
@@ -176,8 +177,9 @@ public class S3DataPlaneIntegrationTest {
         var objectBody = UUID.randomUUID().toString();
 
         //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
-        if(!isSingleObject)
+        if (!isSingleObject) {
             sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+        }
 
         for (var objectToTransfer : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectToTransfer, objectBody);
@@ -228,11 +230,11 @@ public class S3DataPlaneIntegrationTest {
                         .isEqualTo(objectBody.length());
             }
             assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
-                        OBJECT_PREFIX)).failsWithin(5, SECONDS)
-                        .withThrowableOfType(ExecutionException.class)
-                        .withCauseInstanceOf(NoSuchKeyException.class);
+                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
+                    .withThrowableOfType(ExecutionException.class)
+                    .withCauseInstanceOf(NoSuchKeyException.class);
         }
-        
+
 
     }
 

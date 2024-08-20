@@ -95,12 +95,12 @@ public class S3DataSinkTest {
 
         var completeMultipartUploadRequests = completeMultipartUploadRequestCaptor.getAllValues();
 
-		for(var request: completeMultipartUploadRequests){
-			assertThat(request.bucket()).isEqualTo(BUCKET_NAME);
-			assertThat(request.key())
-					.isEqualTo(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME);
-			assertThat(request.multipartUpload().parts()).hasSize(expectedPartsPerObject);
-		}
+        for (var request : completeMultipartUploadRequests) {
+            assertThat(request.bucket()).isEqualTo(BUCKET_NAME);
+            assertThat(request.key())
+                    .isEqualTo(isSingleObject ? DESTINATION_OBJECT_NAME : SOURCE_OBJECT_NAME);
+            assertThat(request.multipartUpload().parts()).hasSize(expectedPartsPerObject);
+        }
     }
 
     @Test
@@ -168,8 +168,8 @@ public class S3DataSinkTest {
     }
 
     private static InputStreamDataSource createDataSource(String text) {
-        if (text.length() > 0){
-                return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(text.getBytes(UTF_8)));
+        if (text.length() > 0) {
+            return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(text.getBytes(UTF_8)));
         }
         return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(new byte[0]));
     }
