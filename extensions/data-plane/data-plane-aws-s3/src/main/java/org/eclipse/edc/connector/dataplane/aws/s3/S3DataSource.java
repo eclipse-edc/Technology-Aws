@@ -49,6 +49,8 @@ class S3DataSource implements DataSource {
     private S3Client client;
     private Monitor monitor;
 
+    private final Predicate<S3Object> isFile = object -> !object.key().endsWith("/");
+
     private S3DataSource() {
     }
 
@@ -108,8 +110,6 @@ class S3DataSource implements DataSource {
                     .build();
 
             var response = client.listObjectsV2(listObjectsRequest);
-
-            Predicate<S3Object> isFile = object -> !object.key().endsWith("/");
 
             s3Objects.addAll(response.contents().stream().filter(isFile).collect(Collectors.toList()));
 
