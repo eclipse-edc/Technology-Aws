@@ -27,8 +27,8 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -109,17 +109,15 @@ class S3DataSource implements DataSource {
 
             var response = client.listObjectsV2(listObjectsRequest);
 
-            s3Objects.addAll(filterOutFolderFile(response.contents()));
+            Predicate<S3Object> isFile = object -> !object.key().endsWith("/");
+
+            s3Objects.addAll(response.contents().stream().filter(isFile).collect(Collectors.toList()));
 
             continuationToken = response.nextContinuationToken();
 
         } while (continuationToken != null);
 
         return s3Objects;
-    }
-
-    private Collection<S3Object> filterOutFolderFile(List<S3Object> contents) {
-        return contents.stream().filter(object -> !object.key().endsWith("/")).collect(Collectors.toSet());
     }
 
     @Override
