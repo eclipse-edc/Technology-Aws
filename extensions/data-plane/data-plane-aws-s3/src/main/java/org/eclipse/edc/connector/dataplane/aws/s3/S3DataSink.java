@@ -60,7 +60,7 @@ class S3DataSink extends ParallelSink {
 
                 var partNumber = 1;
                 byte[] bytesChunk = input.readNBytes(chunkSize);
-                while (bytesChunk.length > 0) {
+                do {
                     completedParts.add(CompletedPart.builder().partNumber(partNumber)
                             .eTag(client.uploadPart(UploadPartRequest.builder()
                                     .bucket(bucketName)
@@ -70,7 +70,7 @@ class S3DataSink extends ParallelSink {
                                     .build(), RequestBody.fromByteBuffer(ByteBuffer.wrap(bytesChunk))).eTag()).build());
                     bytesChunk = input.readNBytes(chunkSize);
                     partNumber++;
-                }
+                } while (bytesChunk.length > 0);
 
                 client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                         .bucket(bucketName)
@@ -92,12 +92,16 @@ class S3DataSink extends ParallelSink {
     }
 
     private String getDestinationObjectName(String partName, int partsSize) {
-        var name = (partsSize == 1 && !StringUtils.isNullOrEmpty(objectName)) ? objectName : partName;
+        var name = useObjectName(partsSize) ? objectName : partName;
         if (!StringUtils.isNullOrEmpty(folderName)) {
             return folderName.endsWith("/") ? folderName + name : folderName + "/" + name;
-        } else {
-            return name;
         }
+
+        return name;
+    }
+
+    private boolean useObjectName(int partsSize) {
+        return partsSize == 1 && !StringUtils.isNullOrEmpty(objectName);
     }
 
     @NotNull

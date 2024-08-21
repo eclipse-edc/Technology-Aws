@@ -35,9 +35,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
@@ -105,6 +107,12 @@ public class S3DataPlaneIntegrationTest {
         var objectNameInDestination = "object-name-in-destination";
         var objectContent = UUID.randomUUID().toString();
 
+        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
+        if (!isSingleObject) {
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
+        }
+
         for (var objectName : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
         }
@@ -152,6 +160,11 @@ public class S3DataPlaneIntegrationTest {
                         .extracting(Long::intValue)
                         .isEqualTo(objectContent.length());
             }
+
+            assertThat(destinationClient.getObject(destinationBucketName,
+                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
+                    .withThrowableOfType(ExecutionException.class)
+                    .withCauseInstanceOf(NoSuchKeyException.class);
         }
     }
 
@@ -163,6 +176,12 @@ public class S3DataPlaneIntegrationTest {
         var objectNameInDestination = "object-name-in-destination";
         var folderNameInDestination = "folder-name-in-destination/";
         var objectBody = UUID.randomUUID().toString();
+
+        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
+        if (!isSingleObject) {
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
+            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
+        }
 
         for (var objectToTransfer : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectToTransfer, objectBody);
@@ -212,7 +231,13 @@ public class S3DataPlaneIntegrationTest {
                         .extracting(Long::intValue)
                         .isEqualTo(objectBody.length());
             }
+            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
+                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
+                    .withThrowableOfType(ExecutionException.class)
+                    .withCauseInstanceOf(NoSuchKeyException.class);
         }
+
+
     }
 
     private DataAddress createDataAddress(List<String> assetNames, boolean isSingleObject) {
