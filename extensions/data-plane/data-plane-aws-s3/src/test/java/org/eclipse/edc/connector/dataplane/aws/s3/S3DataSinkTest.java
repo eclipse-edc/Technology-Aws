@@ -174,8 +174,4 @@ public class S3DataSinkTest {
         return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(new byte[0]));
     }
 
-    private static InputStreamDataSource createDataSource(String text) {
-        var content = StringUtils.isBlank(text) ? "test stream" : text;
-        return new InputStreamDataSource(SOURCE_OBJECT_NAME, new ByteArrayInputStream(content.getBytes(UTF_8)));
-    }
 }
