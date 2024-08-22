@@ -1,4 +1,4 @@
-name: Create and Publish Release
+name: Nightly Build
 
 on:
   workflow_dispatch:
@@ -29,7 +29,6 @@ jobs:
           [ ! -z "${{ secrets.DISCORD_WEBHOOK_GITHUB }}" ] && echo "HAS_WEBHOOK=true" >> $GITHUB_OUTPUT
           exit 0
 
-
   Determine-Version:
     runs-on: ubuntu-latest
     outputs:
@@ -44,7 +43,6 @@ jobs:
           else
             echo "VERSION=${{ env.INPUT_VERSION }}" >> "$GITHUB_OUTPUT"
           fi
-
 
   Run-Tests:
     uses: ./.github/workflows/verify.yaml
@@ -74,7 +72,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_GITHUB }}
           # if the publishing is skipped, that means the preceding test run failed
-          status: ${{ needs.Publish-Components.result == 'skipped' && 'Failure' || needs.Publish-Artefacts.result }}
+          status: ${{ needs.Publish-Artefacts.result == 'skipped' && 'Failure' || needs.Publish-Artefacts.result }}
           title: "Release Build Technology AWS"
           description: "Build and publish ${{ needs.Determine-Version.outputs.VERSION }}"
           username: GitHub Actions
