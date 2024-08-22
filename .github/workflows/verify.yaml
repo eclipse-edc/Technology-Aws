@@ -2,28 +2,15 @@ name: Run Tests
 
 on:
   workflow_call:
-    inputs:
-      version:
-        required: false
-        type: string
-        description: optional version of upstream EDC components to use
   workflow_dispatch:
-    inputs:
-      version:
-        required: false
-        type: string
-        description: optional version of upstream EDC components to use
   push:
   pull_request:
-    branches: [ main ]
+    branches: [ main, release/*, bugfix/* ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
       - 'CODEOWNERS'
       - 'LICENSE'
-
-env:
-  VERSION: ${{ github.event.inputs.version || inputs.version }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,103 +23,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-      - name: "Set upstream EDC version"
-        run: |
-          # update EDC dependencies in the version catalog
-          if [ ! -z ${{ env.VERSION }} ]; then
-            echo "set EDC version to ${{ env.VERSION }}"
-            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
-            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
-            
-            # some debug print
-            head -20 gradle/libs.versions.toml
-          fi
-
       - name: Run Checkstyle
         run: ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
 
+  CodeQL:
+    uses: eclipse-edc/.github/.github/workflows/codeql-analysis.yml@main
+    secrets: inherit
+
+  Dependency-Check:
+    uses: eclipse-edc/.github/.github/workflows/dependency-check.yml@main
+    secrets: inherit
+
   Unit-Tests:
     runs-on: ubuntu-latest
-    env:
-      JACOCO: true
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-      - name: "Set upstream EDC version"
-        run: |
-          # update EDC dependencies in the version catalog
-          if [ ! -z ${{ env.VERSION }} ]; then
-            echo "set EDC version to ${{ env.VERSION }}"
-            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
-            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
-          
-            # some debug print
-            head -20 gradle/libs.versions.toml
-          fi
-
       - name: Run unit tests
-        uses: eclipse-edc/.github/.github/actions/run-tests@main
-        with:
-          command: ./gradlew test jacocoTestReport
+        run: ./gradlew test
 
   End-To-End-Tests:
     runs-on: ubuntu-latest
-    env:
-      JACOCO: true
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-      - name: "Set upstream EDC version"
-        run: |
-          # update EDC dependencies in the version catalog
-          if [ ! -z ${{ env.VERSION }} ]; then
-            echo "set EDC version to ${{ env.VERSION }}"
-            existingVersion=$(grep "version" gradle.properties  | awk -F= '{print $2}') 
-            sed -i "s/$existingVersion/${{ env.VERSION }}/g" gradle/libs.versions.toml
-          
-            # some debug print
-            head -20 gradle/libs.versions.toml
-          fi
-
-      - name: End to End Integration Tests
-        uses: eclipse-edc/.github/.github/actions/run-tests@main
-        with:
-          command: ./gradlew test -DincludeTags="EndToEndTest"
-
-  Upload-Test-Report:
-    needs:
-      - Unit-Tests
-      - End-To-End-Tests
-
-    permissions:
-      checks: write
-      pull-requests: write
-
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          junit_files: "**/test-results/**/*.xml"
-
-  Upload-Coverage-Report-To-Codecov:
-    needs:
-      - Unit-Tests
-      - End-To-End-Tests
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      # Sources are needed for Codecov report
-      - uses: actions/checkout@v4
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: CodeCov
-        uses: codecov/codecov-action@v4
+      - name: End to End Tests
+        run: ./gradlew test -DincludeTags="EndToEndTest"

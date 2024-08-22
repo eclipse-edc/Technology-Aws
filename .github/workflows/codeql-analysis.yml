@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - 'dependabot/**'
   pull_request:
-    branches: [ main ]
+    branches: [ main, release/*, bugfix/* ]
     paths-ignore:
       - '**.md'
       - 'docs/**'

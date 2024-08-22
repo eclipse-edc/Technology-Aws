@@ -47,11 +47,8 @@ jobs:
 
 
   Run-Tests:
-    needs: [ Secrets-Presence, Determine-Version ]
     uses: ./.github/workflows/verify.yaml
     secrets: inherit
-    with:
-      version: ${{ needs.Determine-Version.outputs.VERSION }}
 
   Publish-Artefacts:
     runs-on: ubuntu-latest
