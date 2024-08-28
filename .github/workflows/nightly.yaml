@@ -16,6 +16,7 @@ jobs:
     secrets: inherit
 
   Publish:
+    if: always()
     needs: [ Run-Tests ]
     uses: eclipse-edc/.github/.github/workflows/technology-nightly.yml@main
     secrets: inherit
