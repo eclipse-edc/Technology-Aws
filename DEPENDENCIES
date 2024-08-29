@@ -45,11 +45,11 @@ maven/mavencentral/jakarta.json/jakarta.json-api/2.1.3, EPL-2.0 OR GPL-2.0-only 
 maven/mavencentral/jakarta.ws.rs/jakarta.ws.rs-api/4.0.0, EPL-2.0 OR GPL-2.0-only with Classpath-exception-2.0, approved, ee4j.rest
 maven/mavencentral/junit/junit/4.13.2, EPL-2.0, approved, CQ23636
 maven/mavencentral/net.bytebuddy/byte-buddy-agent/1.14.1, Apache-2.0, approved, #7164
-maven/mavencentral/net.bytebuddy/byte-buddy-agent/1.14.15, Apache-2.0, approved, #7164
+maven/mavencentral/net.bytebuddy/byte-buddy-agent/1.15.0, Apache-2.0, approved, #16009
 maven/mavencentral/net.bytebuddy/byte-buddy/1.14.1, Apache-2.0 AND BSD-3-Clause, approved, #7163
-maven/mavencentral/net.bytebuddy/byte-buddy/1.14.15, Apache-2.0 AND BSD-3-Clause, approved, #7163
 maven/mavencentral/net.bytebuddy/byte-buddy/1.14.16, Apache-2.0 AND BSD-3-Clause, approved, #7163
 maven/mavencentral/net.bytebuddy/byte-buddy/1.14.18, Apache-2.0 AND BSD-3-Clause, approved, #7163
+maven/mavencentral/net.bytebuddy/byte-buddy/1.15.0, Apache-2.0 AND BSD-3-Clause, approved, #16008
 maven/mavencentral/net.java.dev.jna/jna/5.13.0, Apache-2.0 AND LGPL-2.1-or-later, approved, #15196
 maven/mavencentral/net.sf.saxon/Saxon-HE/12.5, NOASSERTION, restricted, clearlydefined
 maven/mavencentral/org.antlr/antlr4-runtime/4.13.2, BSD-3-Clause, approved, #10767
@@ -128,7 +128,7 @@ maven/mavencentral/org.junit.jupiter/junit-jupiter-params/5.11.0, EPL-2.0, appro
 maven/mavencentral/org.junit.platform/junit-platform-commons/1.11.0, EPL-2.0, approved, #15936
 maven/mavencentral/org.junit.platform/junit-platform-engine/1.11.0, EPL-2.0, approved, #15932
 maven/mavencentral/org.junit/junit-bom/5.11.0, , restricted, clearlydefined
-maven/mavencentral/org.mockito/mockito-core/5.12.0, MIT AND (Apache-2.0 AND MIT) AND Apache-2.0, approved, #14678
+maven/mavencentral/org.mockito/mockito-core/5.13.0, MIT, approved, clearlydefined
 maven/mavencentral/org.mockito/mockito-core/5.2.0, MIT AND (Apache-2.0 AND MIT) AND Apache-2.0, approved, #7401
 maven/mavencentral/org.objenesis/objenesis/3.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.opentest4j/opentest4j/1.3.0, Apache-2.0, approved, #9713
