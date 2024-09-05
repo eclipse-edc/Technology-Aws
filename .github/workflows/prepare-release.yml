@@ -1,0 +1,16 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: the version to be released. If it ends with '.0' a proper release is created, bugfix otherwise
+        required: true
+        type: string
+
+jobs:
+  Prepare-Release:
+    uses: eclipse-edc/.github/.github/workflows/technology-prepare-release.yml@main
+    secrets: inherit
+    with:
+      version: ${{ inputs.version }}

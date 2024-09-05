@@ -1,0 +1,52 @@
+name: Run Tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [ main, release/*, bugfix/* ]
+  pull_request:
+    branches: [ main, release/*, bugfix/* ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  CodeQL:
+    uses: eclipse-edc/.github/.github/workflows/codeql-analysis.yml@main
+    secrets: inherit
+
+  Checkstyle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: Run Checkstyle
+        run: ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
+
+  Dependency-Check:
+    uses: eclipse-edc/.github/.github/workflows/dependency-check.yml@main
+    secrets: inherit
+
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: Run unit tests
+        run: ./gradlew test
+
+  End-To-End-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: End to End Tests
+        run: ./gradlew test -DincludeTags="EndToEndTest"
