@@ -170,9 +170,10 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     private void handleEndpointOverride(SdkClientBuilder<?, ?> builder, String endpointOverride) {
 
         // either take override from parameter, or from config, or null
-        Optional.ofNullable(endpointOverride)
+        var uri = Optional.ofNullable(endpointOverride)
                 .map(URI::create)
-                .or(() -> Optional.ofNullable(configuration.getEndpointOverride()))
-                .ifPresent(builder::endpointOverride);
+                .orElseGet(configuration::getEndpointOverride);
+
+        builder.endpointOverride(uri);
     }
 }
