@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * An S3 bucket and access credentials to be provisioned.

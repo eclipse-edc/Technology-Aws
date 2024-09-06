@@ -42,7 +42,9 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
         return getDataAddress().getStringProperty(BUCKET_NAME);
     }
 
-    public String getEndpointOverride() {return getDataAddress().getStringProperty(ENDPOINT_OVERRIDE);}
+    public String getEndpointOverride() {
+        return getDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
+    }
 
     @Override
     public String getResourceName() {

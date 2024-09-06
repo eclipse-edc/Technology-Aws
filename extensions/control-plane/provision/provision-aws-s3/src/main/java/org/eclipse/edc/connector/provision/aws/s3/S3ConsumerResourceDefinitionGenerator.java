@@ -21,7 +21,6 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ConsumerRes
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;
-import org.eclipse.edc.spi.types.domain.DataAddress;
 import software.amazon.awssdk.regions.Region;
 
 import static java.util.UUID.randomUUID;
