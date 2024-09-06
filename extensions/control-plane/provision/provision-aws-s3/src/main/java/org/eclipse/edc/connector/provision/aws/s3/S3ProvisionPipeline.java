@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.provision.aws.s3;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.monitor.Monitor;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
@@ -80,9 +81,10 @@ public class S3ProvisionPipeline {
      * Performs a non-blocking provisioning operation.
      */
     public CompletableFuture<S3ProvisionResponse> provision(S3BucketResourceDefinition resourceDefinition) {
-        var s3AsyncClient = clientProvider.s3AsyncClient(resourceDefinition.getRegionId());
-        var iamClient = clientProvider.iamAsyncClient();
-        var stsClient = clientProvider.stsAsyncClient(resourceDefinition.getRegionId());
+        var rq = S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
+        var s3AsyncClient = clientProvider.s3AsyncClient(rq);
+        var iamClient = clientProvider.iamAsyncClient(rq);
+        var stsClient = clientProvider.stsAsyncClient(rq);
 
         var request = CreateBucketRequest.builder()
                 .bucket(resourceDefinition.getBucketName())

@@ -23,10 +23,6 @@ public interface S3BucketSchema {
     String ACCESS_KEY_ID = "accessKeyId";
     String SECRET_ACCESS_KEY = "secretAccessKey";
     String ENDPOINT_OVERRIDE = "endpointOverride";
-    @Deprecated(since = "0.5.2")
-    String KEY_PREFIX = "keyPrefix";
     String OBJECT_PREFIX = "objectPrefix";
-    @Deprecated(since = "0.5.2")
-    String KEY_NAME = "keyName";
     String OBJECT_NAME = "objectName";
 }

@@ -34,6 +34,7 @@ import software.amazon.awssdk.utils.ThreadFactoryBuilder;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -48,13 +49,12 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     private final Map<String, S3Client> s3Clients = new ConcurrentHashMap<>();
     private final Map<String, S3AsyncClient> s3AsyncClients = new ConcurrentHashMap<>();
     private final Map<String, StsAsyncClient> stsAsyncClients = new ConcurrentHashMap<>();
-    private final IamAsyncClient iamAsyncClient;
+    private final Map<String, IamAsyncClient> iamAsyncClients = new ConcurrentHashMap<>();
 
     public AwsClientProviderImpl(AwsClientProviderConfiguration configuration) {
         this.credentialsProvider = configuration.getCredentialsProvider();
         this.configuration = configuration;
         this.executor = Executors.newFixedThreadPool(configuration.getThreadPoolSize(), new ThreadFactoryBuilder().threadNamePrefix("aws-client").build());
-        this.iamAsyncClient = createIamAsyncClient();
     }
 
     @Override
@@ -63,23 +63,26 @@ public class AwsClientProviderImpl implements AwsClientProvider {
     }
 
     @Override
-    public S3AsyncClient s3AsyncClient(String region) {
-        return s3AsyncClients.computeIfAbsent(region, this::createS3AsyncClient);
+    public S3AsyncClient s3AsyncClient(S3ClientRequest clientRequest) {
+        var key = clientRequest.region() + "/" + clientRequest.endpointOverride();
+        return s3AsyncClients.computeIfAbsent(key, s -> createS3AsyncClient(clientRequest.region(), clientRequest.endpointOverride()));
     }
 
     @Override
-    public IamAsyncClient iamAsyncClient() {
-        return iamAsyncClient;
+    public IamAsyncClient iamAsyncClient(S3ClientRequest clientRequest) {
+        var key = clientRequest.endpointOverride();
+        return iamAsyncClients.computeIfAbsent(key, s -> createIamAsyncClient(clientRequest.endpointOverride()));
     }
 
     @Override
-    public StsAsyncClient stsAsyncClient(String region) {
-        return stsAsyncClients.computeIfAbsent(region, this::createStsClient);
+    public StsAsyncClient stsAsyncClient(S3ClientRequest clientRequest) {
+        var key = clientRequest.region() + "/" + clientRequest.endpointOverride();
+        return stsAsyncClients.computeIfAbsent(key, s -> createStsClient(clientRequest.region(), clientRequest.endpointOverride()));
     }
 
     @Override
     public void shutdown() {
-        iamAsyncClient.close();
+        iamAsyncClients.values().forEach(SdkAutoCloseable::close);
         s3AsyncClients.values().forEach(SdkAutoCloseable::close);
         stsAsyncClients.values().forEach(SdkAutoCloseable::close);
     }
@@ -116,35 +119,35 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         return builder.build();
     }
 
-    private S3AsyncClient createS3AsyncClient(String region) {
+    private S3AsyncClient createS3AsyncClient(String region, String endpointOverride) {
         var builder = S3AsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(region));
 
-        handleBaseEndpointOverride(builder, null);
+        handleBaseEndpointOverride(builder, endpointOverride);
 
         return builder.build();
     }
 
-    private StsAsyncClient createStsClient(String region) {
+    private StsAsyncClient createStsClient(String region, String endpointOverride) {
         var builder = StsAsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(region));
 
-        handleEndpointOverride(builder);
+        handleEndpointOverride(builder, endpointOverride);
 
         return builder.build();
     }
 
-    private IamAsyncClient createIamAsyncClient() {
+    private IamAsyncClient createIamAsyncClient(String endpointOverride) {
         var builder = IamAsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
                 .region(Region.AWS_GLOBAL);
 
-        handleEndpointOverride(builder);
+        handleEndpointOverride(builder, endpointOverride);
 
         return builder.build();
     }
@@ -164,10 +167,12 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         }
     }
 
-    private void handleEndpointOverride(SdkClientBuilder<?, ?> builder) {
-        var endpointOverride = configuration.getEndpointOverride();
-        if (endpointOverride != null) {
-            builder.endpointOverride(endpointOverride);
-        }
+    private void handleEndpointOverride(SdkClientBuilder<?, ?> builder, String endpointOverride) {
+
+        // either take override from parameter, or from config, or null
+        Optional.ofNullable(endpointOverride)
+                .map(URI::create)
+                .or(() -> Optional.ofNullable(configuration.getEndpointOverride()))
+                .ifPresent(builder::endpointOverride);
     }
 }

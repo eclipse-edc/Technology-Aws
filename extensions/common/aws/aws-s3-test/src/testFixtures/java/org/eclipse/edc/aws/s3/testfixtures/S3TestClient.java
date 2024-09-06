@@ -18,6 +18,7 @@ import okhttp3.Request;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsClientProviderConfiguration;
 import org.eclipse.edc.aws.s3.AwsClientProviderImpl;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
@@ -67,7 +68,8 @@ public class S3TestClient {
                 .endpointOverride(this.s3Endpoint)
                 .build();
         this.clientProvider = new AwsClientProviderImpl(configuration);
-        this.s3AsyncClient = clientProvider.s3AsyncClient(region);
+        var rq = S3ClientRequest.from(region, s3Endpoint.toString());
+        this.s3AsyncClient = clientProvider.s3AsyncClient(rq);
     }
 
     public static S3TestClient create(String url, String region) {
