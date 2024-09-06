@@ -22,6 +22,7 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedDataDestinationResource;
 
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
 
@@ -40,6 +41,8 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
     public String getBucketName() {
         return getDataAddress().getStringProperty(BUCKET_NAME);
     }
+
+    public String getEndpointOverride() {return getDataAddress().getStringProperty(ENDPOINT_OVERRIDE);}
 
     @Override
     public String getResourceName() {
@@ -80,6 +83,11 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
 
         public Builder role(String arn) {
             provisionedResource.role = arn;
+            return this;
+        }
+
+        public Builder endpointOverride(String endpointOverride) {
+            dataAddressBuilder.property(ENDPOINT_OVERRIDE, endpointOverride);
             return this;
         }
     }

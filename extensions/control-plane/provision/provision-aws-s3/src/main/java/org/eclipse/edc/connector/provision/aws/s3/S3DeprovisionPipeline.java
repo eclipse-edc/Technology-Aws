@@ -56,11 +56,12 @@ public class S3DeprovisionPipeline {
      * Performs a non-blocking deprovisioning operation.
      */
     public CompletableFuture<?> deprovision(S3BucketProvisionedResource resource) {
+        var endpointOvrride = resource.getEndpointOverride();
         var s3Client = clientProvider.s3AsyncClient(resource.getRegion());
         var iamClient = clientProvider.iamAsyncClient();
 
-        String bucketName = resource.getBucketName();
-        String role = resource.getRole();
+        var bucketName = resource.getBucketName();
+        var role = resource.getRole();
 
         var listObjectsRequest = ListObjectsV2Request.builder().bucket(bucketName).build();
         monitor.debug("S3DeprovisionPipeline: list objects");

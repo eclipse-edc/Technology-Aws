@@ -92,6 +92,7 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
                 .role(role.roleName())
                 .transferProcessId(resourceDefinition.getTransferProcessId())
                 .resourceName(resourceDefinition.getBucketName())
+                .endpointOverride(resourceDefinition.getEndpointOverride())
                 .build();
 
         var secretToken = new AwsTemporarySecretToken(credentials.accessKeyId(), credentials.secretAccessKey(), credentials.sessionToken(), credentials.expiration().toEpochMilli());
