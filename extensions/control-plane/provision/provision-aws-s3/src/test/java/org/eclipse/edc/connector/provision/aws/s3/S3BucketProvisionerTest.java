@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.provision.aws.s3;
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +45,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -60,9 +61,9 @@ class S3BucketProvisionerTest {
 
     @BeforeEach
     void setUp() {
-        when(clientProvider.iamAsyncClient()).thenReturn(iamClient);
-        when(clientProvider.s3AsyncClient(anyString())).thenReturn(s3Client);
-        when(clientProvider.stsAsyncClient(anyString())).thenReturn(stsClient);
+        when(clientProvider.iamAsyncClient(any(S3ClientRequest.class))).thenReturn(iamClient);
+        when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
+        when(clientProvider.stsAsyncClient(any(S3ClientRequest.class))).thenReturn(stsClient);
 
         var configuration = new S3BucketProvisionerConfiguration(2, 3600);
 

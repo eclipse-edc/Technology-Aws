@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * An S3 bucket and access credentials to be provisioned.
@@ -30,7 +29,7 @@ import java.util.function.Supplier;
 public class S3BucketResourceDefinition extends ResourceDefinition {
     private String regionId;
     private String bucketName;
-    private Supplier<Boolean> checker;
+    private String endpointOverride;
 
     private S3BucketResourceDefinition() {
     }
@@ -48,6 +47,10 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
         return initializeBuilder(new Builder())
                 .regionId(regionId)
                 .bucketName(bucketName);
+    }
+
+    public String getEndpointOverride() {
+        return endpointOverride;
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -68,6 +71,11 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
 
         public Builder bucketName(String bucketName) {
             resourceDefinition.bucketName = bucketName;
+            return this;
+        }
+
+        public Builder endpointOverride(String endpointOverride) {
+            resourceDefinition.endpointOverride = endpointOverride;
             return this;
         }
 

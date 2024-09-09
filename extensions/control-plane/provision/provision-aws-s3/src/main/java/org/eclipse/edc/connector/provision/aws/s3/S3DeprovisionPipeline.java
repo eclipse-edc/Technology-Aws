@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.provision.aws.s3;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedResource;
 import org.eclipse.edc.spi.monitor.Monitor;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
@@ -56,11 +57,12 @@ public class S3DeprovisionPipeline {
      * Performs a non-blocking deprovisioning operation.
      */
     public CompletableFuture<?> deprovision(S3BucketProvisionedResource resource) {
-        var s3Client = clientProvider.s3AsyncClient(resource.getRegion());
-        var iamClient = clientProvider.iamAsyncClient();
+        var rq = S3ClientRequest.from(resource.getRegion(), resource.getEndpointOverride());
+        var s3Client = clientProvider.s3AsyncClient(rq);
+        var iamClient = clientProvider.iamAsyncClient(rq);
 
-        String bucketName = resource.getBucketName();
-        String role = resource.getRole();
+        var bucketName = resource.getBucketName();
+        var role = resource.getRole();
 
         var listObjectsRequest = ListObjectsV2Request.builder().bucket(bucketName).build();
         monitor.debug("S3DeprovisionPipeline: list objects");

@@ -32,14 +32,20 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
 
     @Override
     public ResourceDefinition generate(TransferProcess transferProcess, Policy policy) {
-        if (transferProcess.getDataDestination().getStringProperty(S3BucketSchema.REGION) == null) {
+
+        var dataDestination = transferProcess.getDataDestination();
+        var endpointOverride = dataDestination.getStringProperty(S3BucketSchema.ENDPOINT_OVERRIDE);
+        if (dataDestination.getStringProperty(S3BucketSchema.REGION) == null) {
             // FIXME generate region from policy engine
-            return S3BucketResourceDefinition.Builder.newInstance().id(randomUUID().toString()).bucketName(transferProcess.getDataDestination().getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(Region.US_EAST_1.id()).build();
+            return S3BucketResourceDefinition.Builder.newInstance().id(randomUUID().toString()).bucketName(dataDestination.getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(Region.US_EAST_1.id()).build();
         }
-        var destination = transferProcess.getDataDestination();
         var id = randomUUID().toString();
 
-        return S3BucketResourceDefinition.Builder.newInstance().id(id).bucketName(destination.getStringProperty(S3BucketSchema.BUCKET_NAME)).regionId(destination.getStringProperty(S3BucketSchema.REGION)).build();
+        return S3BucketResourceDefinition.Builder.newInstance().id(id)
+                .bucketName(dataDestination.getStringProperty(S3BucketSchema.BUCKET_NAME))
+                .regionId(dataDestination.getStringProperty(S3BucketSchema.REGION))
+                .endpointOverride(endpointOverride)
+                .build();
     }
 
     @Override
