@@ -16,6 +16,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceException;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -38,7 +39,7 @@ public class S3DataSourceTest {
     private static final String OBJECT_NAME = "object-1";
     private static final String OBJECT_PREFIX = "my-prefix/";
     private static final String ERROR_MESSAGE = "Error message";
-    private final S3Client s3ClientMock = mock(S3Client.class);
+    private final S3Client s3Client = mock();
 
     @Test
     void should_select_prefixed_objects_case_key_prefix_is_present() {
@@ -52,15 +53,15 @@ public class S3DataSourceTest {
                 .bucketName(BUCKET_NAME)
                 .objectName(OBJECT_NAME)
                 .objectPrefix(OBJECT_PREFIX)
-                .client(s3ClientMock)
+                .client(s3Client)
                 .build();
 
-        when(s3ClientMock.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
 
         var result = s3Datasource.openPartStream();
 
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, atLeastOnce()).listObjectsV2(any(ListObjectsV2Request.class));
+        verify(s3Client, atLeastOnce()).listObjectsV2(any(ListObjectsV2Request.class));
         assertThat(result.getContent()).hasSize(2);
     }
 
@@ -73,10 +74,10 @@ public class S3DataSourceTest {
                 .bucketName(BUCKET_NAME)
                 .objectName(OBJECT_NAME)
                 .objectPrefix(OBJECT_PREFIX)
-                .client(s3ClientMock)
+                .client(s3Client)
                 .build();
 
-        when(s3ClientMock.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
 
         var result = s3Datasource.openPartStream();
 
@@ -91,13 +92,13 @@ public class S3DataSourceTest {
                 .bucketName(BUCKET_NAME)
                 .objectName(OBJECT_NAME)
                 .objectPrefix(null)
-                .client(s3ClientMock)
+                .client(s3Client)
                 .build();
 
         var result = s3Datasource.openPartStream();
 
         assertThat(result.succeeded()).isTrue();
-        verify(s3ClientMock, never()).listObjectsV2(any(ListObjectsV2Request.class));
+        verify(s3Client, never()).listObjectsV2(any(ListObjectsV2Request.class));
         assertThat(result.getContent()).hasSize(1);
     }
 
@@ -115,11 +116,11 @@ public class S3DataSourceTest {
                 .bucketName(BUCKET_NAME)
                 .objectName(OBJECT_NAME)
                 .objectPrefix(OBJECT_PREFIX)
-                .client(s3ClientMock)
+                .client(s3Client)
                 .build();
 
-        when(s3ClientMock.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
-        when(s3ClientMock.getObject(any(GetObjectRequest.class))).thenThrow(mockThrowable);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
+        when(s3Client.getObject(any(GetObjectRequest.class))).thenThrow(mockThrowable);
 
         var s3DataSourceException = assertThrows(S3DataSourceException.class, () ->
                 s3Datasource.openPartStream().getContent().map(DataSource.Part::openStream).toList());
@@ -127,4 +128,22 @@ public class S3DataSourceTest {
         assertThat(s3DataSourceException.getMessage()).isEqualTo(ERROR_MESSAGE);
     }
 
+    @Nested
+    class Close {
+
+        @Test
+        void shouldNotCloseClient_becauseItCouldBeReused() {
+            var s3Datasource = S3DataSource.Builder.newInstance()
+                    .bucketName(BUCKET_NAME)
+                    .objectName(OBJECT_NAME)
+                    .objectPrefix(OBJECT_PREFIX)
+                    .client(s3Client)
+                    .build();
+
+            s3Datasource.close();
+
+            verify(s3Client, never()).close();
+        }
+
+    }
 }
