@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.eclipse.edc.connector.dataplane.spi.pipeline.StreamFailure.Reason.GENERAL_ERROR;
@@ -111,7 +110,7 @@ class S3DataSource implements DataSource {
 
             var response = client.listObjectsV2(listObjectsRequest);
 
-            s3Objects.addAll(response.contents().stream().filter(isFile).collect(Collectors.toList()));
+            s3Objects.addAll(response.contents().stream().filter(isFile).toList());
 
             continuationToken = response.nextContinuationToken();
 
@@ -122,7 +121,7 @@ class S3DataSource implements DataSource {
 
     @Override
     public void close() {
-        client.close();
+
     }
 
     private static class S3Part implements Part {
