@@ -7,7 +7,7 @@ aws = "2.28.20"
 bouncyCastle-jdk18on = "1.78.1"
 edc = "0.10.0-SNAPSHOT"
 failsafe = "3.3.1"
-junit = "5.11.0"
+junit = "5.11.2"
 restAssured = "5.4.0"
 testcontainers = "1.20.1"
 
