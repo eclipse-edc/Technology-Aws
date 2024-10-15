@@ -10,12 +10,10 @@ updates:
       - "dependencies"
       - "github_actions"
 
-  # maintain dependencies for Gradle
-  - package-ecosystem: "gradle" # checks build.gradle(.kts) and settings.gradle(.kts)
+  - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 5
+      interval: "weekly"
     labels:
       - "dependencies"
       - "java"
