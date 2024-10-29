@@ -10,17 +10,20 @@
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *       ZF Friedrichshafen AG - Initial implementation
+ *       Cofinity-X - fix secret deserialization
  *
  */
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSourceFactory;
 import org.eclipse.edc.spi.EdcException;
@@ -35,6 +38,8 @@ import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
 
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
@@ -105,7 +110,7 @@ public class S3DataSourceFactory implements DataSourceFactory {
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
                 .map(vault::resolveSecret)
                 .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                .map(s -> typeManager.readValue(s, AwsTemporarySecretToken.class));
+                .map(this::deserializeSecretToken);
 
         if (awsSecretToken.isPresent()) {
             return S3ClientRequest.from(region, endpointOverride, awsSecretToken.get());
@@ -118,5 +123,14 @@ public class S3DataSourceFactory implements DataSourceFactory {
             return S3ClientRequest.from(region, endpointOverride);
         }
     }
-
+    
+    private SecretToken deserializeSecretToken(String secret) {
+        var typeReference = new TypeReference<HashMap<String, Object>>() {};
+        var map = typeManager.readValue(secret, typeReference);
+        if (map.containsKey("sessionToken")) {
+            return typeManager.readValue(secret, AwsTemporarySecretToken.class);
+        } else {
+            return typeManager.readValue(secret, AwsSecretToken.class);
+        }
+    }
 }
