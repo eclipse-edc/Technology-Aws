@@ -16,7 +16,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
@@ -30,7 +30,6 @@ import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
-import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.eclipse.edc.util.string.StringUtils;
@@ -39,7 +38,7 @@ import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.io.IOException;
 
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
@@ -56,14 +55,14 @@ public class S3DataSourceFactory implements DataSourceFactory {
     private final AwsClientProvider clientProvider;
     private final Monitor monitor;
     private final Vault vault;
-    private final TypeManager typeManager;
+    private final ObjectMapper objectMapper;
     private final DataAddressValidatorRegistry validator;
 
-    public S3DataSourceFactory(AwsClientProvider clientProvider, Monitor monitor, Vault vault, TypeManager typeManager, DataAddressValidatorRegistry validator) {
+    public S3DataSourceFactory(AwsClientProvider clientProvider, Monitor monitor, Vault vault, ObjectMapper objectMapper, DataAddressValidatorRegistry validator) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.vault = vault;
-        this.typeManager = typeManager;
+        this.objectMapper = objectMapper;
         this.validator = validator;
     }
 
@@ -125,12 +124,15 @@ public class S3DataSourceFactory implements DataSourceFactory {
     }
     
     private SecretToken deserializeSecretToken(String secret) {
-        var typeReference = new TypeReference<HashMap<String, Object>>() {};
-        var map = typeManager.readValue(secret, typeReference);
-        if (map.containsKey("sessionToken")) {
-            return typeManager.readValue(secret, AwsTemporarySecretToken.class);
-        } else {
-            return typeManager.readValue(secret, AwsSecretToken.class);
+        try {
+            var tree = objectMapper.readTree(secret);
+            if (tree.has("sessionToken")) {
+                return objectMapper.treeToValue(tree, AwsTemporarySecretToken.class);
+            } else {
+                return objectMapper.treeToValue(tree, AwsSecretToken.class);
+            }
+        } catch (IOException e) {
+            throw new EdcException(e);
         }
     }
 }

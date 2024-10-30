@@ -50,8 +50,8 @@ class S3DataSinkFactoryTest {
     private final TypeManager typeManager = new JacksonTypeManager();
     private final DataAddressValidatorRegistry validator = mock();
 
-    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(), mock(), vault, typeManager,
-            1024, validator);
+    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(), mock(),
+            vault, typeManager.getMapper(), 1024, validator);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {

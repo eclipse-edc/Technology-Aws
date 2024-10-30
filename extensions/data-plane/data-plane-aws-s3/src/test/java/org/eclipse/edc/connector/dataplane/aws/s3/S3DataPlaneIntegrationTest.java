@@ -86,8 +86,8 @@ public class S3DataPlaneIntegrationTest {
 
         var typeManager = new JacksonTypeManager();
         var chunkSizeInBytes = 1024 * 1024 * 20;
-        sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(), mock(), typeManager, validator);
-        sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(), mock(), typeManager, chunkSizeInBytes, validator);
+        sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(), mock(), typeManager.getMapper(), validator);
+        sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(), mock(), typeManager.getMapper(), chunkSizeInBytes, validator);
 
         sourceClient.createBucket(sourceBucketName);
         destinationClient.createBucket(destinationBucketName);

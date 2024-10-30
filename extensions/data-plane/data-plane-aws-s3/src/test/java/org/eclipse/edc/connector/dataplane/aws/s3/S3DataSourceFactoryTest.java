@@ -51,7 +51,8 @@ class S3DataSourceFactoryTest {
     private final Vault vault = mock();
     private final DataAddressValidatorRegistry validator = mock();
 
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(), vault, typeManager, validator);
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(),
+            vault, typeManager.getMapper(), validator);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {

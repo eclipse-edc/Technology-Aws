@@ -16,7 +16,7 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
@@ -30,7 +30,6 @@ import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
-import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.eclipse.edc.util.string.StringUtils;
@@ -39,7 +38,7 @@ import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
 import static java.util.Optional.ofNullable;
@@ -58,17 +57,17 @@ public class S3DataSinkFactory implements DataSinkFactory {
     private final ExecutorService executorService;
     private final Monitor monitor;
     private final Vault vault;
-    private final TypeManager typeManager;
+    private final ObjectMapper objectMapper;
     private final int chunkSizeInBytes;
     private final DataAddressValidatorRegistry dataAddressValidator;
 
     public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault,
-                             TypeManager typeManager, int chunkSizeInBytes, DataAddressValidatorRegistry dataAddressValidator) {
+                             ObjectMapper objectMapper, int chunkSizeInBytes, DataAddressValidatorRegistry dataAddressValidator) {
         this.clientProvider = clientProvider;
         this.executorService = executorService;
         this.monitor = monitor;
         this.vault = vault;
-        this.typeManager = typeManager;
+        this.objectMapper = objectMapper;
         this.chunkSizeInBytes = chunkSizeInBytes;
         this.dataAddressValidator = dataAddressValidator;
     }
@@ -134,12 +133,15 @@ public class S3DataSinkFactory implements DataSinkFactory {
     }
     
     private SecretToken deserializeSecretToken(String secret) {
-        var typeReference = new TypeReference<HashMap<String, Object>>() {};
-        var map = typeManager.readValue(secret, typeReference);
-        if (map.containsKey("sessionToken")) {
-            return typeManager.readValue(secret, AwsTemporarySecretToken.class);
-        } else {
-            return typeManager.readValue(secret, AwsSecretToken.class);
+        try {
+            var tree = objectMapper.readTree(secret);
+            if (tree.has("sessionToken")) {
+                return objectMapper.treeToValue(tree, AwsTemporarySecretToken.class);
+            } else {
+                return objectMapper.treeToValue(tree, AwsSecretToken.class);
+            }
+        } catch (IOException e) {
+            throw new EdcException(e);
         }
     }
 }

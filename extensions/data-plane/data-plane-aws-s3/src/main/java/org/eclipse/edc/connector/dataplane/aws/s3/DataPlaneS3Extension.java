@@ -68,10 +68,10 @@ public class DataPlaneS3Extension implements ServiceExtension {
         }
         var monitor = context.getMonitor();
 
-        var sourceFactory = new S3DataSourceFactory(awsClientProvider, monitor, vault, typeManager, validator);
+        var sourceFactory = new S3DataSourceFactory(awsClientProvider, monitor, vault, typeManager.getMapper(), validator);
         pipelineService.registerFactory(sourceFactory);
 
-        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager, chunkSizeInBytes, validator);
+        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager.getMapper(), chunkSizeInBytes, validator);
         pipelineService.registerFactory(sinkFactory);
     }
 
