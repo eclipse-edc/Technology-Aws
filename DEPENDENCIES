@@ -145,9 +145,7 @@ maven/mavencentral/org.rnorth.duct-tape/duct-tape/1.0.8, MIT, approved, clearlyd
 maven/mavencentral/org.slf4j/slf4j-api/1.7.25, MIT, approved, CQ13368
 maven/mavencentral/org.slf4j/slf4j-api/1.7.30, MIT, approved, CQ13368
 maven/mavencentral/org.slf4j/slf4j-api/1.7.36, MIT, approved, CQ13368
-maven/mavencentral/org.testcontainers/junit-jupiter/1.20.2, MIT, approved, #16552
 maven/mavencentral/org.testcontainers/junit-jupiter/1.20.3, MIT, approved, #16552
-maven/mavencentral/org.testcontainers/testcontainers/1.20.2, MIT, approved, #15747
 maven/mavencentral/org.testcontainers/testcontainers/1.20.3, MIT, approved, #15747
 maven/mavencentral/org.xmlresolver/xmlresolver/5.2.2, Apache-2.0, approved, clearlydefined
 maven/mavencentral/software.amazon.awssdk/annotations/2.29.1, , restricted, clearlydefined
