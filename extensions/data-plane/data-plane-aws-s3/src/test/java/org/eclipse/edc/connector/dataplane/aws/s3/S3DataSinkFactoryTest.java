@@ -10,6 +10,7 @@
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *       ZF Friedrichshafen AG
+ *       Cofinity-X - additional test for secret deserialization
  *
  */
 
@@ -49,8 +50,8 @@ class S3DataSinkFactoryTest {
     private final TypeManager typeManager = new JacksonTypeManager();
     private final DataAddressValidatorRegistry validator = mock();
 
-    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(), mock(), vault, typeManager,
-            1024, validator);
+    private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(), mock(),
+            vault, typeManager.getMapper(), 1024, validator);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -92,6 +93,25 @@ class S3DataSinkFactoryTest {
 
         assertThat(result).isFailed();
         verify(validator).validateDestination(destination);
+    }
+    
+    @Test
+    void createSink_shouldGetTheSecretTokenFromTheVault() {
+        var destination = TestFunctions.s3DataAddressWithCredentials();
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(destination.getKeyName())).thenReturn(typeManager.writeValueAsString(secretToken));
+        when(validator.validateDestination(any())).thenReturn(ValidationResult.success());
+        var request = createRequest(destination);
+        
+        var sink = factory.createSink(request);
+        
+        assertThat(sink).isNotNull().isInstanceOf(S3DataSink.class);
+        var captor = ArgumentCaptor.forClass(S3ClientRequest.class);
+        verify(clientProvider).s3Client(captor.capture());
+        var s3ClientRequest = captor.getValue();
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
 
     @Test

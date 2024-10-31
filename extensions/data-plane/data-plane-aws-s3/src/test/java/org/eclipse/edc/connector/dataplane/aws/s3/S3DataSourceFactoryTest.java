@@ -10,12 +10,14 @@
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *       ZF Friedrichshafen AG - Initial implementation
+ *       Cofinity-X - additional test for secret deserialization
  *
  */
 
 package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
@@ -49,7 +51,8 @@ class S3DataSourceFactoryTest {
     private final Vault vault = mock();
     private final DataAddressValidatorRegistry validator = mock();
 
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(), vault, typeManager, validator);
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(),
+            vault, typeManager.getMapper(), validator);
 
     @Test
     void canHandle_returnsTrueWhenExpectedType() {
@@ -120,9 +123,28 @@ class S3DataSourceFactoryTest {
         assertThat(s3ClientRequest.secretToken()).isNull();
         assertThat(s3ClientRequest.endpointOverride()).isNull();
     }
-
+    
     @Test
     void createSource_shouldGetTheSecretTokenFromTheVault() {
+        when(validator.validateSource(any())).thenReturn(ValidationResult.success());
+        var source = TestFunctions.s3DataAddressWithCredentials();
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(source.getKeyName())).thenReturn(typeManager.writeValueAsString(secretToken));
+        var request = createRequest(source);
+        
+        var s3Source = factory.createSource(request);
+        
+        assertThat(s3Source).isNotNull().isInstanceOf(S3DataSource.class);
+        var captor = ArgumentCaptor.forClass(S3ClientRequest.class);
+        verify(clientProvider).s3Client(captor.capture());
+        var s3ClientRequest = captor.getValue();
+        assertThat(s3ClientRequest.region()).isEqualTo(TestFunctions.VALID_REGION);
+        assertThat(s3ClientRequest.secretToken()).isInstanceOf(AwsSecretToken.class);
+        assertThat(s3ClientRequest.endpointOverride()).isNull();
+    }
+
+    @Test
+    void createSource_shouldGetTheTemporarySecretTokenFromTheVault() {
         when(validator.validateSource(any())).thenReturn(ValidationResult.success());
         var source = TestFunctions.s3DataAddressWithCredentials();
         var temporaryKey = new AwsTemporarySecretToken("temporaryId", "temporarySecret", null, 0);
