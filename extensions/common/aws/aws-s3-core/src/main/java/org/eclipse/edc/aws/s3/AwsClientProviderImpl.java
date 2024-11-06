@@ -67,8 +67,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     @Override
     public S3AsyncClient s3AsyncClient(S3ClientRequest clientRequest) {
-        var key = clientRequest.region() + "/" + clientRequest.endpointOverride();
-        return s3AsyncClients.computeIfAbsent(key, s -> createS3AsyncClient(clientRequest.region(), clientRequest.endpointOverride()));
+        return createS3AsyncClient(clientRequest);
     }
 
     @Override
@@ -121,8 +120,30 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
         return builder.build();
     }
+    
+    private S3AsyncClient createS3AsyncClient(S3ClientRequest s3ClientRequest) {
+        var token = s3ClientRequest.secretToken();
+        var region = s3ClientRequest.region();
+        var endpointOverride = s3ClientRequest.endpointOverride();
+    
+        if (token != null) {
+            if (token instanceof AwsTemporarySecretToken temporary) {
+                var credentials = AwsSessionCredentials.create(temporary.accessKeyId(), temporary.secretAccessKey(),
+                        temporary.sessionToken());
+                return createS3AsyncClient(StaticCredentialsProvider.create(credentials), region, endpointOverride);
+            }
+            if (token instanceof AwsSecretToken secretToken) {
+                var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
+                return createS3AsyncClient(StaticCredentialsProvider.create(credentials), region, endpointOverride);
+            }
+            throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
+        } else {
+            var key = s3ClientRequest.region() + "/" + s3ClientRequest.endpointOverride();
+            return s3AsyncClients.computeIfAbsent(key, s3Client -> createS3AsyncClient(credentialsProvider, region, endpointOverride));
+        }
+    }
 
-    private S3AsyncClient createS3AsyncClient(String region, String endpointOverride) {
+    private S3AsyncClient createS3AsyncClient(AwsCredentialsProvider credentialsProvider, String region, String endpointOverride) {
         var builder = S3AsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)

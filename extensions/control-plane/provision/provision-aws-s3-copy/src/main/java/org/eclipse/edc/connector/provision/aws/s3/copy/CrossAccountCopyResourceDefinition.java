@@ -1,0 +1,92 @@
+package org.eclipse.edc.connector.provision.aws.s3.copy;
+
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
+import org.eclipse.edc.spi.types.domain.DataAddress;
+
+import java.util.Objects;
+
+public class CrossAccountCopyResourceDefinition extends ResourceDefinition {
+    
+    private String destinationRegion;
+    private String destinationBucketName;
+    private String destinationKeyName;
+    private String bucketPolicyStatementSid;
+    private DataAddress sourceDataAddress;
+    
+    public String getDestinationRegion() {
+        return destinationRegion;
+    }
+    
+    public String getDestinationBucketName() {
+        return destinationBucketName;
+    }
+    
+    public String getDestinationKeyName() {
+        return destinationKeyName;
+    }
+    
+    public String getBucketPolicyStatementSid() {
+        return bucketPolicyStatementSid;
+    }
+    
+    public DataAddress getSourceDataAddress() {
+        return sourceDataAddress;
+    }
+    
+    @Override
+    public Builder toBuilder() {
+        return initializeBuilder(new Builder()
+                .destinationRegion(destinationRegion)
+                .destinationBucketName(destinationBucketName)
+                .destinationKeyName(destinationKeyName)
+                .bucketPolicyStatementSid(bucketPolicyStatementSid)
+                .sourceDataAddress(sourceDataAddress));
+    }
+    
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class Builder extends ResourceDefinition.Builder<CrossAccountCopyResourceDefinition, Builder> {
+        
+        private Builder() {
+            super(new CrossAccountCopyResourceDefinition());
+        }
+        
+        public static Builder newInstance() {
+            return new Builder();
+        }
+        
+        public Builder destinationRegion(String destinationRegion) {
+            resourceDefinition.destinationRegion = destinationRegion;
+            return this;
+        }
+        
+        public Builder destinationBucketName(String destinationBucketName) {
+            resourceDefinition.destinationBucketName = destinationBucketName;
+            return this;
+        }
+    
+        public Builder destinationKeyName(String destinationKeyName) {
+            resourceDefinition.destinationKeyName = destinationKeyName;
+            return this;
+        }
+        
+        public Builder bucketPolicyStatementSid(String bucketPolicyStatementSid) {
+            resourceDefinition.bucketPolicyStatementSid = bucketPolicyStatementSid;
+            return this;
+        }
+        
+        public Builder sourceDataAddress(DataAddress dataAddress) {
+            resourceDefinition.sourceDataAddress = dataAddress;
+            return this;
+        }
+        
+        @Override
+        protected void verify() {
+            super.verify();
+            Objects.requireNonNull(resourceDefinition.destinationRegion, "destinationRegion");
+            Objects.requireNonNull(resourceDefinition.destinationBucketName, "destinationBucketName");
+            Objects.requireNonNull(resourceDefinition.bucketPolicyStatementSid, "bucketPolicyStatementSid");
+            Objects.requireNonNull(resourceDefinition.sourceDataAddress, "dataAddress");
+        }
+    }
+}
