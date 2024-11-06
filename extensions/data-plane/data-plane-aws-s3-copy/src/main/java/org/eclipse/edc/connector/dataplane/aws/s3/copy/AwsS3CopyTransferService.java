@@ -1,12 +1,23 @@
+/*
+ *  Copyright (c) 2024 Cofinity-X
+ *
+ *  This program and the accompanying materials are made available under the
+ *  terms of the Apache License, Version 2.0 which is available at
+ *  https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  SPDX-License-Identifier: Apache-2.0
+ *
+ *  Contributors:
+ *       Cofinity-X - initial API and implementation
+ *
+ */
+
 package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
-import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
@@ -22,23 +33,17 @@ import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
-import org.eclipse.edc.validator.spi.Validator;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
-import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
-import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
-import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_KEY;
 
 public class AwsS3CopyTransferService implements TransferService {
     

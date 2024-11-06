@@ -1,3 +1,17 @@
+/*
+ *  Copyright (c) 2024 Cofinity-X
+ *
+ *  This program and the accompanying materials are made available under the
+ *  terms of the Apache License, Version 2.0 which is available at
+ *  https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  SPDX-License-Identifier: Apache-2.0
+ *
+ *  Contributors:
+ *       Cofinity-X - initial API and implementation
+ *
+ */
+
 package org.eclipse.edc.connector.provision.aws.s3.copy;
 
 import dev.failsafe.RetryPolicy;
@@ -66,14 +80,14 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
                 .resourceDefinitionId(resourceDefinition.getId())
                 .transferProcessId(resourceDefinition.getTransferProcessId())
                 .dataAddress(resourceDefinition.getSourceDataAddress())
-                .sourceAccountRole(provisionResponse.getRole())
+                .sourceAccountRole(provisionResponse.role())
                 .destinationRegion(resourceDefinition.getDestinationRegion())
                 .destinationBucketName(resourceDefinition.getDestinationBucketName())
                 .destinationKeyName(resourceDefinition.getDestinationKeyName())
                 .bucketPolicyStatementSid(resourceDefinition.getBucketPolicyStatementSid())
                 .build();
         
-        var credentials = provisionResponse.getCredentials();
+        var credentials = provisionResponse.credentials();
         var secretToken = new AwsTemporarySecretToken(credentials.accessKeyId(), credentials.secretAccessKey(),
                 credentials.sessionToken(), credentials.expiration().toEpochMilli());
     
