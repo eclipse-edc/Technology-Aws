@@ -72,11 +72,6 @@ public class S3DataSourceFactory implements DataSourceFactory {
     }
 
     @Override
-    public boolean canHandle(DataFlowStartMessage request) {
-        return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType());
-    }
-
-    @Override
     public DataSource createSource(DataFlowStartMessage request) {
         var validationResult = validateRequest(request);
         if (validationResult.failed()) {

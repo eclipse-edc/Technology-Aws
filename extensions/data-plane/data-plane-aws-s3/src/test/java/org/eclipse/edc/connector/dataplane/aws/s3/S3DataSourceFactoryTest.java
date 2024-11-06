@@ -55,24 +55,6 @@ class S3DataSourceFactoryTest {
             vault, typeManager.getMapper(), validator);
 
     @Test
-    void canHandle_returnsTrueWhenExpectedType() {
-        var dataAddress = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
-
-        var result = factory.canHandle(createRequest(dataAddress));
-
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    void canHandle_returnsFalseWhenUnexpectedType() {
-        var dataAddress = DataAddress.Builder.newInstance().type("any").build();
-
-        var result = factory.canHandle(createRequest(dataAddress));
-
-        assertThat(result).isFalse();
-    }
-
-    @Test
     void validate_shouldSucceed_whenValidatorSucceeds() {
         when(validator.validateSource(any())).thenReturn(ValidationResult.success());
         var source = s3DataAddressWithCredentials();
