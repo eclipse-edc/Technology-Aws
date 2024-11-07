@@ -22,6 +22,7 @@ import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
@@ -31,6 +32,7 @@ public class CrossAccountCopyResourceDefinitionGenerator implements ProviderReso
         var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId(); //TODO
         
         return CrossAccountCopyResourceDefinition.Builder.newInstance()
+                .id(randomUUID().toString())
                 .destinationRegion(transferProcess.getDataDestination().getStringProperty(REGION))
                 .destinationBucketName(transferProcess.getDataDestination().getStringProperty(BUCKET_NAME))
                 .destinationKeyName(transferProcess.getDataDestination().getKeyName())
