@@ -33,6 +33,7 @@ import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
+import org.eclipse.edc.validator.spi.Violation;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 
 import java.util.List;
@@ -70,23 +71,29 @@ public class AwsS3CopyTransferService implements TransferService {
     
     @Override
     public Result<Boolean> validate(DataFlowStartMessage request) {
-        //TODO also credential validation for source credentials -> getCredentials should return non-null value
         var source = request.getSourceDataAddress();
-        var destination = request.getDestinationDataAddress();
-        
         var sourceResult = validator.validateSource(source);
+        var sourceCredentialsResult = validateSourceCredentials(source);
+        
+        var destination = request.getDestinationDataAddress();
         var destinationResult = validator.validateDestination(destination);
         
-        if (sourceResult.succeeded() && destinationResult.succeeded()) {
-            return Result.success(true);
-        }
-        
-        var errors = Stream.of(sourceResult, destinationResult)
+        var errors = Stream.of(sourceResult, sourceCredentialsResult, destinationResult)
                 .filter(ValidationResult::failed)
                 .map(ValidationResult::getFailureMessages)
                 .flatMap(List::stream)
                 .toList();
-        return Result.failure(errors);
+        
+        return errors.isEmpty() ? Result.success(true) : Result.failure(errors);
+    }
+    
+    private ValidationResult validateSourceCredentials(DataAddress source) {
+        if (getCredentials(source) != null) {
+            return ValidationResult.success();
+        }
+        
+        var violation = Violation.violation("No credential found in vault for given key.", "keyName", source.getKeyName());
+        return ValidationResult.failure(violation);
     }
     
     //TODO for now only single file, consider multiple prefixed files

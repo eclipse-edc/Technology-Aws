@@ -72,7 +72,7 @@ public class CrossAccountCopyDeprovisionPipeline {
                 .bucket(provisionedResource.getDestinationBucketName())
                 .build();
         
-        monitor.debug("S3 CrossAccountCopyProvisioner: getting destination bucket policy");
+        monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting destination bucket policy");
         return s3Client.getBucketPolicy(getBucketPolicyRequest)
                 .thenCompose(response -> updateBucketPolicy(s3Client, provisionedResource, response))
                 .thenCompose(response -> deleteRolePolicy(iamClient, roleName))
@@ -104,7 +104,7 @@ public class CrossAccountCopyDeprovisionPipeline {
                 .build().toString();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisioner: updating destination bucket policy");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: updating destination bucket policy");
             var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
                     .bucket(provisionedResource.getDestinationBucketName())
                     .policy(updatedBucketPolicy)
@@ -120,14 +120,14 @@ public class CrossAccountCopyDeprovisionPipeline {
                     .policyName(roleName)
                     .build();
             
-            monitor.debug("S3 CrossAccountCopyProvisioner: deleting IAM role policy");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: deleting IAM role policy");
             return iamClient.deleteRolePolicy(deleteRolePolicyRequest);
         });
     }
     
     private CompletableFuture<DeleteRoleResponse> deleteRole(IamAsyncClient iamClient, String roleName) {
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisioner: deleting IAM role");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: deleting IAM role");
             var deleteRoleRequest = DeleteRoleRequest.builder()
                     .roleName(roleName)
                     .build();

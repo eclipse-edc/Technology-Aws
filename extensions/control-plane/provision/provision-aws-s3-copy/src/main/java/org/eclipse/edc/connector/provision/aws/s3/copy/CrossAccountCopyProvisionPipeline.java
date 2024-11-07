@@ -74,7 +74,7 @@ public class CrossAccountCopyProvisionPipeline {
         var s3ClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
-        monitor.debug("S3 CrossAccountCopyProvisioner: getting IAM user");
+        monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting IAM user");
         return iamClient.getUser()
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
                 .thenCompose(response -> putRolePolicy(iamClient, resourceDefinition, response))
@@ -97,7 +97,7 @@ public class CrossAccountCopyProvisionPipeline {
                     .assumeRolePolicyDocument(trustPolicy)
                     .build();
             
-            monitor.debug(format("S3 CrossAccountCopyProvisioner: creating IAM role '%s'", roleName));
+            monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: creating IAM role '%s'", roleName));
             return iamClient.createRole(createRoleRequest);
         });
     }
@@ -117,7 +117,7 @@ public class CrossAccountCopyProvisionPipeline {
                     .policyDocument(rolePolicy)
                     .build();
             
-            monitor.debug("S3 CrossAccountCopyProvisioner: putting IAM role policy");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: putting IAM role policy");
             return iamClient.putRolePolicy(putRolePolicyRequest)
                     .thenApply(policyResponse -> new CrossAccountCopyProvisionSteps(role));
         });
@@ -131,7 +131,7 @@ public class CrossAccountCopyProvisionPipeline {
                 .build();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisioner: getting destination bucket policy");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting destination bucket policy");
             return s3Client.getBucketPolicy(getBucketPolicyRequest)
                     .handle((result, ex) -> {
                         if (ex == null) {
@@ -165,7 +165,7 @@ public class CrossAccountCopyProvisionPipeline {
                 .build().toString();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisioner: updating destination bucket policy");
+            monitor.debug("S3 CrossAccountCopyProvisionPipeline: updating destination bucket policy");
             var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
                     .bucket(resourceDefinition.getDestinationBucketName())
                     .policy(updatedBucketPolicy)
@@ -185,7 +185,7 @@ public class CrossAccountCopyProvisionPipeline {
                     .roleSessionName(roleIdentifier(resourceDefinition))
                     .build();
             
-            monitor.debug(format("S3 CrossAccountCopyProvisioner: assuming role '%s'", role.arn()));
+            monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: assuming role '%s'", role.arn()));
             return stsClient.assumeRole(assumeRoleRequest)
                     .thenApply(response -> new S3ProvisionResponse(role, response.credentials()));
         });
