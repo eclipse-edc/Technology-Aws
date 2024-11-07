@@ -12,5 +12,5 @@
 #
 #
 
-org.eclipse.edc.connector.provision.aws.s3.copy.AwsS3CopyProvisionExtension
+org.eclipse.edc.connector.dataplane.aws.s3.copy.AwsS3CopyDataPlaneExtension
 
