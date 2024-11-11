@@ -157,7 +157,7 @@ public class CrossAccountCopyProvisionPipeline {
                 .replace("{{source-account-role-arn}}", provisionSteps.getRole().arn())
                 .replace("{{sink-bucket-name}}", resourceDefinition.getDestinationBucketName());
         
-        var typeReference = new TypeReference<HashMap<String,Object>>() {};
+        var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var statementJson = Json.createObjectBuilder(typeManager.readValue(bucketPolicyStatement, typeReference)).build();
         var policyJson = Json.createObjectBuilder(typeManager.readValue(provisionSteps.getBucketPolicy(), typeReference)).build();
         

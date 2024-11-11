@@ -65,8 +65,8 @@ public class AwsS3CopyTransferService implements TransferService {
     //TODO if used with standard S3 data plane in one runtime, the pipeline service would also be applicable for this transfer
     @Override
     public boolean canHandle(DataFlowStartMessage request) {
-        return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType())
-                && S3BucketSchema.TYPE.equals(request.getDestinationDataAddress().getType());
+        return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType()) &&
+                S3BucketSchema.TYPE.equals(request.getDestinationDataAddress().getType());
     }
     
     @Override

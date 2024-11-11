@@ -91,7 +91,7 @@ public class CrossAccountCopyDeprovisionPipeline {
                                                              CrossAccountCopyProvisionedResource provisionedResource,
                                                              GetBucketPolicyResponse bucketPolicyResponse) {
         var bucketPolicy = bucketPolicyResponse.policy();
-        var typeReference = new TypeReference<HashMap<String,Object>>() {};
+        var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var statementSid = provisionedResource.getBucketPolicyStatementSid();
         var policyJson = Json.createObjectBuilder(typeManager.readValue(bucketPolicy, typeReference)).build();
         

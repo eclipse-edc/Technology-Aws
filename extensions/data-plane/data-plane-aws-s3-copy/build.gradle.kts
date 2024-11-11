@@ -32,5 +32,3 @@ dependencies {
     testImplementation(libs.edc.junit)
     testImplementation(libs.testcontainers.junit.jupiter)
 }
-
-

@@ -44,7 +44,7 @@ public class CrossAccountCopyResourceDefinitionGenerator implements ProviderReso
     @Override
     public boolean canGenerate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
         // only applicable for S3-to-S3 transfer
-        return S3BucketSchema.TYPE.equals(transferProcess.getContentDataAddress().getType())
-                && S3BucketSchema.TYPE.equals(transferProcess.getDestinationType());
+        return S3BucketSchema.TYPE.equals(transferProcess.getContentDataAddress().getType()) &&
+                S3BucketSchema.TYPE.equals(transferProcess.getDestinationType());
     }
 }
