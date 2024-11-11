@@ -68,12 +68,10 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
         var provisionManager = context.getService(ProvisionManager.class);
     
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
-    
-        //TODO
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
-        int roleMaxSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
+        int maxRoleSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
         
-        var provisioner = new CrossAccountCopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor);
+        var provisioner = new CrossAccountCopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
         provisionManager.register(provisioner);
 
         registerTypes(typeManager);

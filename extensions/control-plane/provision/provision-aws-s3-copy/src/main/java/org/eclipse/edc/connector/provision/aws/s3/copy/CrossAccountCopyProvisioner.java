@@ -27,6 +27,7 @@ import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -39,13 +40,23 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
     private final RetryPolicy<Object> retryPolicy;
     private final TypeManager typeManager;
     private final Monitor monitor;
+    private final String componentId;
+    private final int maxRoleSessionDuration;
     
-    public CrossAccountCopyProvisioner(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy, TypeManager typeManager, Monitor monitor) {
+    public CrossAccountCopyProvisioner(AwsClientProvider clientProvider, Vault vault,
+                                       RetryPolicy<Object> retryPolicy, TypeManager typeManager,
+                                       Monitor monitor, String componentId, int maxRetries,
+                                       int maxRoleSessionDuration) {
         this.clientProvider = clientProvider;
         this.vault = vault;
-        this.retryPolicy = retryPolicy;
         this.typeManager = typeManager;
         this.monitor = monitor;
+        this.componentId = componentId;
+        this.maxRoleSessionDuration = maxRoleSessionDuration;
+        this.retryPolicy = RetryPolicy.builder(retryPolicy.getConfig())
+                .withMaxRetries(maxRetries)
+                .handle(AwsServiceException.class)
+                .build();
     }
     
     @Override
@@ -66,6 +77,8 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
                 .retryPolicy(retryPolicy)
                 .typeManager(typeManager)
                 .monitor(monitor)
+                .componentId(componentId)
+                .maxRoleSessionDuration(maxRoleSessionDuration)
                 .build()
                 .provision(resourceDefinition)
                 .thenApply(response -> provisioningSucceeded(resourceDefinition, response));

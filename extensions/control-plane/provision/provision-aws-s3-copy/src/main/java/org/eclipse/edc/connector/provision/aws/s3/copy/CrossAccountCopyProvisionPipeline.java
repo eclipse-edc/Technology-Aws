@@ -49,6 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
@@ -62,22 +63,23 @@ public class CrossAccountCopyProvisionPipeline {
     private final TypeManager typeManager;
     private final Monitor monitor;
     private final String componentId;
+    private final int maxRoleSessionDuration;
     
     private CrossAccountCopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault,
                                               RetryPolicy<Object> retryPolicy, TypeManager typeManager,
-                                              Monitor monitor, String componentId) {
+                                              Monitor monitor, String componentId, int maxRoleSessionDuration) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
         this.typeManager = typeManager;
         this.monitor = monitor;
         this.componentId = componentId;
+        this.maxRoleSessionDuration = maxRoleSessionDuration;
     }
     
     public CompletableFuture<S3ProvisionResponse> provision(CrossAccountCopyResourceDefinition resourceDefinition) {
         var iamClient = clientProvider.iamAsyncClient();
-        //TODO region for sts should be configurable -> choose region closest to where EDC deployed
-        var stsClient = clientProvider.stsAsyncClient("eu-central-1");
+        var stsClient = clientProvider.stsAsyncClient(resourceDefinition.getSourceDataAddress().getStringProperty(REGION));
         
         var secretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName());
         var s3ClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, secretToken);
@@ -104,6 +106,7 @@ public class CrossAccountCopyProvisionPipeline {
                     .roleName(roleName)
                     .description(format("Role for EDC transfer: %s", roleName))
                     .assumeRolePolicyDocument(trustPolicy)
+                    .maxSessionDuration(maxRoleSessionDuration)
                     .tags(roleTags(resourceDefinition))
                     .build();
             
@@ -158,7 +161,6 @@ public class CrossAccountCopyProvisionPipeline {
     private CompletableFuture<CrossAccountCopyProvisionSteps> updateDestinationBucketPolicy(S3AsyncClient s3Client,
                                                                                             CrossAccountCopyResourceDefinition resourceDefinition,
                                                                                             CrossAccountCopyProvisionSteps provisionSteps) {
-        //TODO sometimes the role id is inserted instead of arn -> verify that role arn returns correct format
         var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
                 .replace("{{sid}}", resourceDefinition.getBucketPolicyStatementSid())
                 .replace("{{source-account-role-arn}}", provisionSteps.getRole().arn())
@@ -212,11 +214,11 @@ public class CrossAccountCopyProvisionPipeline {
                 .value("EDC")
                 .build();
         var componentIdTag = Tag.builder()
-                .key("edc-component-id")
+                .key("edc:component-id")
                 .value(componentId)
                 .build();
         var tpTag = Tag.builder()
-                .key("transfer-process-id")
+                .key("edc:transfer-process-id")
                 .value(resourceDefinition.getTransferProcessId())
                 .build();
         return List.of(edcTag, componentIdTag, tpTag);
@@ -252,6 +254,7 @@ public class CrossAccountCopyProvisionPipeline {
         private TypeManager typeManager;
         private Monitor monitor;
         private String componentId;
+        private int maxRoleSessionDuration;
         
         private Builder() {}
         
@@ -288,6 +291,11 @@ public class CrossAccountCopyProvisionPipeline {
             this.componentId = componentId;
             return this;
         }
+    
+        public Builder maxRoleSessionDuration(int maxRoleSessionDuration) {
+            this.maxRoleSessionDuration = maxRoleSessionDuration;
+            return this;
+        }
         
         public CrossAccountCopyProvisionPipeline build() {
             Objects.requireNonNull(clientProvider);
@@ -296,7 +304,7 @@ public class CrossAccountCopyProvisionPipeline {
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
             Objects.requireNonNull(componentId);
-            return new CrossAccountCopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId);
+            return new CrossAccountCopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId, maxRoleSessionDuration);
         }
     }
 }
