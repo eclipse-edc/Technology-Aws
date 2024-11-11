@@ -33,6 +33,7 @@ import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
 import software.amazon.awssdk.services.iam.model.CreateRoleResponse;
 import software.amazon.awssdk.services.iam.model.GetUserResponse;
 import software.amazon.awssdk.services.iam.model.PutRolePolicyRequest;
+import software.amazon.awssdk.services.iam.model.Tag;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
@@ -41,6 +42,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -59,13 +61,17 @@ public class CrossAccountCopyProvisionPipeline {
     private final RetryPolicy<Object> retryPolicy;
     private final TypeManager typeManager;
     private final Monitor monitor;
+    private final String componentId;
     
-    private CrossAccountCopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy, TypeManager typeManager, Monitor monitor) {
+    private CrossAccountCopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault,
+                                              RetryPolicy<Object> retryPolicy, TypeManager typeManager,
+                                              Monitor monitor, String componentId) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
         this.typeManager = typeManager;
         this.monitor = monitor;
+        this.componentId = componentId;
     }
     
     public CompletableFuture<S3ProvisionResponse> provision(CrossAccountCopyResourceDefinition resourceDefinition) {
@@ -98,6 +104,7 @@ public class CrossAccountCopyProvisionPipeline {
                     .roleName(roleName)
                     .description(format("Role for EDC transfer: %s", roleName))
                     .assumeRolePolicyDocument(trustPolicy)
+                    .tags(roleTags(resourceDefinition))
                     .build();
             
             monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: creating IAM role '%s'", roleName));
@@ -199,6 +206,22 @@ public class CrossAccountCopyProvisionPipeline {
         return format("edc-transfer-role_%s", resourceDefinition.getTransferProcessId());
     }
     
+    private List<Tag> roleTags(CrossAccountCopyResourceDefinition resourceDefinition) {
+        var edcTag = Tag.builder()
+                .key("created-by")
+                .value("EDC")
+                .build();
+        var componentIdTag = Tag.builder()
+                .key("edc-component-id")
+                .value(componentId)
+                .build();
+        var tpTag = Tag.builder()
+                .key("transfer-process-id")
+                .value(resourceDefinition.getTransferProcessId())
+                .build();
+        return List.of(edcTag, componentIdTag, tpTag);
+    }
+    
     private SecretToken getSecretTokenFromVault(String secretKeyName) {
         return ofNullable(secretKeyName)
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
@@ -228,6 +251,7 @@ public class CrossAccountCopyProvisionPipeline {
         private RetryPolicy<Object> retryPolicy;
         private TypeManager typeManager;
         private Monitor monitor;
+        private String componentId;
         
         private Builder() {}
         
@@ -259,6 +283,11 @@ public class CrossAccountCopyProvisionPipeline {
             this.monitor = monitor;
             return this;
         }
+    
+        public Builder componentId(String componentId) {
+            this.componentId = componentId;
+            return this;
+        }
         
         public CrossAccountCopyProvisionPipeline build() {
             Objects.requireNonNull(clientProvider);
@@ -266,7 +295,8 @@ public class CrossAccountCopyProvisionPipeline {
             Objects.requireNonNull(retryPolicy);
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
-            return new CrossAccountCopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor);
+            Objects.requireNonNull(componentId);
+            return new CrossAccountCopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId);
         }
     }
 }
