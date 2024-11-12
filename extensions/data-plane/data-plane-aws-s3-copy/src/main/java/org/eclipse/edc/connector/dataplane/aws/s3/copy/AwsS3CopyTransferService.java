@@ -43,6 +43,7 @@ import java.util.stream.Stream;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
@@ -62,7 +63,6 @@ public class AwsS3CopyTransferService implements TransferService {
         this.validator = validator;
     }
     
-    //TODO if used with standard S3 data plane in one runtime, the pipeline service would also be applicable for this transfer
     @Override
     public boolean canHandle(DataFlowStartMessage request) {
         return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType()) &&
@@ -106,6 +106,7 @@ public class AwsS3CopyTransferService implements TransferService {
     
         var destination = request.getDestinationDataAddress();
         var destinationBucketName = destination.getStringProperty(BUCKET_NAME);
+        var destinationFolder = destination.getStringProperty(FOLDER_NAME);
         var destinationKey = destination.getStringProperty(OBJECT_NAME);
         
         var secretToken = getCredentials(source);
@@ -119,7 +120,7 @@ public class AwsS3CopyTransferService implements TransferService {
                 .sourceBucket(sourceBucketName)
                 .sourceKey(sourceKey)
                 .destinationBucket(destinationBucketName)
-                .destinationKey(destinationKey)
+                .destinationKey(getDestinationFileName(destinationKey, destinationFolder))
                 .build();
         
         return s3Client.copyObject(copyRequest)
@@ -132,6 +133,14 @@ public class AwsS3CopyTransferService implements TransferService {
                     monitor.severe(message);
                     return StreamResult.error(message);
                 });
+    }
+    
+    private String getDestinationFileName(String key, String folder) {
+        if (folder == null) {
+            return key;
+        }
+        
+        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
     }
     
     @Override

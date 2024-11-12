@@ -29,7 +29,7 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 public class CrossAccountCopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
     @Override
     public @Nullable ResourceDefinition generate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
-        var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId(); //TODO
+        var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();
         
         return CrossAccountCopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())

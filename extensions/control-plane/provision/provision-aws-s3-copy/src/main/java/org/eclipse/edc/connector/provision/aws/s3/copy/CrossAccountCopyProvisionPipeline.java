@@ -205,7 +205,7 @@ public class CrossAccountCopyProvisionPipeline {
     }
     
     private String roleIdentifier(CrossAccountCopyResourceDefinition resourceDefinition) {
-        return format("edc-transfer-role_%s", resourceDefinition.getTransferProcessId());
+        return format("edc-transfer_%s", resourceDefinition.getTransferProcessId());
     }
     
     private List<Tag> roleTags(CrossAccountCopyResourceDefinition resourceDefinition) {
