@@ -65,7 +65,7 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
                 .url(controlApiUrl.get().toString() + "/v1/dataflows")
                 .allowedSourceTypes(Set.of(S3BucketSchema.TYPE))
                 .allowedDestTypes(Set.of(S3BucketSchema.TYPE))
-                .allowedTransferType(format("%s-%s", S3BucketSchema.TYPE, FlowType.PULL.name()))
+                .allowedTransferType(format("%s-%s", S3BucketSchema.TYPE, FlowType.PUSH.name()))
                 .build();
         dataPlaneSelectorService.addInstance(instance)
                 .onSuccess(it -> monitor.info("AWS-S3-copy data plane registered to control plane."))
