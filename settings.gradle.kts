@@ -46,6 +46,7 @@ include(":extensions:control-plane:provision:provision-aws-s3-copy")
 
 include(":extensions:data-plane:data-plane-aws-s3")
 include(":extensions:data-plane:data-plane-aws-s3-copy")
+include(":extensions:data-plane:data-plane-transfer-service-selection")
 
 include(":spi:common:aws-spi")
 
