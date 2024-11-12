@@ -19,6 +19,7 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.selector.spi.DataPlaneSelectorService;
 import org.eclipse.edc.connector.dataplane.selector.spi.instance.DataPlaneInstance;
 import org.eclipse.edc.connector.dataplane.spi.registry.TransferServiceRegistry;
+import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
@@ -34,7 +35,10 @@ import java.util.Set;
 
 import static java.lang.String.format;
 
+@Extension(value = AwsS3CopyDataPlaneExtension.NAME)
 public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
+    
+    public static final String NAME = "AWS S3 Copy Data Plane";
     
     @Inject
     private AwsClientProvider clientProvider;
@@ -53,6 +57,11 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     private DataPlaneSelectorService dataPlaneSelectorService;
     @Inject
     private ControlApiUrl controlApiUrl;
+    
+    @Override
+    public String name() {
+        return NAME;
+    }
     
     @Override
     public void initialize(ServiceExtensionContext context) {
