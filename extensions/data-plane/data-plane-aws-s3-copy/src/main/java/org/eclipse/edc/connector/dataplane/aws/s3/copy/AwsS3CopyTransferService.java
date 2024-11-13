@@ -95,8 +95,7 @@ public class AwsS3CopyTransferService implements TransferService {
         var violation = Violation.violation("No credential found in vault for given key.", "keyName", source.getKeyName());
         return ValidationResult.failure(violation);
     }
-    
-    //TODO for now only single file, consider multiple prefixed files
+
     @Override
     public CompletableFuture<StreamResult<Object>> transfer(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();

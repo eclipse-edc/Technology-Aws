@@ -31,8 +31,7 @@ public class S3CopyTemplates {
             "        }\n" +
             "    ]\n" +
             "}";
-
-    //TODO restrict to specific files: one vs multiple files
+    
     public static final String CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE = "{\n" +
             "    \"Version\": \"2012-10-17\",\n" +
             "    \"Statement\": [\n" +
@@ -75,8 +74,7 @@ public class S3CopyTemplates {
             "        \n" +
             "    ]\n" +
             "}";
-
-    //TODO for now access to all files in the bucket, should be limited to the files to transfer: one vs multiple files
+    
     public static final String BUCKET_POLICY_STATEMENT_TEMPLATE = " {\n" +
             "            \"Sid\": \"{{sid}}\",\n" +
             "            \"Effect\": \"Allow\",\n" +
@@ -93,8 +91,8 @@ public class S3CopyTemplates {
             "                \"s3:GetObjectVersionTagging\"\n" +
             "            ],\n" +
             "            \"Resource\": [\n" +
-            "                \"arn:aws:s3:::{{sink-bucket-name}}\",\n" +
-            "                \"arn:aws:s3:::{{sink-bucket-name}}/*\"\n" +
+            "                \"arn:aws:s3:::{{destination-bucket-name}}\",\n" +
+            "                \"arn:aws:s3:::{{destination-bucket-name}}/*\"\n" +
             "            ]\n" +
             "        }";
 
