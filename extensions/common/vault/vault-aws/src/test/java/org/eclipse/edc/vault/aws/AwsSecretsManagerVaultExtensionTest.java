@@ -47,4 +47,15 @@ class AwsSecretsManagerVaultExtensionTest {
         extension.createVault(validContext);
     }
 
+    @Test
+    void configOptionEndpointOverrideProvided_shouldNotThrowException() {
+        ServiceExtensionContext validContext = mock(ServiceExtensionContext.class);
+        Config cfg = mock();
+        when(cfg.getString("edc.vault.aws.region")).thenReturn("eu-west-1");
+        when(cfg.getString("edc.aws.endpoint.override")).thenReturn("http://localhost:4566");
+        when(validContext.getConfig()).thenReturn(cfg);
+        when(validContext.getMonitor()).thenReturn(monitor);
+
+        extension.createVault(validContext);
+    }
 }

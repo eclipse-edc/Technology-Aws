@@ -23,6 +23,9 @@ import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
+import java.net.URI;
+import java.util.Optional;
+
 /**
  * This extension registers an implementation of the Vault interface for AWS Secrets Manager.
  * It also registers a VaultPrivateKeyResolver and VaultCertificateResolver, which store and retrieve certificates
@@ -36,6 +39,9 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
     @Setting
     private static final String VAULT_AWS_REGION = "edc.vault.aws.region";
 
+    @Setting
+    private static final String AWS_ENDPOINT_OVERRIDE = "edc.aws.endpoint.override";
+
     @Override
     public String name() {
         return NAME;
@@ -44,17 +50,21 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
     @Provider
     public Vault createVault(ServiceExtensionContext context) {
         var vaultRegion = context.getConfig().getString(VAULT_AWS_REGION);
+        var vaultEndpointOverride = Optional.of(AWS_ENDPOINT_OVERRIDE)
+                .map(key -> context.getSetting(key, null))
+                .map(URI::create)
+                .orElse(null);
 
-        var smClient = buildSmClient(vaultRegion);
+        var smClient = buildSmClient(vaultRegion, vaultEndpointOverride);
 
         return new AwsSecretsManagerVault(smClient, context.getMonitor(),
                 new AwsSecretsManagerVaultDefaultSanitationStrategy(context.getMonitor()));
     }
 
-    private SecretsManagerClient buildSmClient(String vaultRegion) {
+    private SecretsManagerClient buildSmClient(String vaultRegion, URI vaultEndpointOverride) {
         var builder = SecretsManagerClient.builder()
-                .region(Region.of(vaultRegion));
+                .region(Region.of(vaultRegion))
+                .endpointOverride(vaultEndpointOverride);
         return builder.build();
     }
-
 }
