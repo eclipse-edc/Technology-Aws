@@ -16,12 +16,12 @@ package org.eclipse.edc.connector.provision.aws.s3.copy;
 
 import software.amazon.awssdk.services.iam.model.Role;
 
-public class CrossAccountCopyProvisionSteps {
+public class S3CopyProvisionSteps {
     
     private Role role;
     private String bucketPolicy;
     
-    public CrossAccountCopyProvisionSteps(Role role) {
+    public S3CopyProvisionSteps(Role role) {
         this.role = role;
     }
     

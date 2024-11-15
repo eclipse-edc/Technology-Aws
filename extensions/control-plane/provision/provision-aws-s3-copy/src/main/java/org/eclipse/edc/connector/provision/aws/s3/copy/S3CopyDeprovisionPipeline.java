@@ -20,16 +20,11 @@ import dev.failsafe.RetryPolicy;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
-import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedResource;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
-import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
-import org.eclipse.edc.util.string.StringUtils;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyRequest;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyResponse;
@@ -42,14 +37,13 @@ import software.amazon.awssdk.services.s3.model.GetBucketPolicyResponse;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.S3Response;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import static java.util.Optional.ofNullable;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
 
-public class CrossAccountCopyDeprovisionPipeline {
+public class S3CopyDeprovisionPipeline {
     
     private final AwsClientProvider clientProvider;
     private final Vault vault;
@@ -57,7 +51,7 @@ public class CrossAccountCopyDeprovisionPipeline {
     private final TypeManager typeManager;
     private final Monitor monitor;
     
-    private CrossAccountCopyDeprovisionPipeline(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy, TypeManager typeManager, Monitor monitor) {
+    private S3CopyDeprovisionPipeline(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy, TypeManager typeManager, Monitor monitor) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
@@ -65,8 +59,8 @@ public class CrossAccountCopyDeprovisionPipeline {
         this.monitor = monitor;
     }
     
-    public CompletableFuture<DeprovisionedResource> deprovision(CrossAccountCopyProvisionedResource provisionedResource) {
-        var secretToken = getSecretTokenFromVault(provisionedResource.getDestinationKeyName());
+    public CompletableFuture<DeprovisionedResource> deprovision(S3CopyProvisionedResource provisionedResource) {
+        var secretToken = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
         var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), null, secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
@@ -88,7 +82,7 @@ public class CrossAccountCopyDeprovisionPipeline {
     }
     
     private CompletableFuture<? extends S3Response> updateBucketPolicy(S3AsyncClient s3Client,
-                                                             CrossAccountCopyProvisionedResource provisionedResource,
+                                                             S3CopyProvisionedResource provisionedResource,
                                                              GetBucketPolicyResponse bucketPolicyResponse) {
         var bucketPolicy = bucketPolicyResponse.policy();
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
@@ -153,29 +147,6 @@ public class CrossAccountCopyDeprovisionPipeline {
         });
     }
     
-    private SecretToken getSecretTokenFromVault(String secretKeyName) {
-        return ofNullable(secretKeyName)
-                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                .map(vault::resolveSecret)
-                .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                .map(this::deserializeSecretToken)
-                .orElse(null);
-    }
-    
-    private SecretToken deserializeSecretToken(String secret) {
-        try {
-            var objectMapper = typeManager.getMapper();
-            var tree = objectMapper.readTree(secret);
-            if (tree.has("sessionToken")) {
-                return objectMapper.treeToValue(tree, AwsTemporarySecretToken.class);
-            } else {
-                return objectMapper.treeToValue(tree, AwsSecretToken.class);
-            }
-        } catch (IOException e) {
-            throw new EdcException(e);
-        }
-    }
-    
     static class Builder {
         private AwsClientProvider clientProvider;
         private Vault vault;
@@ -214,13 +185,13 @@ public class CrossAccountCopyDeprovisionPipeline {
             return this;
         }
         
-        public CrossAccountCopyDeprovisionPipeline build() {
+        public S3CopyDeprovisionPipeline build() {
             Objects.requireNonNull(clientProvider);
             Objects.requireNonNull(vault);
             Objects.requireNonNull(retryPolicy);
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
-            return new CrossAccountCopyDeprovisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor);
+            return new S3CopyDeprovisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor);
         }
     }
 }

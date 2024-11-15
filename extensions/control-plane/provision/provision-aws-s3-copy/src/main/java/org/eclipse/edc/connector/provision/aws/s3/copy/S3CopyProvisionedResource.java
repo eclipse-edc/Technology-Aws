@@ -20,7 +20,7 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedContentResource;
 import software.amazon.awssdk.services.iam.model.Role;
 
-public class CrossAccountCopyProvisionedResource extends ProvisionedContentResource {
+public class S3CopyProvisionedResource extends ProvisionedContentResource {
     
     private Role sourceAccountRole;
     private String destinationRegion;
@@ -49,10 +49,10 @@ public class CrossAccountCopyProvisionedResource extends ProvisionedContentResou
     }
     
     @JsonPOJOBuilder(withPrefix = "")
-    public static class Builder extends ProvisionedContentResource.Builder<CrossAccountCopyProvisionedResource, Builder> {
+    public static class Builder extends ProvisionedContentResource.Builder<S3CopyProvisionedResource, Builder> {
         
         private Builder() {
-            super(new CrossAccountCopyProvisionedResource());
+            super(new S3CopyProvisionedResource());
             dataAddressBuilder.type(S3BucketSchema.TYPE);
         }
         

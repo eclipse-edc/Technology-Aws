@@ -26,12 +26,12 @@ import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
-public class CrossAccountCopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
+public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
     @Override
     public @Nullable ResourceDefinition generate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
         var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();
         
-        return CrossAccountCopyResourceDefinition.Builder.newInstance()
+        return S3CopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())
                 .destinationRegion(transferProcess.getDataDestination().getStringProperty(REGION))
                 .destinationBucketName(transferProcess.getDataDestination().getStringProperty(BUCKET_NAME))

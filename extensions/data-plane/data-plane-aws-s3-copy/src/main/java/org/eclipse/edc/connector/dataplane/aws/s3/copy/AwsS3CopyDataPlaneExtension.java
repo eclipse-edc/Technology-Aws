@@ -35,6 +35,10 @@ import java.util.Set;
 
 import static java.lang.String.format;
 
+/**
+ * Provides a {@link org.eclipse.edc.connector.dataplane.spi.pipeline.TransferService} for
+ * executing a cross-account copy of S3 objects.
+ */
 @Extension(value = AwsS3CopyDataPlaneExtension.NAME)
 public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     
@@ -68,7 +72,7 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
         var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, monitor, vault, typeManager, validator);
         registry.registerTransferService(s3CopyTransferService);
         
-        // register the data plane instance
+        // register the data plane instance, as self-registration only regards pipeline service for supported types
         var instance = DataPlaneInstance.Builder.newInstance()
                 .id(context.getComponentId())
                 .url(controlApiUrl.get().toString() + "/v1/dataflows")

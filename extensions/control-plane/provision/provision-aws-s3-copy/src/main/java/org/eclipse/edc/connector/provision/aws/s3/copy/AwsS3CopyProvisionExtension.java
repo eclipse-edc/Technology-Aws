@@ -30,7 +30,7 @@ import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
 
 /**
- * Provides data transfer {@link Provisioner}s backed by AWS services.
+ * Provides data transfer {@link Provisioner}s for executing a cross-account copy of S3 objects.
  */
 @Extension(value = AwsS3CopyProvisionExtension.NAME)
 public class AwsS3CopyProvisionExtension implements ServiceExtension {
@@ -62,7 +62,7 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     
         // register resource definition generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);
-        manifestGenerator.registerGenerator(new CrossAccountCopyResourceDefinitionGenerator());
+        manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
     
         // register provisioner
         var provisionManager = context.getService(ProvisionManager.class);
@@ -71,7 +71,7 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int maxRoleSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
         
-        var provisioner = new CrossAccountCopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
+        var provisioner = new S3CopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
         provisionManager.register(provisioner);
 
         registerTypes(typeManager);
@@ -82,12 +82,12 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
         try {
             clientProvider.shutdown();
         } catch (Exception e) {
-            monitor.severe("Error closing S3 client provider", e);
+            monitor.severe("Error closing AWS client provider", e);
         }
     }
 
     private void registerTypes(TypeManager typeManager) {
-        typeManager.registerTypes(CrossAccountCopyProvisionedResource.class, CrossAccountCopyResourceDefinition.class, AwsTemporarySecretToken.class);
+        typeManager.registerTypes(S3CopyProvisionedResource.class, S3CopyResourceDefinition.class, AwsTemporarySecretToken.class);
     }
 
 

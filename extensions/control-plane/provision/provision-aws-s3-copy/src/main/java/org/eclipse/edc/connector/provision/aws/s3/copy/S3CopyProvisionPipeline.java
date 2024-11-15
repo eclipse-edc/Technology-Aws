@@ -19,15 +19,10 @@ import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import jakarta.json.Json;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsSecretToken;
-import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
-import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
-import org.eclipse.edc.util.string.StringUtils;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
 import software.amazon.awssdk.services.iam.model.CreateRoleResponse;
@@ -40,22 +35,22 @@ import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.EMPTY_BUCKET_POLICY;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.roleIdentifier;
 
-public class CrossAccountCopyProvisionPipeline {
+public class S3CopyProvisionPipeline {
     
     private final AwsClientProvider clientProvider;
     private final Vault vault;
@@ -65,9 +60,9 @@ public class CrossAccountCopyProvisionPipeline {
     private final String componentId;
     private final int maxRoleSessionDuration;
     
-    private CrossAccountCopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault,
-                                              RetryPolicy<Object> retryPolicy, TypeManager typeManager,
-                                              Monitor monitor, String componentId, int maxRoleSessionDuration) {
+    private S3CopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault,
+                                    RetryPolicy<Object> retryPolicy, TypeManager typeManager,
+                                    Monitor monitor, String componentId, int maxRoleSessionDuration) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
@@ -77,11 +72,11 @@ public class CrossAccountCopyProvisionPipeline {
         this.maxRoleSessionDuration = maxRoleSessionDuration;
     }
     
-    public CompletableFuture<S3ProvisionResponse> provision(CrossAccountCopyResourceDefinition resourceDefinition) {
+    public CompletableFuture<S3ProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
         var iamClient = clientProvider.iamAsyncClient();
         var stsClient = clientProvider.stsAsyncClient(resourceDefinition.getSourceDataAddress().getStringProperty(REGION));
         
-        var secretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName());
+        var secretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
         var s3ClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
@@ -95,7 +90,7 @@ public class CrossAccountCopyProvisionPipeline {
     }
     
     private CompletableFuture<CreateRoleResponse> createRole(IamAsyncClient iamClient,
-                                                             CrossAccountCopyResourceDefinition resourceDefinition,
+                                                             S3CopyResourceDefinition resourceDefinition,
                                                              GetUserResponse getUserResponse) {
         var roleName = roleIdentifier(resourceDefinition);
         var trustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
@@ -115,9 +110,9 @@ public class CrossAccountCopyProvisionPipeline {
         });
     }
     
-    private CompletableFuture<CrossAccountCopyProvisionSteps> putRolePolicy(IamAsyncClient iamClient,
-                                                                            CrossAccountCopyResourceDefinition resourceDefinition,
-                                                                            CreateRoleResponse createRoleResponse) {
+    private CompletableFuture<S3CopyProvisionSteps> putRolePolicy(IamAsyncClient iamClient,
+                                                                  S3CopyResourceDefinition resourceDefinition,
+                                                                  CreateRoleResponse createRoleResponse) {
         var rolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
                 .replace("{{source-bucket}}", resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME))
                 .replace("{{destination-bucket}}", resourceDefinition.getDestinationBucketName());
@@ -132,13 +127,13 @@ public class CrossAccountCopyProvisionPipeline {
             
             monitor.debug("S3 CrossAccountCopyProvisionPipeline: putting IAM role policy");
             return iamClient.putRolePolicy(putRolePolicyRequest)
-                    .thenApply(policyResponse -> new CrossAccountCopyProvisionSteps(role));
+                    .thenApply(policyResponse -> new S3CopyProvisionSteps(role));
         });
     }
     
-    private CompletableFuture<CrossAccountCopyProvisionSteps> getDestinationBucketPolicy(S3AsyncClient s3Client,
-                                                                                         CrossAccountCopyResourceDefinition resourceDefinition,
-                                                                                         CrossAccountCopyProvisionSteps provisionSteps) {
+    private CompletableFuture<S3CopyProvisionSteps> getDestinationBucketPolicy(S3AsyncClient s3Client,
+                                                                               S3CopyResourceDefinition resourceDefinition,
+                                                                               S3CopyProvisionSteps provisionSteps) {
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()
                 .bucket(resourceDefinition.getDestinationBucketName())
                 .build();
@@ -158,9 +153,9 @@ public class CrossAccountCopyProvisionPipeline {
         });
     }
     
-    private CompletableFuture<CrossAccountCopyProvisionSteps> updateDestinationBucketPolicy(S3AsyncClient s3Client,
-                                                                                            CrossAccountCopyResourceDefinition resourceDefinition,
-                                                                                            CrossAccountCopyProvisionSteps provisionSteps) {
+    private CompletableFuture<S3CopyProvisionSteps> updateDestinationBucketPolicy(S3AsyncClient s3Client,
+                                                                                  S3CopyResourceDefinition resourceDefinition,
+                                                                                  S3CopyProvisionSteps provisionSteps) {
         var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
                 .replace("{{sid}}", resourceDefinition.getBucketPolicyStatementSid())
                 .replace("{{source-account-role-arn}}", provisionSteps.getRole().arn())
@@ -189,8 +184,8 @@ public class CrossAccountCopyProvisionPipeline {
     }
     
     private CompletableFuture<S3ProvisionResponse> assumeRole(StsAsyncClient stsClient,
-                                                              CrossAccountCopyResourceDefinition resourceDefinition,
-                                                              CrossAccountCopyProvisionSteps provisionSteps) {
+                                                              S3CopyResourceDefinition resourceDefinition,
+                                                              S3CopyProvisionSteps provisionSteps) {
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             var role = provisionSteps.getRole();
             var assumeRoleRequest = AssumeRoleRequest.builder()
@@ -204,11 +199,7 @@ public class CrossAccountCopyProvisionPipeline {
         });
     }
     
-    private String roleIdentifier(CrossAccountCopyResourceDefinition resourceDefinition) {
-        return format("edc-transfer_%s", resourceDefinition.getTransferProcessId());
-    }
-    
-    private List<Tag> roleTags(CrossAccountCopyResourceDefinition resourceDefinition) {
+    private List<Tag> roleTags(S3CopyResourceDefinition resourceDefinition) {
         var edcTag = Tag.builder()
                 .key("created-by")
                 .value("EDC")
@@ -222,29 +213,6 @@ public class CrossAccountCopyProvisionPipeline {
                 .value(resourceDefinition.getTransferProcessId())
                 .build();
         return List.of(edcTag, componentIdTag, tpTag);
-    }
-    
-    private SecretToken getSecretTokenFromVault(String secretKeyName) {
-        return ofNullable(secretKeyName)
-                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                .map(vault::resolveSecret)
-                .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                .map(this::deserializeSecretToken)
-                .orElse(null);
-    }
-    
-    private SecretToken deserializeSecretToken(String secret) {
-        try {
-            var objectMapper = typeManager.getMapper();
-            var tree = objectMapper.readTree(secret);
-            if (tree.has("sessionToken")) {
-                return objectMapper.treeToValue(tree, AwsTemporarySecretToken.class);
-            } else {
-                return objectMapper.treeToValue(tree, AwsSecretToken.class);
-            }
-        } catch (IOException e) {
-            throw new EdcException(e);
-        }
     }
     
     static class Builder {
@@ -297,14 +265,14 @@ public class CrossAccountCopyProvisionPipeline {
             return this;
         }
         
-        public CrossAccountCopyProvisionPipeline build() {
+        public S3CopyProvisionPipeline build() {
             Objects.requireNonNull(clientProvider);
             Objects.requireNonNull(vault);
             Objects.requireNonNull(retryPolicy);
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
             Objects.requireNonNull(componentId);
-            return new CrossAccountCopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId, maxRoleSessionDuration);
+            return new S3CopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId, maxRoleSessionDuration);
         }
     }
 }

@@ -20,7 +20,7 @@ import org.eclipse.edc.spi.types.domain.DataAddress;
 
 import java.util.Objects;
 
-public class CrossAccountCopyResourceDefinition extends ResourceDefinition {
+public class S3CopyResourceDefinition extends ResourceDefinition {
     
     private String destinationRegion;
     private String destinationBucketName;
@@ -59,10 +59,10 @@ public class CrossAccountCopyResourceDefinition extends ResourceDefinition {
     }
     
     @JsonPOJOBuilder(withPrefix = "")
-    public static class Builder extends ResourceDefinition.Builder<CrossAccountCopyResourceDefinition, Builder> {
+    public static class Builder extends ResourceDefinition.Builder<S3CopyResourceDefinition, Builder> {
         
         private Builder() {
-            super(new CrossAccountCopyResourceDefinition());
+            super(new S3CopyResourceDefinition());
         }
         
         public static Builder newInstance() {

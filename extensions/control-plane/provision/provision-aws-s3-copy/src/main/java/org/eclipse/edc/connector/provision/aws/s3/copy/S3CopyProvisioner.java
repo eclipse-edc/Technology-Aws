@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
 
-public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopyResourceDefinition, CrossAccountCopyProvisionedResource> {
+public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, S3CopyProvisionedResource> {
     
     private final AwsClientProvider clientProvider;
     private final Vault vault;
@@ -43,10 +43,10 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
     private final String componentId;
     private final int maxRoleSessionDuration;
     
-    public CrossAccountCopyProvisioner(AwsClientProvider clientProvider, Vault vault,
-                                       RetryPolicy<Object> retryPolicy, TypeManager typeManager,
-                                       Monitor monitor, String componentId, int maxRetries,
-                                       int maxRoleSessionDuration) {
+    public S3CopyProvisioner(AwsClientProvider clientProvider, Vault vault,
+                             RetryPolicy<Object> retryPolicy, TypeManager typeManager,
+                             Monitor monitor, String componentId, int maxRetries,
+                             int maxRoleSessionDuration) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.typeManager = typeManager;
@@ -61,17 +61,17 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
     
     @Override
     public boolean canProvision(ResourceDefinition resourceDefinition) {
-        return resourceDefinition instanceof CrossAccountCopyResourceDefinition;
+        return resourceDefinition instanceof S3CopyResourceDefinition;
     }
     
     @Override
     public boolean canDeprovision(ProvisionedResource provisionedResource) {
-        return provisionedResource instanceof CrossAccountCopyProvisionedResource;
+        return provisionedResource instanceof S3CopyProvisionedResource;
     }
     
     @Override
-    public CompletableFuture<StatusResult<ProvisionResponse>> provision(CrossAccountCopyResourceDefinition resourceDefinition, Policy policy) {
-        return CrossAccountCopyProvisionPipeline.Builder.newInstance()
+    public CompletableFuture<StatusResult<ProvisionResponse>> provision(S3CopyResourceDefinition resourceDefinition, Policy policy) {
+        return S3CopyProvisionPipeline.Builder.newInstance()
                 .clientProvider(clientProvider)
                 .vault(vault)
                 .retryPolicy(retryPolicy)
@@ -84,10 +84,10 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
                 .thenApply(response -> provisioningSucceeded(resourceDefinition, response));
     }
     
-    private StatusResult<ProvisionResponse> provisioningSucceeded(CrossAccountCopyResourceDefinition resourceDefinition,
+    private StatusResult<ProvisionResponse> provisioningSucceeded(S3CopyResourceDefinition resourceDefinition,
                                                                   S3ProvisionResponse provisionResponse) {
         var identifier = roleIdentifier(resourceDefinition);
-        var provisionedResource = CrossAccountCopyProvisionedResource.Builder.newInstance()
+        var provisionedResource = S3CopyProvisionedResource.Builder.newInstance()
                 .id(identifier)
                 .resourceName(identifier)
                 .resourceDefinitionId(resourceDefinition.getId())
@@ -111,13 +111,13 @@ public class CrossAccountCopyProvisioner implements Provisioner<CrossAccountCopy
                 .build());
     }
     
-    private String roleIdentifier(CrossAccountCopyResourceDefinition resourceDefinition) {
+    private String roleIdentifier(S3CopyResourceDefinition resourceDefinition) {
         return format("edc-transfer-role_%s", resourceDefinition.getTransferProcessId());
     }
     
     @Override
-    public CompletableFuture<StatusResult<DeprovisionedResource>> deprovision(CrossAccountCopyProvisionedResource provisionedResource, Policy policy) {
-        return CrossAccountCopyDeprovisionPipeline.Builder.newInstance()
+    public CompletableFuture<StatusResult<DeprovisionedResource>> deprovision(S3CopyProvisionedResource provisionedResource, Policy policy) {
+        return S3CopyDeprovisionPipeline.Builder.newInstance()
                 .clientProvider(clientProvider)
                 .vault(vault)
                 .retryPolicy(retryPolicy)
