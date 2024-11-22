@@ -17,6 +17,7 @@ package org.eclipse.edc.connector.dataplane.aws.registry;
 import org.eclipse.edc.connector.dataplane.framework.registry.TransferServiceSelectionStrategy;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
+import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Provider;
 import org.eclipse.edc.spi.system.ServiceExtension;
 
@@ -24,6 +25,9 @@ import org.eclipse.edc.spi.system.ServiceExtension;
 public class TransferServiceSelectionExtension implements ServiceExtension {
     
     public static final String NAME = "AWS S3 Copy Transfer Service Selection";
+    
+    @Inject
+    private TransferServiceSelectionStrategy transferServiceSelectionStrategy;
     
     @Override
     public String name() {
@@ -37,8 +41,7 @@ public class TransferServiceSelectionExtension implements ServiceExtension {
             var service = list.stream()
                     .filter(ts -> !(ts instanceof PipelineService))
                     .findFirst();
-            return service.orElseGet(() -> list.stream().findFirst().orElse(null));
+            return service.orElse(this.transferServiceSelectionStrategy.chooseTransferService(request, list.stream()));
         };
     }
-    
 }

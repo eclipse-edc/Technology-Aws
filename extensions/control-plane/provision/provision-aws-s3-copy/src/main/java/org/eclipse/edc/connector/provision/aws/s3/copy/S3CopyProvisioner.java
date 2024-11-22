@@ -31,7 +31,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 import java.util.concurrent.CompletableFuture;
 
-import static java.lang.String.format;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.resourceIdentifier;
 
 public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, S3CopyProvisionedResource> {
     
@@ -86,7 +86,7 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
     
     private StatusResult<ProvisionResponse> provisioningSucceeded(S3CopyResourceDefinition resourceDefinition,
                                                                   S3ProvisionResponse provisionResponse) {
-        var identifier = roleIdentifier(resourceDefinition);
+        var identifier = resourceIdentifier(resourceDefinition);
         var provisionedResource = S3CopyProvisionedResource.Builder.newInstance()
                 .id(identifier)
                 .resourceName(identifier)
@@ -109,10 +109,6 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
                 .resource(provisionedResource)
                 .secretToken(secretToken)
                 .build());
-    }
-    
-    private String roleIdentifier(S3CopyResourceDefinition resourceDefinition) {
-        return format("edc-transfer-role_%s", resourceDefinition.getTransferProcessId());
     }
     
     @Override

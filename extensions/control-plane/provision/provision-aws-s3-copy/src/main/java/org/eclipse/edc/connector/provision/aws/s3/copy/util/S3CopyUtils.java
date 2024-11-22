@@ -32,7 +32,7 @@ public class S3CopyUtils {
     
     private S3CopyUtils() {}
     
-    public static String roleIdentifier(S3CopyResourceDefinition resourceDefinition) {
+    public static String resourceIdentifier(S3CopyResourceDefinition resourceDefinition) {
         return format("edc-transfer_%s", resourceDefinition.getTransferProcessId());
     }
     

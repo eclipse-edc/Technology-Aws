@@ -48,7 +48,7 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplat
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.EMPTY_BUCKET_POLICY;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.roleIdentifier;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.resourceIdentifier;
 
 public class S3CopyProvisionPipeline {
     
@@ -73,12 +73,15 @@ public class S3CopyProvisionPipeline {
     }
     
     public CompletableFuture<S3ProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
-        var iamClient = clientProvider.iamAsyncClient();
-        var stsClient = clientProvider.stsAsyncClient(resourceDefinition.getSourceDataAddress().getStringProperty(REGION));
+        // create IAM & STS client for source account -> configure & assume IAM role
+        var sourceClientRequest = S3ClientRequest.from(resourceDefinition.getSourceDataAddress().getStringProperty(REGION), null, null);
+        var iamClient = clientProvider.iamAsyncClient(sourceClientRequest);
+        var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
         
-        var secretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
-        var s3ClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, secretToken);
-        var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
+        // create S3 client for destination account -> update bucket policy to allow source account role to write objects
+        var destinationSecretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
+        var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, destinationSecretToken);
+        var s3Client = clientProvider.s3AsyncClient(destinationClientRequest);
         
         monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting IAM user");
         return iamClient.getUser()
@@ -92,7 +95,7 @@ public class S3CopyProvisionPipeline {
     private CompletableFuture<CreateRoleResponse> createRole(IamAsyncClient iamClient,
                                                              S3CopyResourceDefinition resourceDefinition,
                                                              GetUserResponse getUserResponse) {
-        var roleName = roleIdentifier(resourceDefinition);
+        var roleName = resourceIdentifier(resourceDefinition);
         var trustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
                 .replace("{{user-arn}}", getUserResponse.user().arn());
         
@@ -121,7 +124,7 @@ public class S3CopyProvisionPipeline {
             var role = createRoleResponse.role();
             var putRolePolicyRequest = PutRolePolicyRequest.builder()
                     .roleName(role.roleName())
-                    .policyName(roleIdentifier(resourceDefinition))
+                    .policyName(resourceIdentifier(resourceDefinition))
                     .policyDocument(rolePolicy)
                     .build();
             
@@ -190,7 +193,7 @@ public class S3CopyProvisionPipeline {
             var role = provisionSteps.getRole();
             var assumeRoleRequest = AssumeRoleRequest.builder()
                     .roleArn(role.arn())
-                    .roleSessionName(roleIdentifier(resourceDefinition))
+                    .roleSessionName(resourceIdentifier(resourceDefinition))
                     .build();
             
             monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: assuming role '%s'", role.arn()));
