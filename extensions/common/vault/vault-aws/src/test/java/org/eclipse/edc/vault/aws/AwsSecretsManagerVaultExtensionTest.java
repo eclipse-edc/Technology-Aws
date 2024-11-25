@@ -42,9 +42,8 @@ class AwsSecretsManagerVaultExtensionTest {
     @Test
     void configOptionRegionNotProvided_shouldThrowException() {
         var extension = new AwsSecretsManagerVaultExtension();
-        ServiceExtensionContext invalidContext = mock(ServiceExtensionContext.class);
 
-        Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(invalidContext));
+        Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(context));
     }
 
     @Test
