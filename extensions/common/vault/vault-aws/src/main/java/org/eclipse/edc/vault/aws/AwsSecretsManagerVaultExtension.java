@@ -36,11 +36,14 @@ import java.util.Optional;
 public class AwsSecretsManagerVaultExtension implements ServiceExtension {
     public static final String NAME = "AWS Secrets Manager Vault";
 
-    @Setting
-    private static final String VAULT_AWS_REGION = "edc.vault.aws.region";
+    @Setting(key = "edc.vault.aws.region",
+            description = "The AWS Secrets Manager client will point to the specified region")
+    String vaultRegion;
 
-    @Setting
-    private static final String AWS_ENDPOINT_OVERRIDE = "edc.aws.endpoint.override";
+    @Setting(key = "edc.vault.aws.endpoint.override",
+            description = "If valued, the AWS Secrets Manager client will point to the specified endpoint",
+            required = false)
+    String vaultAwsEndpointOverride;
 
     @Override
     public String name() {
@@ -49,9 +52,7 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
 
     @Provider
     public Vault createVault(ServiceExtensionContext context) {
-        var vaultRegion = context.getConfig().getString(VAULT_AWS_REGION);
-        var vaultEndpointOverride = Optional.of(AWS_ENDPOINT_OVERRIDE)
-                .map(key -> context.getSetting(key, null))
+        var vaultEndpointOverride = Optional.ofNullable(vaultAwsEndpointOverride)
                 .map(URI::create)
                 .orElse(null);
 
