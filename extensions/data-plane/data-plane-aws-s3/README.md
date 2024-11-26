@@ -54,6 +54,7 @@ possible values are:
   role.
   ```json
   {
+    "edctype": "dataspaceconnector:secrettoken",
     "accessKeyId": "<ACCESS_KEY_ID>",
     "secretAccessKey": "<SECRET_ACCESS_KEY>"
   }
@@ -61,9 +62,14 @@ possible values are:
 - `AwsTemporatySecretToken`: Has a `sessionToken` in addition to the `accessKeyId` and `secretAccessKey`, it is
   typically
   referred to as AWS temporary security credentials. This process involves assuming an IAM role to obtain short-term
-  credentials, which include an `accessKeyId`, `secretAccessKey`, and a session token.
+  credentials, which include an `accessKeyId`, `secretAccessKey`, and a session token. In addition to these fields,
+  the token expiration time, which is received together with the credentials upon assuming a role or otherwise 
+  requesting temporary credentials, has to be specified as a **unix timestamp**.
   ```json
   {
+    "edctype": "dataspaceconnector:secrettoken",
+    "accessKeyId": "<ACCESS_KEY_ID>",
+    "secretAccessKey": "<SECRET_ACCESS_KEY>",  
     "sessionToken": "<SESSION_TOKEN>",
     "expiration": "<EXPIRATION>"
   }
