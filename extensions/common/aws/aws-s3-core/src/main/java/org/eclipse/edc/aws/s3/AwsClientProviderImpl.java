@@ -10,6 +10,7 @@
  *  Contributors:
  *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG) - Initial implementation
  *       ZF Friedrichshafen AG - Initial implementation
+ *       Cofinity-X - fix iamAsyncClient without endpointOverride
  *
  */
 
@@ -42,6 +43,8 @@ import java.util.concurrent.Executors;
 import static software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR;
 
 public class AwsClientProviderImpl implements AwsClientProvider {
+    
+    private static final String NO_ENDPOINT_OVERRIDE = "default";
 
     private final AwsCredentialsProvider credentialsProvider;
     private final AwsClientProviderConfiguration configuration;
@@ -70,7 +73,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     @Override
     public IamAsyncClient iamAsyncClient(S3ClientRequest clientRequest) {
-        var key = clientRequest.endpointOverride();
+        var key = clientRequest.endpointOverride() != null ? clientRequest.endpointOverride() : NO_ENDPOINT_OVERRIDE;
         return iamAsyncClients.computeIfAbsent(key, s -> createIamAsyncClient(clientRequest.endpointOverride()));
     }
 
