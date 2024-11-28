@@ -1,9 +1,12 @@
 maven/mavencentral/com.fasterxml.jackson.core/jackson-annotations/2.10.3, Apache-2.0, approved, CQ21280
 maven/mavencentral/com.fasterxml.jackson.core/jackson-annotations/2.18.1, Apache-2.0, approved, #16364
-maven/mavencentral/com.fasterxml.jackson.core/jackson-core/2.18.1, Apache-2.0 AND MIT, approved, #16371
+maven/mavencentral/com.fasterxml.jackson.core/jackson-annotations/2.18.2, Apache-2.0, approved, #16364
+maven/mavencentral/com.fasterxml.jackson.core/jackson-core/2.18.2, Apache-2.0 AND MIT, approved, #16371
 maven/mavencentral/com.fasterxml.jackson.core/jackson-databind/2.18.1, Apache-2.0, approved, #16372
+maven/mavencentral/com.fasterxml.jackson.core/jackson-databind/2.18.2, Apache-2.0, approved, #16372
 maven/mavencentral/com.fasterxml.jackson.datatype/jackson-datatype-jsr310/2.18.1, Apache-2.0, approved, #16625
-maven/mavencentral/com.fasterxml.jackson/jackson-bom/2.18.1, Apache-2.0, approved, #16628
+maven/mavencentral/com.fasterxml.jackson.datatype/jackson-datatype-jsr310/2.18.2, Apache-2.0, approved, #16625
+maven/mavencentral/com.fasterxml.jackson/jackson-bom/2.18.2, Apache-2.0, approved, #16628
 maven/mavencentral/com.github.docker-java/docker-java-api/3.4.0, Apache-2.0, approved, clearlydefined
 maven/mavencentral/com.github.docker-java/docker-java-transport-zerodep/3.4.0, Apache-2.0 AND (Apache-2.0 AND BSD-3-Clause), approved, #15745
 maven/mavencentral/com.github.docker-java/docker-java-transport/3.4.0, Apache-2.0, approved, clearlydefined
@@ -143,7 +146,9 @@ maven/mavencentral/org.slf4j/slf4j-api/1.7.25, MIT, approved, CQ13368
 maven/mavencentral/org.slf4j/slf4j-api/1.7.30, MIT, approved, CQ13368
 maven/mavencentral/org.slf4j/slf4j-api/1.7.36, MIT, approved, CQ13368
 maven/mavencentral/org.testcontainers/junit-jupiter/1.20.3, MIT, approved, #16552
+maven/mavencentral/org.testcontainers/junit-jupiter/1.20.4, MIT, approved, #16552
 maven/mavencentral/org.testcontainers/testcontainers/1.20.3, MIT, approved, #15747
+maven/mavencentral/org.testcontainers/testcontainers/1.20.4, MIT, approved, #15747
 maven/mavencentral/org.xmlresolver/xmlresolver/5.2.2, Apache-2.0, approved, clearlydefined
 maven/mavencentral/software.amazon.awssdk/annotations/2.29.15, Apache-2.0, approved, #17015
 maven/mavencentral/software.amazon.awssdk/apache-client/2.29.15, Apache-2.0, approved, clearlydefined
