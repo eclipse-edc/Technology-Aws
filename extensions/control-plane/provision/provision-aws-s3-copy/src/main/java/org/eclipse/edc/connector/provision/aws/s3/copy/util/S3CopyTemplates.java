@@ -14,6 +14,12 @@
 
 package org.eclipse.edc.connector.provision.aws.s3.copy.util;
 
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
+
 public class S3CopyTemplates {
 
     private S3CopyTemplates() { }
@@ -24,7 +30,7 @@ public class S3CopyTemplates {
             "        {\n" +
             "            \"Effect\": \"Allow\",\n" +
             "            \"Principal\": {\n" +
-            "                \"AWS\": \"{{user-arn}}\"\n" +
+            "                \"AWS\": \"" + PLACEHOLDER_USER_ARN + "\"\n" +
             "            },\n" +
             "            \"Action\": \"sts:AssumeRole\",\n" +
             "            \"Condition\": {}\n" +
@@ -45,8 +51,8 @@ public class S3CopyTemplates {
             "                \"s3:GetObjectVersionTagging\"\n" +
             "            ],\n" +
             "            \"Resource\": [\n" +
-            "                \"arn:aws:s3:::{{source-bucket}}\",\n" +
-            "                \"arn:aws:s3:::{{source-bucket}}/*\"\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_SOURCE_BUCKET + "\",\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_SOURCE_BUCKET + "/*\"\n" +
             "            ]\n" +
             "        },\n" +
             "        {\n" +
@@ -61,8 +67,8 @@ public class S3CopyTemplates {
             "                \"s3:GetObjectVersionTagging\"\n" +
             "            ],\n" +
             "            \"Resource\": [\n" +
-            "                \"arn:aws:s3:::{{destination-bucket}}\",\n" +
-            "                \"arn:aws:s3:::{{destination-bucket}}/*\"\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "\",\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "/*\"\n" +
             "            ]\n" +
             "        }\n" +
             "    ]\n" +
@@ -76,10 +82,10 @@ public class S3CopyTemplates {
             "}";
     
     public static final String BUCKET_POLICY_STATEMENT_TEMPLATE = " {\n" +
-            "            \"Sid\": \"{{sid}}\",\n" +
+            "            \"Sid\": \"" + PLACEHOLDER_STATEMENT_SID + "\",\n" +
             "            \"Effect\": \"Allow\",\n" +
             "            \"Principal\": {\n" +
-            "                \"AWS\": \"{{source-account-role-arn}}\"\n" +
+            "                \"AWS\": \"" + PLACEHOLDER_ROLE_ARN + "\"\n" +
             "            },\n" +
             "            \"Action\": [\n" +
             "                \"s3:ListBucket\",\n" +
@@ -91,8 +97,8 @@ public class S3CopyTemplates {
             "                \"s3:GetObjectVersionTagging\"\n" +
             "            ],\n" +
             "            \"Resource\": [\n" +
-            "                \"arn:aws:s3:::{{destination-bucket-name}}\",\n" +
-            "                \"arn:aws:s3:::{{destination-bucket-name}}/*\"\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "\",\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "/*\"\n" +
             "            ]\n" +
             "        }";
 

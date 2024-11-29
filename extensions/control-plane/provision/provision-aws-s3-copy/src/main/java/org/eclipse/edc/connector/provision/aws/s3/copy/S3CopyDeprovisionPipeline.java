@@ -25,6 +25,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedRe
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyRequest;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyResponse;
@@ -41,6 +42,8 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
 
 public class S3CopyDeprovisionPipeline {
@@ -64,14 +67,14 @@ public class S3CopyDeprovisionPipeline {
         var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), null, secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
-        var iamClient = clientProvider.iamAsyncClient();
+        var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), null));
         var roleName = provisionedResource.getSourceAccountRole().roleName();
         
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()
                 .bucket(provisionedResource.getDestinationBucketName())
                 .build();
         
-        monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting destination bucket policy");
+        monitor.debug("S3CopyDeprovisionPipeline: getting destination bucket policy");
         return s3Client.getBucketPolicy(getBucketPolicyRequest)
                 .thenCompose(response -> updateBucketPolicy(s3Client, provisionedResource, response))
                 .thenCompose(response -> deleteRolePolicy(iamClient, roleName))
@@ -82,8 +85,8 @@ public class S3CopyDeprovisionPipeline {
     }
     
     private CompletableFuture<? extends S3Response> updateBucketPolicy(S3AsyncClient s3Client,
-                                                             S3CopyProvisionedResource provisionedResource,
-                                                             GetBucketPolicyResponse bucketPolicyResponse) {
+                                                                       S3CopyProvisionedResource provisionedResource,
+                                                                       GetBucketPolicyResponse bucketPolicyResponse) {
         var bucketPolicy = bucketPolicyResponse.policy();
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var statementSid = provisionedResource.getBucketPolicyStatementSid();
@@ -91,22 +94,25 @@ public class S3CopyDeprovisionPipeline {
         
         var statementsBuilder = Json.createArrayBuilder();
         
-        policyJson.getJsonArray("Statement").forEach(entry -> {
+        policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT).forEach(entry -> {
             var statement = (JsonObject) entry;
-            if (!statementSid.equals(statement.getJsonString("Sid").getString())) {
+            var sid = statement.getJsonString(S3_BUCKET_POLICY_STATEMENT_SID);
+            
+            // add all previously existing statements to bucket policy, omit only statement with Sid specified in provisioned resource
+            if (sid == null || !statementSid.equals(sid.getString())) {
                 statementsBuilder.add(statement);
             }
         });
         
         var updatedBucketPolicy = Json.createObjectBuilder(policyJson)
-                .add("Statement", statementsBuilder)
+                .add(S3_BUCKET_POLICY_STATEMENT, statementsBuilder)
                 .build();
         
         // since putting a bucket policy with empty statement array fails using the SDK, the bucket
         // policy is deleted if no statements are present
-        if (updatedBucketPolicy.getJsonArray("Statement").isEmpty()) {
+        if (updatedBucketPolicy.getJsonArray(S3_BUCKET_POLICY_STATEMENT).isEmpty()) {
             return Failsafe.with(retryPolicy).getStageAsync(() -> {
-                monitor.debug("S3 CrossAccountCopyProvisionPipeline: updating destination bucket policy");
+                monitor.debug("S3CopyDeprovisionPipeline: updating destination bucket policy");
                 var deleteBucketPolicyRequest = DeleteBucketPolicyRequest.builder()
                         .bucket(provisionedResource.getDestinationBucketName())
                         .build();
@@ -114,7 +120,7 @@ public class S3CopyDeprovisionPipeline {
             });
         } else {
             return Failsafe.with(retryPolicy).getStageAsync(() -> {
-                monitor.debug("S3 CrossAccountCopyProvisionPipeline: updating destination bucket policy");
+                monitor.debug("S3CopyDeprovisionPipeline: updating destination bucket policy");
                 var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
                         .bucket(provisionedResource.getDestinationBucketName())
                         .policy(updatedBucketPolicy.toString())
@@ -131,14 +137,14 @@ public class S3CopyDeprovisionPipeline {
                     .policyName(roleName)
                     .build();
             
-            monitor.debug("S3 CrossAccountCopyProvisionPipeline: deleting IAM role policy");
+            monitor.debug("S3CopyDeprovisionPipeline: deleting IAM role policy");
             return iamClient.deleteRolePolicy(deleteRolePolicyRequest);
         });
     }
     
     private CompletableFuture<DeleteRoleResponse> deleteRole(IamAsyncClient iamClient, String roleName) {
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisionPipeline: deleting IAM role");
+            monitor.debug("S3CopyDeprovisionPipeline: deleting IAM role");
             var deleteRoleRequest = DeleteRoleRequest.builder()
                     .roleName(roleName)
                     .build();

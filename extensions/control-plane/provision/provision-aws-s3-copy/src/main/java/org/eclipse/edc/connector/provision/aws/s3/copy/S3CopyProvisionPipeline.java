@@ -43,6 +43,12 @@ import java.util.concurrent.CompletableFuture;
 import static java.lang.String.format;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
@@ -83,7 +89,7 @@ public class S3CopyProvisionPipeline {
         var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, destinationSecretToken);
         var s3Client = clientProvider.s3AsyncClient(destinationClientRequest);
         
-        monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting IAM user");
+        monitor.debug("S3CopyProvisionPipeline: getting IAM user");
         return iamClient.getUser()
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
                 .thenCompose(response -> putRolePolicy(iamClient, resourceDefinition, response))
@@ -97,7 +103,7 @@ public class S3CopyProvisionPipeline {
                                                              GetUserResponse getUserResponse) {
         var roleName = resourceIdentifier(resourceDefinition);
         var trustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
-                .replace("{{user-arn}}", getUserResponse.user().arn());
+                .replace(PLACEHOLDER_USER_ARN, getUserResponse.user().arn());
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             var createRoleRequest = CreateRoleRequest.builder()
@@ -108,7 +114,7 @@ public class S3CopyProvisionPipeline {
                     .tags(roleTags(resourceDefinition))
                     .build();
             
-            monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: creating IAM role '%s'", roleName));
+            monitor.debug(format("S3CopyProvisionPipeline: creating IAM role '%s'", roleName));
             return iamClient.createRole(createRoleRequest);
         });
     }
@@ -117,8 +123,8 @@ public class S3CopyProvisionPipeline {
                                                                   S3CopyResourceDefinition resourceDefinition,
                                                                   CreateRoleResponse createRoleResponse) {
         var rolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
-                .replace("{{source-bucket}}", resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME))
-                .replace("{{destination-bucket}}", resourceDefinition.getDestinationBucketName());
+                .replace(PLACEHOLDER_SOURCE_BUCKET, resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME))
+                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName());
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             var role = createRoleResponse.role();
@@ -128,7 +134,7 @@ public class S3CopyProvisionPipeline {
                     .policyDocument(rolePolicy)
                     .build();
             
-            monitor.debug("S3 CrossAccountCopyProvisionPipeline: putting IAM role policy");
+            monitor.debug("S3CopyProvisionPipeline: putting IAM role policy");
             return iamClient.putRolePolicy(putRolePolicyRequest)
                     .thenApply(policyResponse -> new S3CopyProvisionSteps(role));
         });
@@ -142,7 +148,7 @@ public class S3CopyProvisionPipeline {
                 .build();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisionPipeline: getting destination bucket policy");
+            monitor.debug("S3CopyProvisionPipeline: getting destination bucket policy");
             return s3Client.getBucketPolicy(getBucketPolicyRequest)
                     .handle((result, ex) -> {
                         if (ex == null) {
@@ -160,23 +166,23 @@ public class S3CopyProvisionPipeline {
                                                                                   S3CopyResourceDefinition resourceDefinition,
                                                                                   S3CopyProvisionSteps provisionSteps) {
         var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
-                .replace("{{sid}}", resourceDefinition.getBucketPolicyStatementSid())
-                .replace("{{source-account-role-arn}}", provisionSteps.getRole().arn())
-                .replace("{{destination-bucket-name}}", resourceDefinition.getDestinationBucketName());
+                .replace(PLACEHOLDER_STATEMENT_SID, resourceDefinition.getBucketPolicyStatementSid())
+                .replace(PLACEHOLDER_ROLE_ARN, provisionSteps.getRole().arn())
+                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName());
         
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var statementJson = Json.createObjectBuilder(typeManager.readValue(bucketPolicyStatement, typeReference)).build();
         var policyJson = Json.createObjectBuilder(typeManager.readValue(provisionSteps.getBucketPolicy(), typeReference)).build();
         
-        var statements = Json.createArrayBuilder(policyJson.getJsonArray("Statement"))
+        var statements = Json.createArrayBuilder(policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT))
                 .add(statementJson)
                 .build();
         var updatedBucketPolicy = Json.createObjectBuilder(policyJson)
-                .add("Statement", statements)
+                .add(S3_BUCKET_POLICY_STATEMENT, statements)
                 .build().toString();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            monitor.debug("S3 CrossAccountCopyProvisionPipeline: updating destination bucket policy");
+            monitor.debug("S3CopyProvisionPipeline: updating destination bucket policy");
             var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
                     .bucket(resourceDefinition.getDestinationBucketName())
                     .policy(updatedBucketPolicy)
@@ -196,7 +202,7 @@ public class S3CopyProvisionPipeline {
                     .roleSessionName(resourceIdentifier(resourceDefinition))
                     .build();
             
-            monitor.debug(format("S3 CrossAccountCopyProvisionPipeline: assuming role '%s'", role.arn()));
+            monitor.debug(format("S3CopyProvisionPipeline: assuming role '%s'", role.arn()));
             return stsClient.assumeRole(assumeRoleRequest)
                     .thenApply(response -> new S3ProvisionResponse(role, response.credentials()));
         });
