@@ -38,12 +38,12 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
 
     @Setting(key = "edc.vault.aws.region",
             description = "The AWS Secrets Manager client will point to the specified region")
-    String vaultRegion;
+    private String vaultRegion;
 
     @Setting(key = "edc.vault.aws.endpoint.override",
             description = "If valued, the AWS Secrets Manager client will point to the specified endpoint",
             required = false)
-    String vaultAwsEndpointOverride;
+    private String vaultAwsEndpointOverride;
 
     @Override
     public String name() {
@@ -56,16 +56,12 @@ public class AwsSecretsManagerVaultExtension implements ServiceExtension {
                 .map(URI::create)
                 .orElse(null);
 
-        var smClient = buildSmClient(vaultRegion, vaultEndpointOverride);
-
-        return new AwsSecretsManagerVault(smClient, context.getMonitor(),
-                new AwsSecretsManagerVaultDefaultSanitationStrategy(context.getMonitor()));
-    }
-
-    private SecretsManagerClient buildSmClient(String vaultRegion, URI vaultEndpointOverride) {
         var builder = SecretsManagerClient.builder()
                 .region(Region.of(vaultRegion))
                 .endpointOverride(vaultEndpointOverride);
-        return builder.build();
+        var smClient = builder.build();
+
+        return new AwsSecretsManagerVault(smClient, context.getMonitor(),
+                new AwsSecretsManagerVaultDefaultSanitationStrategy(context.getMonitor()));
     }
 }

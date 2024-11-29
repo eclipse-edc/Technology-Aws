@@ -14,60 +14,70 @@
 
 package org.eclipse.edc.vault.aws;
 
+import org.eclipse.edc.boot.system.injection.ObjectFactory;
+import org.eclipse.edc.junit.extensions.DependencyInjectionExtension;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
+import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.net.URI;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(DependencyInjectionExtension.class)
 class AwsSecretsManagerVaultExtensionTest {
-    private static ServiceExtensionContext context;
-
-    @BeforeAll
-    public static void beforeAll() {
-        context = mock(ServiceExtensionContext.class);
-        when(context.getMonitor()).thenReturn(mock(Monitor.class));
-    }
-
 
     @Test
-    void configOptionRegionNotProvided_shouldThrowException() {
+    void configOptionRegionNotProvided_shouldThrowException(ServiceExtensionContext context) {
+        when(context.getMonitor()).thenReturn(mock(Monitor.class));
         var extension = new AwsSecretsManagerVaultExtension();
 
         Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(context));
     }
 
     @Test
-    void configOptionRegionProvided_shouldNotThrowException() {
-        var extension = new AwsSecretsManagerVaultExtension();
-        extension.vaultRegion = "eu-west-1";
+    void configOptionRegionProvided_shouldNotThrowException(ObjectFactory factory,
+            ServiceExtensionContext context) {
+        var config = ConfigFactory.fromMap(Map.of(
+                "edc.vault.aws.region", "eu-west-1"
+        ));
+        when(context.getConfig()).thenReturn(config);
+        var extension = factory.constructInstance(AwsSecretsManagerVaultExtension.class);
 
         var vault = extension.createVault(context);
 
-        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class)).satisfies(client -> {
-            assertThat(client.serviceClientConfiguration().region()).isEqualTo(Region.of("eu-west-1"));
-        });
+        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class))
+                .satisfies(client -> {
+                    assertThat(client.serviceClientConfiguration().region()).isEqualTo(
+                            Region.of("eu-west-1"));
+                });
     }
 
     @Test
-    void configOptionEndpointOverrideProvided_shouldNotThrowException() {
-        var extension = new AwsSecretsManagerVaultExtension();
-        extension.vaultRegion = "eu-west-1";
-        extension.vaultAwsEndpointOverride = "http://localhost:4566";
+    void configOptionEndpointOverrideProvided_shouldNotThrowException(ObjectFactory factory,
+            ServiceExtensionContext context) {
+        var config = ConfigFactory.fromMap(Map.of(
+                "edc.vault.aws.region", "eu-west-1",
+                "edc.vault.aws.endpoint.override", "http://localhost:4566"
+        ));
+        when(context.getConfig()).thenReturn(config);
+        var extension = factory.constructInstance(AwsSecretsManagerVaultExtension.class);
 
         var vault = extension.createVault(context);
 
-        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class)).satisfies(client -> {
-            assertThat(client.serviceClientConfiguration().endpointOverride()).contains(URI.create("http://localhost:4566"));
-        });
+        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class))
+                .satisfies(client -> {
+                    assertThat(client.serviceClientConfiguration().endpointOverride()).contains(
+                            URI.create("http://localhost:4566"));
+                });
     }
 }
