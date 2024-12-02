@@ -14,37 +14,70 @@
 
 package org.eclipse.edc.vault.aws;
 
+import org.eclipse.edc.boot.system.injection.ObjectFactory;
+import org.eclipse.edc.junit.extensions.DependencyInjectionExtension;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
-import org.eclipse.edc.spi.system.configuration.Config;
+import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
+import java.net.URI;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(DependencyInjectionExtension.class)
 class AwsSecretsManagerVaultExtensionTest {
 
-    private final Monitor monitor = mock(Monitor.class);
-    private final AwsSecretsManagerVaultExtension extension = new AwsSecretsManagerVaultExtension();
-
     @Test
-    void configOptionRegionNotProvided_shouldThrowException() {
-        ServiceExtensionContext invalidContext = mock(ServiceExtensionContext.class);
-        when(invalidContext.getMonitor()).thenReturn(monitor);
+    void configOptionRegionNotProvided_shouldThrowException(ServiceExtensionContext context) {
+        when(context.getMonitor()).thenReturn(mock(Monitor.class));
+        var extension = new AwsSecretsManagerVaultExtension();
 
-        Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(invalidContext));
+        Assertions.assertThrows(NullPointerException.class, () -> extension.createVault(context));
     }
 
     @Test
-    void configOptionRegionProvided_shouldNotThrowException() {
-        ServiceExtensionContext validContext = mock(ServiceExtensionContext.class);
-        Config cfg = mock();
-        when(cfg.getString("edc.vault.aws.region")).thenReturn("eu-west-1");
-        when(validContext.getConfig()).thenReturn(cfg);
-        when(validContext.getMonitor()).thenReturn(monitor);
+    void configOptionRegionProvided_shouldNotThrowException(ObjectFactory factory,
+            ServiceExtensionContext context) {
+        var config = ConfigFactory.fromMap(Map.of(
+                "edc.vault.aws.region", "eu-west-1"
+        ));
+        when(context.getConfig()).thenReturn(config);
+        var extension = factory.constructInstance(AwsSecretsManagerVaultExtension.class);
 
-        extension.createVault(validContext);
+        var vault = extension.createVault(context);
+
+        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class))
+                .satisfies(client -> {
+                    assertThat(client.serviceClientConfiguration().region()).isEqualTo(
+                            Region.of("eu-west-1"));
+                });
     }
 
+    @Test
+    void configOptionEndpointOverrideProvided_shouldNotThrowException(ObjectFactory factory,
+            ServiceExtensionContext context) {
+        var config = ConfigFactory.fromMap(Map.of(
+                "edc.vault.aws.region", "eu-west-1",
+                "edc.vault.aws.endpoint.override", "http://localhost:4566"
+        ));
+        when(context.getConfig()).thenReturn(config);
+        var extension = factory.constructInstance(AwsSecretsManagerVaultExtension.class);
+
+        var vault = extension.createVault(context);
+
+        assertThat(vault).extracting("smClient", type(SecretsManagerClient.class))
+                .satisfies(client -> {
+                    assertThat(client.serviceClientConfiguration().endpointOverride()).contains(
+                            URI.create("http://localhost:4566"));
+                });
+    }
 }
