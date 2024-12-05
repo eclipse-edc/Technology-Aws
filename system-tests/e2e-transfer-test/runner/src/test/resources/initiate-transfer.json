@@ -1,0 +1,19 @@
+{
+  "@context": {
+    "@vocab": "https://w3id.org/edc/v0.0.1/ns/"
+  },
+  "@type": "TransferRequestDto",
+  "counterPartyId": "alice",
+  "counterPartyAddress": "http://control-plane-alice:8282/protocol",
+  "contractId": "{agreement-id}",
+  "protocol": "dataspace-protocol-http",
+  "transferType": "AmazonS3-PUSH",
+  "dataDestination": {
+    "type": "AmazonS3",
+    "endpointOverride": "{endpoint-override}",
+    "region": "eu-central-1",
+    "bucketName": "destination-bucket",
+    "objectName": "transferred.txt",
+    "keyName": "s3-credentials"
+  }
+}

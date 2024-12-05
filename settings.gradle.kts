@@ -50,4 +50,7 @@ include(":extensions:data-plane:data-plane-transfer-service-selection")
 
 include(":spi:common:aws-spi")
 
+include(":system-tests:e2e-transfer-test:runner")
+include(":system-tests:e2e-transfer-test:runtime")
+
 include(":version-catalog")

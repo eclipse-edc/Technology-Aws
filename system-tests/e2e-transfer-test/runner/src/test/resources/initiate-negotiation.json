@@ -1,0 +1,16 @@
+{
+  "@context": {
+    "@vocab": "https://w3id.org/edc/v0.0.1/ns/"
+  },
+  "@type": "ContractRequest",
+  "counterPartyId": "provider",
+  "counterPartyAddress": "http://control-plane-alice:8282/protocol",
+  "protocol": "dataspace-protocol-http",
+  "policy": {
+    "@context": "http://www.w3.org/ns/odrl.jsonld",
+    "@type": "Offer",
+    "@id": "MQ==:MQ==:YWJhZWQ5ZTktYjU4MC00ODkyLWE0ZjUtZmI5NDc5NGUzOTk2",
+    "assigner": "provider",
+    "target": "1"
+  }
+}
