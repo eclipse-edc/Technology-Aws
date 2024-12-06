@@ -4,7 +4,7 @@
   },
   "@type": "TransferRequestDto",
   "counterPartyId": "alice",
-  "counterPartyAddress": "http://control-plane-alice:8282/protocol",
+  "counterPartyAddress": "http://localhost:8282/protocol",
   "contractId": "{agreement-id}",
   "protocol": "dataspace-protocol-http",
   "transferType": "AmazonS3-PUSH",

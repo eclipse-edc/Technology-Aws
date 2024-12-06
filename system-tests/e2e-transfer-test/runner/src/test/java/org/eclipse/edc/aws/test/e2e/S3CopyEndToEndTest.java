@@ -21,6 +21,7 @@ import org.eclipse.edc.junit.testfixtures.TestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -87,12 +88,14 @@ class S3CopyEndToEndTest {
                     LocalStackContainer.Service.IAM,
                     LocalStackContainer.Service.STS);
     
+    @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(new EmbeddedRuntime(
             "provider",
             Map.of("edc.fs.config", new File(TestUtils.findBuildRoot(), TEST_RESOURCES + "config/provider-config.properties").getAbsolutePath()),
             ":system-tests:e2e-transfer-test:runtime"
     ));
     
+    @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(new EmbeddedRuntime(
             "consumer",
             Map.of("edc.fs.config", new File(TestUtils.findBuildRoot(), TEST_RESOURCES + "config/consumer-config.properties").getAbsolutePath()),
@@ -201,7 +204,6 @@ class S3CopyEndToEndTest {
                 .credentialsProvider(localStackCredentials())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .region(Region.of(region))
-                .forcePathStyle(true)
                 .build();
     }
     
@@ -266,10 +268,6 @@ class S3CopyEndToEndTest {
     }
     
     private String awsSecretToken(String accessKeyId, String secretAccessKey) {
-        return "{\n"
-                + "\t\"edctype\":\"dataspaceconnector:secrettoken\",\n"
-                + "\t\"accessKeyId\":\"" + accessKeyId + "\",\n"
-                + "\t\"secretAccessKey\":\"" + secretAccessKey + "\"\n"
-                + "}";
+        return "{\\\"edctype\\\":\\\"dataspaceconnector:secrettoken\\\",\\\"accessKeyId\\\":\\\"" + accessKeyId + "\\\",\\\"secretAccessKey\\\":\\\"" + secretAccessKey + "\\\"}";
     }
 }

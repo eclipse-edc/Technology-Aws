@@ -34,6 +34,9 @@ edc-data-plane-iam = { module = "org.eclipse.edc:data-plane-iam", version.ref = 
 edc-token-core = { module = "org.eclipse.edc:token-core", version.ref = "edc" }
 edc-management-api-test-fixtures = { module = "org.eclipse.edc:management-api-test-fixtures", version.ref = "edc" }
 edc-api-secrets = { module = "org.eclipse.edc:secrets-api", version.ref = "edc" }
+edc-edr-cache-api = { module = "org.eclipse.edc:edr-cache-api", version.ref = "edc" }
+edc-edr-store-core = { module = "org.eclipse.edc:edr-store-core", version.ref = "edc" }
+edc-edr-store-receiver = { module = "org.eclipse.edc:edr-store-receiver", version.ref = "edc" }
 
 # third-party deps
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
