@@ -64,10 +64,10 @@ public class S3CopyDeprovisionPipeline {
     
     public CompletableFuture<DeprovisionedResource> deprovision(S3CopyProvisionedResource provisionedResource) {
         var secretToken = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
-        var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), null, secretToken);
+        var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), provisionedResource.getEndpointOverride(), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
-        var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), null));
+        var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), provisionedResource.getEndpointOverride()));
         var roleName = provisionedResource.getSourceAccountRole().roleName();
         
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()

@@ -42,6 +42,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
@@ -80,13 +81,13 @@ public class S3CopyProvisionPipeline {
     
     public CompletableFuture<S3ProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
         // create IAM & STS client for source account -> configure & assume IAM role
-        var sourceClientRequest = S3ClientRequest.from(resourceDefinition.getSourceDataAddress().getStringProperty(REGION), null, null);
+        var sourceClientRequest = S3ClientRequest.from(resourceDefinition.getSourceDataAddress().getStringProperty(REGION), resourceDefinition.getEndpointOverride(), null);
         var iamClient = clientProvider.iamAsyncClient(sourceClientRequest);
         var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
         
         // create S3 client for destination account -> update bucket policy to allow source account role to write objects
         var destinationSecretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
-        var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), null, destinationSecretToken);
+        var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), resourceDefinition.getEndpointOverride(), destinationSecretToken);
         var s3Client = clientProvider.s3AsyncClient(destinationClientRequest);
         
         monitor.debug("S3CopyProvisionPipeline: getting IAM user");
@@ -243,32 +244,32 @@ public class S3CopyProvisionPipeline {
             this.clientProvider = clientProvider;
             return this;
         }
-    
+        
         public Builder vault(Vault vault) {
             this.vault = vault;
             return this;
         }
-    
+        
         public Builder retryPolicy(RetryPolicy<Object> retryPolicy) {
             this.retryPolicy = retryPolicy;
             return this;
         }
-    
+        
         public Builder typeManager(TypeManager typeManager) {
             this.typeManager = typeManager;
             return this;
         }
-    
+        
         public Builder monitor(Monitor monitor) {
             this.monitor = monitor;
             return this;
         }
-    
+        
         public Builder componentId(String componentId) {
             this.componentId = componentId;
             return this;
         }
-    
+        
         public Builder maxRoleSessionDuration(int maxRoleSessionDuration) {
             this.maxRoleSessionDuration = maxRoleSessionDuration;
             return this;

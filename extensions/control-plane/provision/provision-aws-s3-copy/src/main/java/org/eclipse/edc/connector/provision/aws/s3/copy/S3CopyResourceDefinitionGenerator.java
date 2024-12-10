@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
 public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
@@ -33,6 +34,7 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         
         return S3CopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())
+                .endpointOverride(transferProcess.getDataDestination().getStringProperty(ENDPOINT_OVERRIDE))
                 .destinationRegion(transferProcess.getDataDestination().getStringProperty(REGION))
                 .destinationBucketName(transferProcess.getDataDestination().getStringProperty(BUCKET_NAME))
                 .destinationKeyName(transferProcess.getDataDestination().getKeyName())
@@ -43,8 +45,19 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
     
     @Override
     public boolean canGenerate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
+        var sourceType = transferProcess.getContentDataAddress().getType();
+        var sinkType = transferProcess.getDestinationType();
+        var sourceEndpointOverride = transferProcess.getContentDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
+        var destinationEndpointOverride = transferProcess.getDataDestination().getStringProperty(ENDPOINT_OVERRIDE);
+        
         // only applicable for S3-to-S3 transfer
-        return S3BucketSchema.TYPE.equals(transferProcess.getContentDataAddress().getType()) &&
-                S3BucketSchema.TYPE.equals(transferProcess.getDestinationType());
+        var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
+        
+        // if endpointOverride set, it needs to be the same for both source & destination
+        if (sourceEndpointOverride != null && destinationEndpointOverride != null) {
+            return isSameType && sourceEndpointOverride.equals(destinationEndpointOverride);
+        }
+        
+        return isSameType;
     }
 }

@@ -27,6 +27,7 @@ public class S3CopyProvisionedResource extends ProvisionedContentResource {
     private String destinationBucketName;
     private String destinationKeyName;
     private String bucketPolicyStatementSid;
+    private String endpointOverride;
     
     public Role getSourceAccountRole() {
         return sourceAccountRole;
@@ -46,6 +47,10 @@ public class S3CopyProvisionedResource extends ProvisionedContentResource {
     
     public String getBucketPolicyStatementSid() {
         return bucketPolicyStatementSid;
+    }
+    
+    public String getEndpointOverride() {
+        return endpointOverride;
     }
     
     @JsonPOJOBuilder(withPrefix = "")
@@ -75,7 +80,7 @@ public class S3CopyProvisionedResource extends ProvisionedContentResource {
             provisionedResource.destinationBucketName = bucketName;
             return this;
         }
-    
+        
         public Builder destinationKeyName(String destinationKeyName) {
             provisionedResource.destinationKeyName = destinationKeyName;
             return this;
@@ -83,6 +88,11 @@ public class S3CopyProvisionedResource extends ProvisionedContentResource {
         
         public Builder bucketPolicyStatementSid(String statementSid) {
             provisionedResource.bucketPolicyStatementSid = statementSid;
+            return this;
+        }
+        
+        public Builder endpointOverride(String endpointOverride) {
+            provisionedResource.endpointOverride = endpointOverride;
             return this;
         }
     }

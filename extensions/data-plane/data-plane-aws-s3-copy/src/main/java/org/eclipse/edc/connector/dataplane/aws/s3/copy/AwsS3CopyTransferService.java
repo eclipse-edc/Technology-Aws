@@ -43,6 +43,7 @@ import java.util.stream.Stream;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
@@ -65,8 +66,20 @@ public class AwsS3CopyTransferService implements TransferService {
     
     @Override
     public boolean canHandle(DataFlowStartMessage request) {
-        return S3BucketSchema.TYPE.equals(request.getSourceDataAddress().getType()) &&
-                S3BucketSchema.TYPE.equals(request.getDestinationDataAddress().getType());
+        var sourceType = request.getSourceDataAddress().getType();
+        var sinkType = request.getDestinationDataAddress().getType();
+        var sourceEndpointOverride = request.getSourceDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
+        var destinationEndpointOverride = request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
+        
+        // only applicable for S3-to-S3 transfer
+        var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
+        
+        // if endpointOverride set, it needs to be the same for both source & destination
+        if (sourceEndpointOverride != null && destinationEndpointOverride != null) {
+            return isSameType && sourceEndpointOverride.equals(destinationEndpointOverride);
+        }
+        
+        return isSameType;
     }
     
     @Override
@@ -95,14 +108,14 @@ public class AwsS3CopyTransferService implements TransferService {
         var violation = Violation.violation("No credential found in vault for given key.", "keyName", source.getKeyName());
         return ValidationResult.failure(violation);
     }
-
+    
     @Override
     public CompletableFuture<StreamResult<Object>> transfer(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
         var sourceRegion = source.getStringProperty(REGION);
         var sourceBucketName = source.getStringProperty(BUCKET_NAME);
         var sourceKey = source.getStringProperty(OBJECT_NAME);
-    
+        
         var destination = request.getDestinationDataAddress();
         var destinationBucketName = destination.getStringProperty(BUCKET_NAME);
         var destinationFolder = destination.getStringProperty(FOLDER_NAME);
@@ -112,9 +125,9 @@ public class AwsS3CopyTransferService implements TransferService {
         if (secretToken == null) {
             throw new EdcException("Missing credentials.");
         }
-        var s3ClientRequest = S3ClientRequest.from(sourceRegion, null, secretToken);
+        var s3ClientRequest = S3ClientRequest.from(sourceRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
-    
+        
         var copyRequest = CopyObjectRequest.builder()
                 .sourceBucket(sourceBucketName)
                 .sourceKey(sourceKey)

@@ -98,12 +98,13 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
                 .destinationBucketName(resourceDefinition.getDestinationBucketName())
                 .destinationKeyName(resourceDefinition.getDestinationKeyName())
                 .bucketPolicyStatementSid(resourceDefinition.getBucketPolicyStatementSid())
+                .endpointOverride(resourceDefinition.getEndpointOverride())
                 .build();
         
         var credentials = provisionResponse.credentials();
         var secretToken = new AwsTemporarySecretToken(credentials.accessKeyId(), credentials.secretAccessKey(),
                 credentials.sessionToken(), credentials.expiration().toEpochMilli());
-    
+        
         monitor.debug("S3 CrossAccountCopyProvisioner: completing provisioning");
         return StatusResult.success(ProvisionResponse.Builder.newInstance()
                 .resource(provisionedResource)
