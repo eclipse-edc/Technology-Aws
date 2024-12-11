@@ -110,6 +110,7 @@ public class S3CopyResourceDefinition extends ResourceDefinition {
             super.verify();
             Objects.requireNonNull(resourceDefinition.destinationRegion, "destinationRegion");
             Objects.requireNonNull(resourceDefinition.destinationBucketName, "destinationBucketName");
+            Objects.requireNonNull(resourceDefinition.destinationKeyName, "destinationKeyName");
             Objects.requireNonNull(resourceDefinition.bucketPolicyStatementSid, "bucketPolicyStatementSid");
             Objects.requireNonNull(resourceDefinition.sourceDataAddress, "dataAddress");
         }
