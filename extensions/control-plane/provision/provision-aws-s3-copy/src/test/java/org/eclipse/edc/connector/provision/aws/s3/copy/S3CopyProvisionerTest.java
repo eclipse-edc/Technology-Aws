@@ -21,12 +21,18 @@ import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
 import software.amazon.awssdk.services.iam.model.CreateRoleResponse;
+import software.amazon.awssdk.services.iam.model.DeleteRolePolicyRequest;
+import software.amazon.awssdk.services.iam.model.DeleteRolePolicyResponse;
+import software.amazon.awssdk.services.iam.model.DeleteRoleRequest;
+import software.amazon.awssdk.services.iam.model.DeleteRoleResponse;
 import software.amazon.awssdk.services.iam.model.GetUserResponse;
 import software.amazon.awssdk.services.iam.model.PutRolePolicyRequest;
 import software.amazon.awssdk.services.iam.model.PutRolePolicyResponse;
 import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.iam.model.User;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.DeleteBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketPolicyResponse;
 import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketPolicyResponse;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
@@ -40,6 +46,8 @@ import java.time.Instant;
 import java.util.HashMap;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static java.util.concurrent.CompletableFuture.failedFuture;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
@@ -73,6 +81,7 @@ class S3CopyProvisionerTest {
     private String policyStatementSid = "sid-123";
     private String userArn = "arn:aws:iam::123456789123:user/userName";
     private String roleArn = "arn:aws:iam::123456789123:role/roleName";
+    private String roleName = "roleName";
     private String roleAccessKeyId = "123";
     private String roleSecretAccessKey = "456";
     private String roleSessionToken = "789";
@@ -161,6 +170,107 @@ class S3CopyProvisionerTest {
         verify(stsClient).assumeRole(argThat((AssumeRoleRequest request) -> request.roleArn().equals(roleArn)));
     }
     
+    @Test
+    void provision_onError_shouldReturnFailedFuture() throws JsonProcessingException {
+        var definition = resourceDefinition();
+    
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+    
+        when(iamClient.getUser()).thenReturn(failedFuture(new RuntimeException("error")));
+    
+        var response = provisioner.provision(definition, Policy.Builder.newInstance().build());
+    
+        assertThat(response).failsWithin(1, SECONDS);
+    }
+    
+    @Test
+    void deprovision_shouldDeprovisionResources() throws JsonProcessingException {
+        var resource = provisionedResource();
+    
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+    
+        var getBucketPolicyResponse = getNoneEmptyBucketPolicyResponse();
+        when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
+    
+        var deleteBucketPolicyResponse = DeleteBucketPolicyResponse.builder().build();
+        when(s3Client.deleteBucketPolicy(any(DeleteBucketPolicyRequest.class))).thenReturn(completedFuture(deleteBucketPolicyResponse));
+        
+        var deleteRolePolicyResponse = DeleteRolePolicyResponse.builder().build();
+        when(iamClient.deleteRolePolicy(any(DeleteRolePolicyRequest.class))).thenReturn(completedFuture(deleteRolePolicyResponse));
+        
+        var deleteRoleResponse = DeleteRoleResponse.builder().build();
+        when(iamClient.deleteRole(any(DeleteRoleRequest.class))).thenReturn(completedFuture(deleteRoleResponse));
+        
+        var deprovisionedResource = provisioner.deprovision(resource, Policy.Builder.newInstance().build()).join().getContent();
+        
+        assertThat(deprovisionedResource.getProvisionedResourceId()).isEqualTo(resource.getId());
+    
+        // verify bucket policy fetched for destination bucket
+        verify(s3Client).getBucketPolicy(argThat((GetBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
+        
+        // verify bucket policy deleted for destination bucket
+        verify(s3Client).deleteBucketPolicy(argThat((DeleteBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
+    
+        // verify role policy deleted for provisioned role
+        verify(iamClient).deleteRolePolicy((argThat((DeleteRolePolicyRequest request) -> request.roleName().equals(roleName))));
+        
+        // verify provisioned role deleted
+        verify(iamClient).deleteRole(argThat((DeleteRoleRequest request) -> request.roleName().equals(roleName)));
+    }
+    
+    @Test
+    void deprovision_otherBucketPolicyStatements_shouldOnlyRemoveProvisionedStatement() throws JsonProcessingException {
+        var resource = provisionedResource();
+        
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        
+        var getBucketPolicyResponse = getBucketPolicyResponseWithMultipleStatements();
+        when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
+        
+        var putBucketPolicyResponse = PutBucketPolicyResponse.builder().build();
+        when(s3Client.putBucketPolicy(any(PutBucketPolicyRequest.class))).thenReturn(completedFuture(putBucketPolicyResponse));
+        
+        var deleteRolePolicyResponse = DeleteRolePolicyResponse.builder().build();
+        when(iamClient.deleteRolePolicy(any(DeleteRolePolicyRequest.class))).thenReturn(completedFuture(deleteRolePolicyResponse));
+        
+        var deleteRoleResponse = DeleteRoleResponse.builder().build();
+        when(iamClient.deleteRole(any(DeleteRoleRequest.class))).thenReturn(completedFuture(deleteRoleResponse));
+        
+        var deprovisionedResource = provisioner.deprovision(resource, Policy.Builder.newInstance().build()).join().getContent();
+        
+        assertThat(deprovisionedResource.getProvisionedResourceId()).isEqualTo(resource.getId());
+        
+        // verify bucket policy fetched for destination bucket
+        verify(s3Client).getBucketPolicy(argThat((GetBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
+        
+        // verify bucket policy deleted for destination bucket
+        verify(s3Client).putBucketPolicy(argThat((PutBucketPolicyRequest request) -> request.bucket().equals(destinationBucket) &&
+                request.policy().equals(bucketPolicyWithRemainingStatements())));
+        
+        // verify role policy deleted for provisioned role
+        verify(iamClient).deleteRolePolicy((argThat((DeleteRolePolicyRequest request) -> request.roleName().equals(roleName))));
+        
+        // verify provisioned role deleted
+        verify(iamClient).deleteRole(argThat((DeleteRoleRequest request) -> request.roleName().equals(roleName)));
+    }
+    
+    @Test
+    void deprovision_onError_shouldReturnFailedFuture() throws JsonProcessingException {
+        var resource = provisionedResource();
+        
+        var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+    
+        when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
+        
+        var response = provisioner.deprovision(resource, Policy.Builder.newInstance().build());
+        
+        assertThat(response).failsWithin(1, SECONDS);
+    }
+    
     private void verifyBucketPolicy(String policy) throws JsonProcessingException {
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var policyJson = Json.createObjectBuilder(typeManager.readValue(policy, typeReference)).build();
@@ -195,6 +305,22 @@ class S3CopyProvisionerTest {
                 .build();
     }
     
+    private S3CopyProvisionedResource provisionedResource() {
+        return S3CopyProvisionedResource.Builder.newInstance()
+                .id("test")
+                .transferProcessId("tp-id")
+                .destinationRegion("eu-central-1")
+                .destinationBucketName(destinationBucket)
+                .destinationKeyName("destination-key-name")
+                .bucketPolicyStatementSid(policyStatementSid)
+                .sourceAccountRole(Role.builder()
+                        .roleId("role-id")
+                        .roleName(roleName)
+                        .arn(roleArn)
+                        .build())
+                .build();
+    }
+    
     private GetUserResponse getUserResponse() {
         return GetUserResponse.builder()
                 .user(User.builder()
@@ -207,7 +333,7 @@ class S3CopyProvisionerTest {
         return CreateRoleResponse.builder()
                 .role(Role.builder()
                         .roleId("roleId")
-                        .roleName("roleName")
+                        .roleName(roleName)
                         .arn(roleArn)
                         .build())
                 .build();
@@ -217,6 +343,118 @@ class S3CopyProvisionerTest {
         return GetBucketPolicyResponse.builder()
                 .policy(EMPTY_BUCKET_POLICY)
                 .build();
+    }
+    
+    private GetBucketPolicyResponse getNoneEmptyBucketPolicyResponse() {
+        var noneEmptyPolicy = "{\n" +
+                "    \"Version\": \"2012-10-17\",\n" +
+                "    \"Statement\": [\n" +
+                "        {\n" +
+                "            \"Sid\": \"" + policyStatementSid + "\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Principal\": {\n" +
+                "                \"AWS\": \"someRoleArn\"\n" +
+                "            },\n" +
+                "            \"Action\": [\n" +
+                "                \"s3:ListBucket\",\n" +
+                "                \"s3:PutObject\",\n" +
+                "                \"s3:PutObjectAcl\",\n" +
+                "                \"s3:PutObjectTagging\",\n" +
+                "                \"s3:GetObjectTagging\",\n" +
+                "                \"s3:GetObjectVersion\",\n" +
+                "                \"s3:GetObjectVersionTagging\"\n" +
+                "            ],\n" +
+                "            \"Resource\": [\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "\",\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "/*\"\n" +
+                "            ]\n" +
+                "        }" +
+                "    ]\n" +
+                "}";
+        
+        return GetBucketPolicyResponse.builder()
+                .policy(noneEmptyPolicy)
+                .build();
+    }
+    
+    private GetBucketPolicyResponse getBucketPolicyResponseWithMultipleStatements() {
+        var noneEmptyPolicy = "{\n" +
+                "    \"Version\": \"2012-10-17\",\n" +
+                "    \"Statement\": [\n" +
+                "        {\n" +
+                "            \"Sid\": \"" + policyStatementSid + "\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Principal\": {\n" +
+                "                \"AWS\": \"someRoleArn\"\n" +
+                "            },\n" +
+                "            \"Action\": [\n" +
+                "                \"s3:ListBucket\",\n" +
+                "                \"s3:PutObject\",\n" +
+                "                \"s3:PutObjectAcl\",\n" +
+                "                \"s3:PutObjectTagging\",\n" +
+                "                \"s3:GetObjectTagging\",\n" +
+                "                \"s3:GetObjectVersion\",\n" +
+                "                \"s3:GetObjectVersionTagging\"\n" +
+                "            ],\n" +
+                "            \"Resource\": [\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "\",\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "/*\"\n" +
+                "            ]\n" +
+                "        }," +
+                "        {\n" +
+                "            \"Sid\": \"someOtherSid\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Principal\": {\n" +
+                "                \"AWS\": \"someRoleArn\"\n" +
+                "            },\n" +
+                "            \"Action\": [\n" +
+                "                \"s3:ListBucket\",\n" +
+                "                \"s3:PutObject\",\n" +
+                "                \"s3:PutObjectAcl\",\n" +
+                "                \"s3:PutObjectTagging\",\n" +
+                "                \"s3:GetObjectTagging\",\n" +
+                "                \"s3:GetObjectVersion\",\n" +
+                "                \"s3:GetObjectVersionTagging\"\n" +
+                "            ],\n" +
+                "            \"Resource\": [\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "\",\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "/*\"\n" +
+                "            ]\n" +
+                "        }" +
+                "    ]\n" +
+                "}";
+        
+        return GetBucketPolicyResponse.builder()
+                .policy(noneEmptyPolicy)
+                .build();
+    }
+    
+    private String bucketPolicyWithRemainingStatements() {
+        return "{\n" +
+                "    \"Version\": \"2012-10-17\",\n" +
+                "    \"Statement\": [\n" +
+                "        {\n" +
+                "            \"Sid\": \"someOtherSid\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Principal\": {\n" +
+                "                \"AWS\": \"someRoleArn\"\n" +
+                "            },\n" +
+                "            \"Action\": [\n" +
+                "                \"s3:ListBucket\",\n" +
+                "                \"s3:PutObject\",\n" +
+                "                \"s3:PutObjectAcl\",\n" +
+                "                \"s3:PutObjectTagging\",\n" +
+                "                \"s3:GetObjectTagging\",\n" +
+                "                \"s3:GetObjectVersion\",\n" +
+                "                \"s3:GetObjectVersionTagging\"\n" +
+                "            ],\n" +
+                "            \"Resource\": [\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "\",\n" +
+                "                \"arn:aws:s3:::" + destinationBucket + "/*\"\n" +
+                "            ]\n" +
+                "        }" +
+                "    ]\n" +
+                "}";
     }
     
     private AssumeRoleResponse assumeRoleResponse() {

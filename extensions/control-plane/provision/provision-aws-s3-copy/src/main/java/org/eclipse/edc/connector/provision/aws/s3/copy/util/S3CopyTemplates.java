@@ -81,7 +81,7 @@ public class S3CopyTemplates {
             "    ]\n" +
             "}";
     
-    public static final String BUCKET_POLICY_STATEMENT_TEMPLATE = " {\n" +
+    public static final String BUCKET_POLICY_STATEMENT_TEMPLATE = "{\n" +
             "            \"Sid\": \"" + PLACEHOLDER_STATEMENT_SID + "\",\n" +
             "            \"Effect\": \"Allow\",\n" +
             "            \"Principal\": {\n" +
