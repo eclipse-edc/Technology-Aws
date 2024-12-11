@@ -14,6 +14,7 @@
 
 package org.eclipse.edc.aws.test.e2e;
 
+import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
@@ -37,14 +38,17 @@ import software.amazon.awssdk.services.iam.model.CreatePolicyRequest;
 import software.amazon.awssdk.services.iam.model.CreateUserRequest;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createAsset;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createConsumerSecret;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createContractDefinition;
@@ -53,11 +57,15 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createProviderSecr
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.getAgreementId;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateNegotiation;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateTransfer;
-import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForCompletion;
-import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForFinalization;
+import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForNegotiationState;
+import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForProviderTransferState;
+import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForTransferState;
+import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
+import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
+import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.DEPROVISIONED;
 
 @Testcontainers
-//@EndToEndTest
+@EndToEndTest
 class S3CopyEndToEndTest {
     
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:3.5.0");
@@ -173,16 +181,25 @@ class S3CopyEndToEndTest {
         createContractDefinition();
         
         var negotiationId = initiateNegotiation();
-        waitForFinalization(negotiationId);
+        waitForNegotiationState(negotiationId, FINALIZED);
         var agreementId = getAgreementId(negotiationId);
         
         var transferId = initiateTransfer(agreementId, LOCALSTACK_CONTAINER.getEndpoint().toString());
-        waitForCompletion(transferId);
+        waitForTransferState(transferId, COMPLETED);
         
         var destinationFileContent = readS3DestinationObject();
         assertThat(destinationFileContent).isEqualTo(fileContent);
         
-        //TODO verify clean-up through deprovisioning
+        waitForProviderTransferState(transferId, DEPROVISIONED);
+        
+        var s3Client = getS3Client();
+        assertThatThrownBy(() -> s3Client.getBucketPolicy(GetBucketPolicyRequest.builder()
+                .bucket(destinationBucket)
+                .build()))
+                .isInstanceOfSatisfying(S3Exception.class, ex -> assertThat(ex.awsErrorDetails().errorCode().equals("NoSuchBucketPolicy")));
+        
+        var iamClient = getIamClient();
+        assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName().startsWith("edc")));
     }
     
     private String readS3DestinationObject() {

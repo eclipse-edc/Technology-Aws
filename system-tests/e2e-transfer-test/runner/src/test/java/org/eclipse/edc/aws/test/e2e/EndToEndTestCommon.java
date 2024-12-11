@@ -2,6 +2,8 @@ package org.eclipse.edc.aws.test.e2e;
 
 import io.restassured.http.ContentType;
 import org.apache.http.HttpStatus;
+import org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates;
 import org.eclipse.edc.junit.testfixtures.TestUtils;
 
 import java.io.File;
@@ -10,12 +12,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
-import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
-import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
 
@@ -61,11 +60,11 @@ public class EndToEndTestCommon {
         return post(CONSUMER_MANAGEMENT_API + "/contractnegotiations", readFile(TEST_RESOURCES + "initiate-negotiation.json"), "@id");
     }
     
-    public static void waitForFinalization(String negotiationId) {
+    public static void waitForNegotiationState(String negotiationId, ContractNegotiationStates state) {
         Callable<String> getNegotiationState = () -> get(CONSUMER_MANAGEMENT_API + "/contractnegotiations/" + negotiationId, "state");
         
         await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofSeconds(1))
-                .until(getNegotiationState, FINALIZED.name()::equals);
+                .until(getNegotiationState, state.name()::equals);
     }
     
     public static String getAgreementId(String negotiationId) {
@@ -79,11 +78,30 @@ public class EndToEndTestCommon {
         return post(CONSUMER_MANAGEMENT_API + "/transferprocesses", requestBody, "@id");
     }
     
-    public static void waitForCompletion(String transferProcessId) {
+    public static void waitForTransferState(String transferProcessId, TransferProcessStates state) {
         Callable<String> getTransferState = () -> get(CONSUMER_MANAGEMENT_API + "/transferprocesses/" + transferProcessId, "state");
+        
+        await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofSeconds(1))
+                .until(getTransferState, state.name()::equals);
+    }
     
-        await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofSeconds(5))
-                .until(getTransferState, COMPLETED.name()::equals);
+    public static void waitForProviderTransferState(String correlationId, TransferProcessStates state) {
+        var querySpec = "{\n"
+                + "     \"@context\": { \"@vocab\": \"https://w3id.org/edc/v0.0.1/ns/\" },\n"
+                + "     \"@type\": \"QuerySpec\",\n"
+                + "     \"filterExpression\": [\n"
+                + "         {\n"
+                + "             \"operandLeft\": \"correlationId\",\n"
+                + "             \"operator\": \"=\",\n"
+                + "             \"operandRight\": \"" + correlationId + "\"\n"
+                + "         }\n"
+                + "     ]\n"
+                + "}";
+        var providerTransferId = post(PROVIDER_MANAGEMENT_API + "/transferprocesses/request", querySpec, "[0].@id");
+        
+        Callable<String> getTransferState = () -> get(PROVIDER_MANAGEMENT_API + "/transferprocesses/" + providerTransferId, "state");
+        await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofSeconds(1))
+                .until(getTransferState, state.name()::equals);
     }
     
     public static String get(String url, String jsonPath) {
