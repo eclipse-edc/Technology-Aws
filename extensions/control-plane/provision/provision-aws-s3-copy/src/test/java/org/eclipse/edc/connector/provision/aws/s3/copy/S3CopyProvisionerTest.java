@@ -93,7 +93,7 @@ class S3CopyProvisionerTest {
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         
         provisioner = new S3CopyProvisioner(clientProvider, vault, RetryPolicy.ofDefaults(),
-               typeManager, mock(Monitor.class), "componentId", 2, 3600);
+                typeManager, mock(Monitor.class), "componentId", 2, 3600);
     }
     
     @Test
@@ -164,7 +164,7 @@ class S3CopyProvisionerTest {
         verify(s3Client).putBucketPolicy(putBucketPolicyRequestCaptor.capture());
         var putBucketPolicyRequest = putBucketPolicyRequestCaptor.getValue();
         assertThat(putBucketPolicyRequest.bucket()).isEqualTo(destinationBucket);
-        verifyBucketPolicy(putBucketPolicyRequest.policy());
+        verifyBucketPolicy(putBucketPolicyRequest.policy(), policyStatementSid, roleArn);
         
         // verify correct role assumed
         verify(stsClient).assumeRole(argThat((AssumeRoleRequest request) -> request.roleArn().equals(roleArn)));
@@ -173,27 +173,27 @@ class S3CopyProvisionerTest {
     @Test
     void provision_onError_shouldReturnFailedFuture() throws JsonProcessingException {
         var definition = resourceDefinition();
-    
+        
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
         when(vault.resolveSecret(definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
-    
+        
         when(iamClient.getUser()).thenReturn(failedFuture(new RuntimeException("error")));
-    
+        
         var response = provisioner.provision(definition, Policy.Builder.newInstance().build());
-    
+        
         assertThat(response).failsWithin(1, SECONDS);
     }
     
     @Test
     void deprovision_shouldDeprovisionResources() throws JsonProcessingException {
         var resource = provisionedResource();
-    
+        
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
         when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
-    
+        
         var getBucketPolicyResponse = getNoneEmptyBucketPolicyResponse();
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
-    
+        
         var deleteBucketPolicyResponse = DeleteBucketPolicyResponse.builder().build();
         when(s3Client.deleteBucketPolicy(any(DeleteBucketPolicyRequest.class))).thenReturn(completedFuture(deleteBucketPolicyResponse));
         
@@ -206,13 +206,13 @@ class S3CopyProvisionerTest {
         var deprovisionedResource = provisioner.deprovision(resource, Policy.Builder.newInstance().build()).join().getContent();
         
         assertThat(deprovisionedResource.getProvisionedResourceId()).isEqualTo(resource.getId());
-    
+        
         // verify bucket policy fetched for destination bucket
         verify(s3Client).getBucketPolicy(argThat((GetBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
         
         // verify bucket policy deleted for destination bucket
         verify(s3Client).deleteBucketPolicy(argThat((DeleteBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
-    
+        
         // verify role policy deleted for provisioned role
         verify(iamClient).deleteRolePolicy((argThat((DeleteRolePolicyRequest request) -> request.roleName().equals(roleName))));
         
@@ -246,9 +246,12 @@ class S3CopyProvisionerTest {
         // verify bucket policy fetched for destination bucket
         verify(s3Client).getBucketPolicy(argThat((GetBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
         
-        // verify bucket policy deleted for destination bucket
-        verify(s3Client).putBucketPolicy(argThat((PutBucketPolicyRequest request) -> request.bucket().equals(destinationBucket) &&
-                request.policy().equals(bucketPolicyWithRemainingStatements())));
+        // verify only provisioned statement deleted from bucket policy
+        var putBucketPolicyRequestCaptor = ArgumentCaptor.forClass(PutBucketPolicyRequest.class);
+        verify(s3Client).putBucketPolicy(putBucketPolicyRequestCaptor.capture());
+        var putBucketPolicyRequest = putBucketPolicyRequestCaptor.getValue();
+        assertThat(putBucketPolicyRequest.bucket()).isEqualTo(destinationBucket);
+        verifyBucketPolicy(putBucketPolicyRequest.policy(), "someOtherSid", "someRoleArn");
         
         // verify role policy deleted for provisioned role
         verify(iamClient).deleteRolePolicy((argThat((DeleteRolePolicyRequest request) -> request.roleName().equals(roleName))));
@@ -263,7 +266,7 @@ class S3CopyProvisionerTest {
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
         when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
-    
+        
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
         
         var response = provisioner.deprovision(resource, Policy.Builder.newInstance().build());
@@ -271,7 +274,7 @@ class S3CopyProvisionerTest {
         assertThat(response).failsWithin(1, SECONDS);
     }
     
-    private void verifyBucketPolicy(String policy) throws JsonProcessingException {
+    private void verifyBucketPolicy(String policy, String statementSid, String roleArn) throws JsonProcessingException {
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var policyJson = Json.createObjectBuilder(typeManager.readValue(policy, typeReference)).build();
         var statements = policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT);
@@ -279,7 +282,7 @@ class S3CopyProvisionerTest {
         assertThat(statements).hasSize(1);
         
         var expectedStatementJson = BUCKET_POLICY_STATEMENT_TEMPLATE
-                .replace(PLACEHOLDER_STATEMENT_SID, policyStatementSid)
+                .replace(PLACEHOLDER_STATEMENT_SID, statementSid)
                 .replace(PLACEHOLDER_ROLE_ARN, roleArn)
                 .replace(PLACEHOLDER_DESTINATION_BUCKET, destinationBucket);
         var expectedStatement = typeManager.getMapper().readTree(expectedStatementJson);
@@ -287,7 +290,7 @@ class S3CopyProvisionerTest {
         
         assertThat(statement).isEqualTo(expectedStatement);
     }
-
+    
     private S3CopyResourceDefinition resourceDefinition() {
         return S3CopyResourceDefinition.Builder.newInstance()
                 .id("test")
@@ -308,7 +311,9 @@ class S3CopyProvisionerTest {
     private S3CopyProvisionedResource provisionedResource() {
         return S3CopyProvisionedResource.Builder.newInstance()
                 .id("test")
+                .resourceDefinitionId("test")
                 .transferProcessId("tp-id")
+                .resourceName("test")
                 .destinationRegion("eu-central-1")
                 .destinationBucketName(destinationBucket)
                 .destinationKeyName("destination-key-name")
@@ -427,34 +432,6 @@ class S3CopyProvisionerTest {
         return GetBucketPolicyResponse.builder()
                 .policy(noneEmptyPolicy)
                 .build();
-    }
-    
-    private String bucketPolicyWithRemainingStatements() {
-        return "{\n" +
-                "    \"Version\": \"2012-10-17\",\n" +
-                "    \"Statement\": [\n" +
-                "        {\n" +
-                "            \"Sid\": \"someOtherSid\",\n" +
-                "            \"Effect\": \"Allow\",\n" +
-                "            \"Principal\": {\n" +
-                "                \"AWS\": \"someRoleArn\"\n" +
-                "            },\n" +
-                "            \"Action\": [\n" +
-                "                \"s3:ListBucket\",\n" +
-                "                \"s3:PutObject\",\n" +
-                "                \"s3:PutObjectAcl\",\n" +
-                "                \"s3:PutObjectTagging\",\n" +
-                "                \"s3:GetObjectTagging\",\n" +
-                "                \"s3:GetObjectVersion\",\n" +
-                "                \"s3:GetObjectVersionTagging\"\n" +
-                "            ],\n" +
-                "            \"Resource\": [\n" +
-                "                \"arn:aws:s3:::" + destinationBucket + "\",\n" +
-                "                \"arn:aws:s3:::" + destinationBucket + "/*\"\n" +
-                "            ]\n" +
-                "        }" +
-                "    ]\n" +
-                "}";
     }
     
     private AssumeRoleResponse assumeRoleResponse() {
