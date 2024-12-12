@@ -102,7 +102,7 @@ class S3CopyResourceDefinitionGeneratorTest {
         assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
-        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer-");
+        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
         assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
     }
     
@@ -127,7 +127,7 @@ class S3CopyResourceDefinitionGeneratorTest {
         assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isNull();
-        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer-");
+        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
         assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
     }
     
