@@ -68,7 +68,7 @@ public class S3CopyDeprovisionPipeline {
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
         var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), provisionedResource.getEndpointOverride()));
-        var roleName = provisionedResource.getSourceAccountRole().roleName();
+        var roleName = provisionedResource.getSourceAccountRoleName();
         
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()
                 .bucket(provisionedResource.getDestinationBucketName())

@@ -15,22 +15,24 @@
 package org.eclipse.edc.connector.provision.aws.s3.copy;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedContentResource;
 import software.amazon.awssdk.services.iam.model.Role;
 
+@JsonDeserialize(builder = S3CopyProvisionedResource.Builder.class)
 public class S3CopyProvisionedResource extends ProvisionedContentResource {
     
-    private Role sourceAccountRole;
+    private String sourceAccountRoleName;
     private String destinationRegion;
     private String destinationBucketName;
     private String destinationKeyName;
     private String bucketPolicyStatementSid;
     private String endpointOverride;
     
-    public Role getSourceAccountRole() {
-        return sourceAccountRole;
+    public String getSourceAccountRoleName() {
+        return sourceAccountRoleName;
     }
     
     public String getDestinationRegion() {
@@ -66,8 +68,8 @@ public class S3CopyProvisionedResource extends ProvisionedContentResource {
             return new Builder();
         }
         
-        public Builder sourceAccountRole(Role role) {
-            provisionedResource.sourceAccountRole = role;
+        public Builder sourceAccountRoleName(String roleName) {
+            provisionedResource.sourceAccountRoleName = roleName;
             return this;
         }
         

@@ -14,12 +14,14 @@
 
 package org.eclipse.edc.connector.provision.aws.s3.copy;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 
 import java.util.Objects;
 
+@JsonDeserialize(builder = S3CopyResourceDefinition.Builder.class)
 public class S3CopyResourceDefinition extends ResourceDefinition {
     
     private String endpointOverride;

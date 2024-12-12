@@ -129,7 +129,7 @@ class S3CopyProvisionerTest {
             assertThat(resource.getDestinationBucketName()).isEqualTo(definition.getDestinationBucketName());
             assertThat(resource.getDestinationKeyName()).isEqualTo(definition.getDestinationKeyName());
             assertThat(resource.getBucketPolicyStatementSid()).isEqualTo(definition.getBucketPolicyStatementSid());
-            assertThat(resource.getSourceAccountRole()).isEqualTo(createRoleResponse().role());
+            assertThat(resource.getSourceAccountRoleName()).isEqualTo(createRoleResponse().role().roleName());
         });
         
         // verify correct credentials returned
@@ -318,11 +318,7 @@ class S3CopyProvisionerTest {
                 .destinationBucketName(destinationBucket)
                 .destinationKeyName("destination-key-name")
                 .bucketPolicyStatementSid(policyStatementSid)
-                .sourceAccountRole(Role.builder()
-                        .roleId("role-id")
-                        .roleName(roleName)
-                        .arn(roleArn)
-                        .build())
+                .sourceAccountRoleName(roleName)
                 .build();
     }
     

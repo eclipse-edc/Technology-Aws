@@ -93,7 +93,7 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
                 .resourceDefinitionId(resourceDefinition.getId())
                 .transferProcessId(resourceDefinition.getTransferProcessId())
                 .dataAddress(resourceDefinition.getSourceDataAddress())
-                .sourceAccountRole(provisionResponse.role())
+                .sourceAccountRoleName(provisionResponse.role().roleName())
                 .destinationRegion(resourceDefinition.getDestinationRegion())
                 .destinationBucketName(resourceDefinition.getDestinationBucketName())
                 .destinationKeyName(resourceDefinition.getDestinationKeyName())
