@@ -61,7 +61,7 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     
     @Override
     public void initialize(ServiceExtensionContext context) {
-        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, monitor, vault, typeManager, validator);
+        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validator, monitor);
         registry.registerTransferService(s3CopyTransferService);
     }
 }

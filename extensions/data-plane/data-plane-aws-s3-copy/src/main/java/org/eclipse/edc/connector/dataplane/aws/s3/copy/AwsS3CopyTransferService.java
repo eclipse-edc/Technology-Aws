@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
@@ -51,12 +52,12 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 public class AwsS3CopyTransferService implements TransferService {
     
     private final AwsClientProvider clientProvider;
-    private final Monitor monitor;
     private final Vault vault;
     private final TypeManager typeManager;
     private final DataAddressValidatorRegistry validator;
+    private final Monitor monitor;
     
-    public AwsS3CopyTransferService(AwsClientProvider clientProvider, Monitor monitor, Vault vault, TypeManager typeManager, DataAddressValidatorRegistry validator) {
+    public AwsS3CopyTransferService(AwsClientProvider clientProvider, Vault vault, TypeManager typeManager, DataAddressValidatorRegistry validator, Monitor monitor) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.vault = vault;
@@ -105,7 +106,7 @@ public class AwsS3CopyTransferService implements TransferService {
             return ValidationResult.success();
         }
         
-        var violation = Violation.violation("No credential found in vault for given key.", "keyName", source.getKeyName());
+        var violation = Violation.violation("No or invalid credential found in vault for given key.", "keyName", source.getKeyName());
         return ValidationResult.failure(violation);
     }
     
@@ -119,11 +120,12 @@ public class AwsS3CopyTransferService implements TransferService {
         var destination = request.getDestinationDataAddress();
         var destinationBucketName = destination.getStringProperty(BUCKET_NAME);
         var destinationFolder = destination.getStringProperty(FOLDER_NAME);
-        var destinationKey = destination.getStringProperty(OBJECT_NAME);
+        var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
+                destination.getStringProperty(OBJECT_NAME) : sourceKey;
         
         var secretToken = getCredentials(source);
         if (secretToken == null) {
-            throw new EdcException("Missing credentials.");
+            return completedFuture(StreamResult.error("Missing or invalid credentials."));
         }
         var s3ClientRequest = S3ClientRequest.from(sourceRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
@@ -166,11 +168,16 @@ public class AwsS3CopyTransferService implements TransferService {
     }
     
     private SecretToken getCredentials(DataAddress source) {
-        return ofNullable(source.getKeyName())
-                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                .map(vault::resolveSecret)
-                .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                .map(secret -> typeManager.readValue(secret, AwsTemporarySecretToken.class))
-                .orElse(null);
+        try {
+            return ofNullable(source.getKeyName())
+                    .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
+                    .map(vault::resolveSecret)
+                    .filter(secret -> !StringUtils.isNullOrBlank(secret))
+                    .map(secret -> typeManager.readValue(secret, AwsTemporarySecretToken.class))
+                    .orElse(null);
+        } catch (EdcException e) {
+            // failed to deserialize secret
+            return null;
+        }
     }
 }
