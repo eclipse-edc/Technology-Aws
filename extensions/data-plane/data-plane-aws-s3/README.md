@@ -6,9 +6,9 @@ This module contains a Data Plane extension to copy data to and from Aws S3.
 
 When as a source, it supports copying a single or multiple objects.
 
-### DataAddress Schema
+## DataAddress Schema
 
-#### Properties
+### Properties
 
 | Key                | Description                                                            | Applies at              | Mandatory                                             |
 |:-------------------|:-----------------------------------------------------------------------|-------------------------|-------------------------------------------------------|
@@ -23,7 +23,7 @@ When as a source, it supports copying a single or multiple objects.
 | `accessKeyId`      | Defines the access key id to access S3 Bucket/Object                   | `source`, `destination` | `false`                                               |
 | `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object            | `source`, `destination` | `false`                                               |
 
-#### S3DataSource Properties and behavior
+### S3DataSource Properties and behavior
 
 The behavior of object transfers can be customized using `DataAddress` properties.
 
@@ -34,7 +34,7 @@ The behavior of object transfers can be customized using `DataAddress` propertie
 
 > Note: Using `objectPrefix` introduces an additional step to list all objects whose keys match the specified prefix.
 
-#### S3DataSink Properties and behavior
+### S3DataSink Properties and behavior
 
 The destination's object naming can be tailored further through the utilization of `DataAddress` properties.
 
@@ -44,7 +44,7 @@ The destination's object naming can be tailored further through the utilization 
 - The `folderName` property can consistently group objects in the destination, whether there is a single object or
   multiple objects.
 
-#### Secret Resolution
+### Secret Resolution
 
 The `keyName` property should point to a `vault` entry that contains a JSON-serialized `SecretToken` object. The
 possible values are:
@@ -88,7 +88,7 @@ Example:
 }
 ```
 
-#### Plain text credentials
+### Plain text credentials
 
 This feature has been introduced to provide flexibility by not mandating the use of a `vault`. However, it is important
 to note that this functionality is not recommended for production environments.
@@ -108,6 +108,8 @@ Example:
   }
 }
 ```
+
+### Data Address Examples
 
 #### Source - Data Address Example
 
@@ -164,6 +166,63 @@ Example:
   }
 }
 ```
+
+## Required AWS permissions
+
+The secrets described above should contain credentials for a user/role with the following permissions.
+
+### Source
+
+In order to be able to use an S3 bucket as the source of a transfer, the user/role needs the following permissions:
+- `s3:ListBucket` on the bucket (only applies if `objectPrefix` is used)
+- `s3:GetObject` on the object(s) in the bucket
+
+Example:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "my-statement",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::<bucket-name>",
+                "arn:aws:s3:::<bucket-name>/*"
+            ]
+        }
+    ]
+}
+```
+
+### Destination
+
+In order to be able to use an S3 bucket as the destination of a transfer, the user/role needs the following permissions:
+- `s3:putObject` on the object(s) in the bucket
+
+Example:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "my-statement",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::<bucket-name>/*"
+            ]
+        }
+    ]
+}
+```
+
+## Configuration
 
 ### AmazonS3 Chunk size Configuration
 
