@@ -12,7 +12,7 @@ testcontainers = "1.20.4"
 
 [libraries]
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
-assertj = { module = "org.assertj:assertj-core", version = "3.26.0" }
+assertj = { module = "org.assertj:assertj-core", version = "3.27.0" }
 edc-core-dataplane = { module = "org.eclipse.edc:data-plane-core", version.ref = "edc" }
 edc-core-dataPlane-util = { module = "org.eclipse.edc:data-plane-util", version.ref = "edc" }
 edc-spi-controlplane = { module = "org.eclipse.edc:control-plane-spi", version.ref = "edc" }
