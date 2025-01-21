@@ -20,6 +20,10 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstan
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
 
+/**
+ * Provides templates for the AWS IAM & S3 bucket policies which are required during the
+ * provisioning for S3-to-S3 copy transfers.
+ */
 public class S3CopyTemplates {
 
     private S3CopyTemplates() { }

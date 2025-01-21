@@ -28,14 +28,35 @@ import java.io.IOException;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
+/**
+ * Provides methods which are required in multiple places during the (de)provisioning for
+ * S3-to-S3 copy transfers.
+ */
 public class S3CopyUtils {
     
     private S3CopyUtils() {}
     
+    /**
+     * Creates the name that will be used for provisioned resources like AWS roles, policies and
+     * session names to provide consistent naming of AWS resources that belong to the same EDC
+     * transfer process.
+     *
+     * @param resourceDefinition resource definition
+     * @return the name for created resources
+     */
     public static String resourceIdentifier(S3CopyResourceDefinition resourceDefinition) {
         return format("edc-transfer_%s", resourceDefinition.getTransferProcessId());
     }
     
+    /**
+     * Reads a secret from the vault and deserializes it to an {@link AwsSecretToken} or
+     * {@link AwsTemporarySecretToken} depending on its content.
+     *
+     * @param secretKeyName name of the secret
+     * @param vault vault from which to read the secret
+     * @param typeManager type manager required for deserialization
+     * @return the deserialized secret token
+     */
     public static SecretToken getSecretTokenFromVault(String secretKeyName, Vault vault, TypeManager typeManager) {
         return ofNullable(secretKeyName)
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
