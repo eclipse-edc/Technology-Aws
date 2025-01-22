@@ -49,26 +49,34 @@ As mentioned above, this extension should be used together with the `data-plane-
 
 ### Prerequisites
 
-The only prerequisites for using this extension are existing source and destination buckets as well as AWS users/roles
+Prerequisites for using this extension are existing source and destination buckets as well as AWS users/roles
 in the source and destination accounts with the respective [necessary permissions](#required-aws-permissions).
 
-### Recommended usage
-
-The following combination of modules is recommended to use the S3 copy feature:
-
-```kotlin
-implementation("org.eclipse.edc:provision:provision-aws-s3-copy:<version>")
-implementation("org.eclipse.edc:provision:data-plane-aws-s3:<version>")
-implementation("org.eclipse.edc:provision:data-plane-aws-s3-copy:<version>")
-implementation("org.eclipse.edc:provision:data-plane-transfer-service-selection:<version>")
-```
-
-In addition, the `accessKeyId` and `secretAccessKey` of the AWS user need to be present in the vault.
+For the provider, the `accessKeyId` and `secretAccessKey` of the AWS user need to be present in the vault.
 The keys under which they are stored in the vault need to be set in the configuration using the following properties:
 
 ```properties
 edc.aws.access.key=<vault-key-of-access-key-id>
 edc.aws.secret.access.key=<vault-key-of-secret-access-key>
+```
+
+For the consumer, a `SecretToken` has to be added to the vault as described in the
+[data-plane-aws-s3 README](../../../data-plane/data-plane-aws-s3/README.md#secret-resolution).
+
+### Recommended usage
+
+The following combination of modules is recommended to use the S3 copy feature:
+
+Control plane:
+```kotlin
+implementation("org.eclipse.edc:provision:provision-aws-s3-copy:<version>")
+```
+
+Data plane:
+```kotlin
+implementation("org.eclipse.edc:provision:data-plane-aws-s3:<version>")
+implementation("org.eclipse.edc:provision:data-plane-aws-s3-copy:<version>")
+implementation("org.eclipse.edc:provision:data-plane-transfer-service-selection:<version>")
 ```
 
 ## Required AWS permissions
@@ -135,6 +143,9 @@ In the following, the required AWS permissions for the users used on provider an
 - s3:GetBucketPolicy (on destination bucket)
 - s3:PutBucketPolicy (on destination bucket)
 - s3:DeleteBucketPolicy (on destination bucket)
+
+As `deleteBucketPolicy` will only be called during deprovisioning if there are no statements left other than the one added during provisioning, the permission `s3:DeleteBucketPolicy` is not needed as long as there is always an initial statement in the bucket policy.
+The permission is only required if before initiating a transfer, the destination bucket has an **empty** bucket policy.
 
 #### Example
 
