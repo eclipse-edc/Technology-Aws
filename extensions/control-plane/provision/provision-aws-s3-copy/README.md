@@ -79,10 +79,10 @@ In the following, the required AWS permissions for the users used on provider an
 - iam:GetUser (on own user)
 - iam:CreateRole (on roles where the name starts with `edc-transfer_`)
 - iam:TagRole (on roles where the name starts with `edc-transfer_`)
-- iam:AssumeRole (on roles with tag)
-- iam:PutRolePolicy (on roles with tag)
-- iam:DeleteRolePolicy (on roles with tag)
-- iam:DeleteRole (on roles with tag)
+- iam:AssumeRole (on roles where the name starts with `edc-transfer_` or roles with tag)
+- iam:PutRolePolicy (on roles where the name starts with `edc-transfer_` or roles with tag)
+- iam:DeleteRolePolicy (on roles where the name starts with `edc-transfer_` or roles with tag)
+- iam:DeleteRole (on roles where the name starts with `edc-transfer_` or roles with tag)
 
 #### Example IAM policy
 
