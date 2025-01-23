@@ -43,10 +43,13 @@ import java.util.concurrent.CompletableFuture;
 import static java.lang.String.format;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
@@ -125,7 +128,9 @@ public class S3CopyProvisionPipeline {
                                                                   CreateRoleResponse createRoleResponse) {
         var rolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
                 .replace(PLACEHOLDER_SOURCE_BUCKET, resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME))
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName());
+                .replace(PLACEHOLDER_SOURCE_OBJECT, resourceDefinition.getSourceDataAddress().getStringProperty(OBJECT_NAME))
+                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName())
+                .replace(PLACEHOLDER_DESTINATION_OBJECT, resourceDefinition.getDestinationObjectName());
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             var role = createRoleResponse.role();

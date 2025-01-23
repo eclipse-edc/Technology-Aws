@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
 public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
@@ -37,6 +38,7 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
                 .endpointOverride(transferProcess.getDataDestination().getStringProperty(ENDPOINT_OVERRIDE))
                 .destinationRegion(transferProcess.getDataDestination().getStringProperty(REGION))
                 .destinationBucketName(transferProcess.getDataDestination().getStringProperty(BUCKET_NAME))
+                .destinationObjectName(transferProcess.getDataDestination().getStringProperty(OBJECT_NAME))
                 .destinationKeyName(transferProcess.getDataDestination().getKeyName())
                 .bucketPolicyStatementSid(bucketPolicyStatementSid)
                 .sourceDataAddress(transferProcess.getContentDataAddress())

@@ -24,7 +24,9 @@ public class S3CopyConstants {
     
     public static final String PLACEHOLDER_USER_ARN  = "{{user-arn}}";
     public static final String PLACEHOLDER_SOURCE_BUCKET  = "{{source-bucket}}";
+    public static final String PLACEHOLDER_SOURCE_OBJECT = "{{source-key}}";
     public static final String PLACEHOLDER_DESTINATION_BUCKET  = "{{destination-bucket}}";
+    public static final String PLACEHOLDER_DESTINATION_OBJECT = "{{destination-key}}";
     public static final String PLACEHOLDER_STATEMENT_SID  = "{{sid}}";
     public static final String PLACEHOLDER_ROLE_ARN  = "{{role-arn}}";
     

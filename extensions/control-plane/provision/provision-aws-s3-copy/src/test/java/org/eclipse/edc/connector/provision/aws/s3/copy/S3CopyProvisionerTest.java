@@ -50,8 +50,10 @@ import static java.util.concurrent.CompletableFuture.failedFuture;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
@@ -77,7 +79,9 @@ class S3CopyProvisionerTest {
     private Vault vault = mock(Vault.class);
     
     private String sourceBucket = "source-bucket";
+    private String sourceObject = "source-object";
     private String destinationBucket = "destination-bucket";
+    private String destinationObject = "destination-object";
     private String policyStatementSid = "sid-123";
     private String userArn = "arn:aws:iam::123456789123:user/userName";
     private String roleArn = "arn:aws:iam::123456789123:role/roleName";
@@ -153,7 +157,9 @@ class S3CopyProvisionerTest {
         var putRolePolicyRequest = putRolePolicyRequestCaptor.getValue();
         var expectedRolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
                 .replace(PLACEHOLDER_SOURCE_BUCKET, sourceBucket)
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, destinationBucket);
+                .replace(PLACEHOLDER_SOURCE_OBJECT, sourceObject)
+                .replace(PLACEHOLDER_DESTINATION_BUCKET, destinationBucket)
+                .replace(PLACEHOLDER_DESTINATION_OBJECT, destinationObject);
         assertThat(putRolePolicyRequest.policyDocument()).isEqualTo(expectedRolePolicy);
         
         // verify bucket policy fetched for destination bucket
@@ -297,13 +303,14 @@ class S3CopyProvisionerTest {
                 .transferProcessId("tp-id")
                 .destinationRegion("eu-central-1")
                 .destinationBucketName(destinationBucket)
+                .destinationObjectName(destinationObject)
                 .destinationKeyName("destination-key-name")
                 .bucketPolicyStatementSid(policyStatementSid)
                 .sourceDataAddress(DataAddress.Builder.newInstance()
                         .type(S3BucketSchema.TYPE)
                         .property(S3BucketSchema.REGION, "eu-central-1")
                         .property(S3BucketSchema.BUCKET_NAME, sourceBucket)
-                        .property(S3BucketSchema.OBJECT_NAME, "source-object")
+                        .property(S3BucketSchema.OBJECT_NAME, sourceObject)
                         .build())
                 .build();
     }

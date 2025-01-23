@@ -15,8 +15,10 @@
 package org.eclipse.edc.connector.provision.aws.s3.copy.util;
 
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_OBJECT;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
 
@@ -56,7 +58,7 @@ public class S3CopyTemplates {
             "            ],\n" +
             "            \"Resource\": [\n" +
             "                \"arn:aws:s3:::" + PLACEHOLDER_SOURCE_BUCKET + "\",\n" +
-            "                \"arn:aws:s3:::" + PLACEHOLDER_SOURCE_BUCKET + "/*\"\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_SOURCE_BUCKET + "/" + PLACEHOLDER_SOURCE_OBJECT + "\"\n" +
             "            ]\n" +
             "        },\n" +
             "        {\n" +
@@ -72,7 +74,7 @@ public class S3CopyTemplates {
             "            ],\n" +
             "            \"Resource\": [\n" +
             "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "\",\n" +
-            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "/*\"\n" +
+            "                \"arn:aws:s3:::" + PLACEHOLDER_DESTINATION_BUCKET + "/" + PLACEHOLDER_DESTINATION_OBJECT + "\"\n" +
             "            ]\n" +
             "        }\n" +
             "    ]\n" +

@@ -27,6 +27,7 @@ public class S3CopyResourceDefinition extends ResourceDefinition {
     private String endpointOverride;
     private String destinationRegion;
     private String destinationBucketName;
+    private String destinationObjectName;
     private String destinationKeyName;
     private String bucketPolicyStatementSid;
     private DataAddress sourceDataAddress;
@@ -41,6 +42,10 @@ public class S3CopyResourceDefinition extends ResourceDefinition {
     
     public String getDestinationBucketName() {
         return destinationBucketName;
+    }
+    
+    public String getDestinationObjectName() {
+        return destinationObjectName;
     }
     
     public String getDestinationKeyName() {
@@ -61,6 +66,7 @@ public class S3CopyResourceDefinition extends ResourceDefinition {
                 .endpointOverride(endpointOverride)
                 .destinationRegion(destinationRegion)
                 .destinationBucketName(destinationBucketName)
+                .destinationObjectName(destinationObjectName)
                 .destinationKeyName(destinationKeyName)
                 .bucketPolicyStatementSid(bucketPolicyStatementSid)
                 .sourceDataAddress(sourceDataAddress));
@@ -89,6 +95,11 @@ public class S3CopyResourceDefinition extends ResourceDefinition {
         
         public Builder destinationBucketName(String destinationBucketName) {
             resourceDefinition.destinationBucketName = destinationBucketName;
+            return this;
+        }
+    
+        public Builder destinationObjectName(String destinationObjectName) {
+            resourceDefinition.destinationObjectName = destinationObjectName;
             return this;
         }
         
