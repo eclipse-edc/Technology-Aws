@@ -23,7 +23,6 @@ public class EndToEndTestCommon {
     private static final String PROVIDER_MANAGEMENT_API = "http://localhost:8181/management/v3";
     private static final String CONSUMER_MANAGEMENT_API = "http://localhost:9191/management/v3";
     
-    //TODO duplicated with test class
     private static final String TEST_RESOURCES = "system-tests/e2e-transfer-test/runner/src/test/resources/";
     
     private EndToEndTestCommon() {}
