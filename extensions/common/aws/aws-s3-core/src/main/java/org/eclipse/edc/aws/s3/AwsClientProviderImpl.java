@@ -147,6 +147,7 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         var builder = S3AsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
+                .multipartEnabled(true)
                 .region(Region.of(region));
 
         handleBaseEndpointOverride(builder, endpointOverride);
