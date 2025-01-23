@@ -130,16 +130,18 @@ public class AwsS3CopyTransferService implements TransferService {
         var s3ClientRequest = S3ClientRequest.from(sourceRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
+        var destinationFileName = getDestinationFileName(destinationKey, destinationFolder);
+        
         var copyRequest = CopyObjectRequest.builder()
                 .sourceBucket(sourceBucketName)
                 .sourceKey(sourceKey)
                 .destinationBucket(destinationBucketName)
-                .destinationKey(getDestinationFileName(destinationKey, destinationFolder))
+                .destinationKey(destinationFileName)
                 .build();
         
         return s3Client.copyObject(copyRequest)
                 .thenApply(response -> {
-                    monitor.info(format("Successfully copied S3 object %s/%s to %s/%s.", sourceBucketName, sourceKey, destinationBucketName, destinationKey));
+                    monitor.info(format("Successfully copied S3 object %s/%s to %s/%s.", sourceBucketName, sourceKey, destinationBucketName, destinationFileName));
                     return StreamResult.success();
                 })
                 .exceptionally(throwable -> {
