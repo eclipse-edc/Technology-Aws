@@ -18,7 +18,8 @@ import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
-import org.eclipse.edc.junit.testfixtures.TestUtils;
+import org.eclipse.edc.spi.system.configuration.Config;
+import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,8 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Map;
+import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -69,8 +69,6 @@ import static org.eclipse.edc.connector.controlplane.transfer.spi.types.Transfer
 class S3CopyEndToEndTest {
     
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:3.5.0");
-    
-    private static final String TEST_RESOURCES = "system-tests/e2e-transfer-test/runner/src/test/resources/";
     
     private String fileContent = "Hello, world!";
     private String region = "eu-central-1";
@@ -97,18 +95,14 @@ class S3CopyEndToEndTest {
                     LocalStackContainer.Service.STS);
     
     @RegisterExtension
-    private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(new EmbeddedRuntime(
-            "provider",
-            Map.of("edc.fs.config", new File(TestUtils.findBuildRoot(), TEST_RESOURCES + "config/provider-config.properties").getAbsolutePath()),
-            ":system-tests:e2e-transfer-test:runtime"
-    ));
+    private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
+            new EmbeddedRuntime("provider",":system-tests:e2e-transfer-test:runtime")
+                    .configurationProvider(S3CopyEndToEndTest::providerConfig));
     
     @RegisterExtension
-    private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(new EmbeddedRuntime(
-            "consumer",
-            Map.of("edc.fs.config", new File(TestUtils.findBuildRoot(), TEST_RESOURCES + "config/consumer-config.properties").getAbsolutePath()),
-            ":system-tests:e2e-transfer-test:runtime"
-    ));
+    private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
+            new EmbeddedRuntime("consumer",":system-tests:e2e-transfer-test:runtime")
+                    .configurationProvider(S3CopyEndToEndTest::consumerConfig));
     
     @BeforeEach
     void setUp() {
@@ -286,5 +280,61 @@ class S3CopyEndToEndTest {
     
     private String awsSecretToken(String accessKeyId, String secretAccessKey) {
         return "{\\\"edctype\\\":\\\"dataspaceconnector:secrettoken\\\",\\\"accessKeyId\\\":\\\"" + accessKeyId + "\\\",\\\"secretAccessKey\\\":\\\"" + secretAccessKey + "\\\"}";
+    }
+    
+    private static Config providerConfig() {
+        var settings = new HashMap<String, String>() {
+            {
+                put("edc.participant.id", "provider");
+                put("web.http.port", "8080");
+                put("web.http.path", "/api");
+                put("web.http.management.port", "8181");
+                put("web.http.management.path", "/management");
+                put("web.http.protocol.port", "8282");
+                put("web.http.protocol.path", "/protocol");
+                put("web.http.control.port", "8383");
+                put("web.http.control.path", "/control");
+                put("web.http.public.port", "8585");
+                put("web.http.public.path", "/public");
+                put("edc.api.auth.key", "password");
+                put("edc.control.endpoint", "http://localhost:8383/control");
+                put("edc.dsp.callback.address", "http://localhost:8282/protocol");
+                put("edc.dataplane.api.public.baseurl", "http://localhost:8585/public");
+                put("edc.dpf.selector.url", "http://localhost:8383/control/v1/dataplanes");
+                put("edc.transfer.proxy.token.signer.privatekey.alias", "private-key");
+                put("edc.transfer.proxy.token.verifier.publickey.alias", "public-key");
+                put("edc.aws.access.key.id", "source-user-access-key-id");
+                put("edc.aws.secret.access.key", "source-user-secret-access-key");
+            }
+        };
+        
+        return ConfigFactory.fromMap(settings);
+    }
+    
+    private static Config consumerConfig() {
+        var settings = new HashMap<String, String>() {
+            {
+                put("edc.participant.id", "consumer");
+                put("web.http.port", "9090");
+                put("web.http.path", "/api");
+                put("web.http.management.port", "9191");
+                put("web.http.management.path", "/management");
+                put("web.http.protocol.port", "9292");
+                put("web.http.protocol.path", "/protocol");
+                put("web.http.control.port", "9393");
+                put("web.http.control.path", "/control");
+                put("web.http.public.port", "9595");
+                put("web.http.public.path", "/public");
+                put("edc.api.auth.key", "password");
+                put("edc.control.endpoint", "http://localhost:9393/control");
+                put("edc.dsp.callback.address", "http://localhost:9292/protocol");
+                put("edc.dataplane.api.public.baseurl", "http://localhost:9595/public");
+                put("edc.dpf.selector.url", "http://localhost:9393/control/v1/dataplanes");
+                put("edc.transfer.proxy.token.signer.privatekey.alias", "private-key");
+                put("edc.transfer.proxy.token.verifier.publickey.alias", "public-key");
+            }
+        };
+        
+        return ConfigFactory.fromMap(settings);
     }
 }

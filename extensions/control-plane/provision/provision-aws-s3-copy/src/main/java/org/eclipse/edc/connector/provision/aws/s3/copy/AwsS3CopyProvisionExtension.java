@@ -50,6 +50,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private AwsClientProvider clientProvider;
     @Inject
     private TypeManager typeManager;
+    @Inject
+    private ResourceManifestGenerator manifestGenerator;
 
     @Override
     public String name() {
@@ -61,7 +63,6 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
         monitor = context.getMonitor();
     
         // register resource definition generator
-        var manifestGenerator = context.getService(ResourceManifestGenerator.class);
         manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
     
         // register provisioner

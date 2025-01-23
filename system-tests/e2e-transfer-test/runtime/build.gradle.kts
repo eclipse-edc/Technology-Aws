@@ -26,7 +26,6 @@ dependencies {
     implementation(project(":extensions:data-plane:data-plane-aws-s3"))
     implementation(project(":extensions:data-plane:data-plane-transfer-service-selection"))
 
-    implementation(libs.edc.boot)
     implementation(libs.edc.control.api.configuration)
     implementation(libs.edc.control.plane.api.client)
     implementation(libs.edc.control.plane.api)
@@ -34,8 +33,7 @@ dependencies {
     implementation(libs.edc.core.connector)
     implementation(libs.edc.token.core)
     implementation(libs.edc.dsp)
-    implementation(libs.edc.ext.http)
-    implementation(libs.edc.config.filesystem)
+    implementation(libs.edc.http)
     implementation(libs.edc.iam.mock)
     implementation(libs.edc.api.management)
     implementation(libs.edc.api.secrets)
@@ -45,8 +43,8 @@ dependencies {
     implementation(libs.edc.edr.store.core)
     implementation(libs.edc.edr.store.receiver)
 
-    implementation(libs.edc.dpf.selector.api)
-    implementation(libs.edc.dpf.selector.core)
+    implementation(libs.edc.data.plane.selector.api)
+    implementation(libs.edc.data.plane.selector.core)
 
     implementation(libs.edc.data.plane.self.registration)
     implementation(libs.edc.data.plane.signaling.api)

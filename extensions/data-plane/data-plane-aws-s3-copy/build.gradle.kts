@@ -19,7 +19,7 @@ plugins {
 dependencies {
     api(libs.edc.spi.dataplane)
     api(libs.edc.spi.web)
-    api(libs.edc.dpf.selector.spi)
+    api(libs.edc.spi.data.plane.selector)
     implementation(libs.edc.lib.util)
     implementation(libs.edc.core.dataPlane.util)
 

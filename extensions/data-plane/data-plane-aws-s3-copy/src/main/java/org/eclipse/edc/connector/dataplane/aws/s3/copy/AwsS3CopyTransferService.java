@@ -167,6 +167,11 @@ public class AwsS3CopyTransferService implements TransferService {
         return StreamResult.success();
     }
     
+    @Override
+    public void closeAll() {
+    
+    }
+    
     private SecretToken getCredentials(DataAddress source) {
         try {
             return ofNullable(source.getKeyName())
