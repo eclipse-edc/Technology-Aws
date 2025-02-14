@@ -22,9 +22,11 @@ import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.jetbrains.annotations.Nullable;
 
+import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
@@ -33,13 +35,16 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
     public @Nullable ResourceDefinition generate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
         var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();
         
+        var destination = transferProcess.getDataDestination();
+        var destinationFileName = getDestinationFileName(destination.getStringProperty(OBJECT_NAME), destination.getStringProperty(FOLDER_NAME));
+        
         return S3CopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())
-                .endpointOverride(transferProcess.getDataDestination().getStringProperty(ENDPOINT_OVERRIDE))
-                .destinationRegion(transferProcess.getDataDestination().getStringProperty(REGION))
-                .destinationBucketName(transferProcess.getDataDestination().getStringProperty(BUCKET_NAME))
-                .destinationObjectName(transferProcess.getDataDestination().getStringProperty(OBJECT_NAME))
-                .destinationKeyName(transferProcess.getDataDestination().getKeyName())
+                .endpointOverride(destination.getStringProperty(ENDPOINT_OVERRIDE))
+                .destinationRegion(destination.getStringProperty(REGION))
+                .destinationBucketName(destination.getStringProperty(BUCKET_NAME))
+                .destinationObjectName(destinationFileName)
+                .destinationKeyName(destination.getKeyName())
                 .bucketPolicyStatementSid(bucketPolicyStatementSid)
                 .sourceDataAddress(transferProcess.getContentDataAddress())
                 .build();
@@ -61,5 +66,13 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         }
         
         return isSameType;
+    }
+    
+    private String getDestinationFileName(String key, String folder) {
+        if (folder == null) {
+            return key;
+        }
+        
+        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
     }
 }

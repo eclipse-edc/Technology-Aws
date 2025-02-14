@@ -71,7 +71,7 @@ class AwsS3CopyTransferServiceTest {
     
     @BeforeEach
     void setUp() {
-        transferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validatorRegistry, monitor);
+        transferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validatorRegistry, monitor, 500);
     }
     
     @Test

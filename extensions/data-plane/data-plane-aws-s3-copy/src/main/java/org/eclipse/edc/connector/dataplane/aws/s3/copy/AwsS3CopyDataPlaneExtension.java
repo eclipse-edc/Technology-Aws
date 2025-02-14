@@ -19,6 +19,7 @@ import org.eclipse.edc.connector.dataplane.selector.spi.DataPlaneSelectorService
 import org.eclipse.edc.connector.dataplane.spi.registry.TransferServiceRegistry;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
+import org.eclipse.edc.runtime.metamodel.annotation.Setting;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.ServiceExtension;
@@ -35,6 +36,11 @@ import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
 public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     
     public static final String NAME = "AWS S3 Copy Data Plane";
+    
+    private static final int DEFAULT_CHUNK_SIZE_IN_MB = 500;
+    
+    @Setting(key = "edc.dataplane.aws.sink.chunk.size.mb", defaultValue = "" + DEFAULT_CHUNK_SIZE_IN_MB)
+    private int chunkSizeInMb;
     
     @Inject
     private AwsClientProvider clientProvider;
@@ -61,7 +67,7 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     
     @Override
     public void initialize(ServiceExtensionContext context) {
-        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validator, monitor);
+        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validator, monitor, chunkSizeInMb);
         registry.registerTransferService(s3CopyTransferService);
     }
 }

@@ -34,7 +34,10 @@ import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Violation;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
+import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -57,12 +60,20 @@ public class AwsS3CopyTransferService implements TransferService {
     private final DataAddressValidatorRegistry validator;
     private final Monitor monitor;
     
-    public AwsS3CopyTransferService(AwsClientProvider clientProvider, Vault vault, TypeManager typeManager, DataAddressValidatorRegistry validator, Monitor monitor) {
+    private final MultipartConfiguration multipartConfiguration;
+    
+    public AwsS3CopyTransferService(AwsClientProvider clientProvider, Vault vault,
+                                    TypeManager typeManager, DataAddressValidatorRegistry validator,
+                                    Monitor monitor, int chunkSizeInMb) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.vault = vault;
         this.typeManager = typeManager;
         this.validator = validator;
+        this.multipartConfiguration = MultipartConfiguration.builder()
+                .thresholdInBytes(chunkSizeInMb * 1024 * 1024L)
+                .minimumPartSizeInBytes(chunkSizeInMb * 1024 * 1024L)
+                .build();
     }
     
     @Override
@@ -113,11 +124,11 @@ public class AwsS3CopyTransferService implements TransferService {
     @Override
     public CompletableFuture<StreamResult<Object>> transfer(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
-        var sourceRegion = source.getStringProperty(REGION);
         var sourceBucketName = source.getStringProperty(BUCKET_NAME);
         var sourceKey = source.getStringProperty(OBJECT_NAME);
         
         var destination = request.getDestinationDataAddress();
+        var destinationRegion = destination.getStringProperty(REGION);
         var destinationBucketName = destination.getStringProperty(BUCKET_NAME);
         var destinationFolder = destination.getStringProperty(FOLDER_NAME);
         var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
@@ -127,8 +138,10 @@ public class AwsS3CopyTransferService implements TransferService {
         if (secretToken == null) {
             return completedFuture(StreamResult.error("Missing or invalid credentials."));
         }
-        var s3ClientRequest = S3ClientRequest.from(sourceRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
+        
+        var s3ClientRequest = S3ClientRequest.from(destinationRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
+        var multipartClient = MultipartS3AsyncClient.create(s3Client, multipartConfiguration, true);
         
         var destinationFileName = getDestinationFileName(destinationKey, destinationFolder);
         
@@ -137,9 +150,10 @@ public class AwsS3CopyTransferService implements TransferService {
                 .sourceKey(sourceKey)
                 .destinationBucket(destinationBucketName)
                 .destinationKey(destinationFileName)
+                .acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL)
                 .build();
         
-        return s3Client.copyObject(copyRequest)
+        return multipartClient.copyObject(copyRequest)
                 .thenApply(response -> {
                     monitor.info(format("Successfully copied S3 object %s/%s to %s/%s.", sourceBucketName, sourceKey, destinationBucketName, destinationFileName));
                     return StreamResult.success();
@@ -149,14 +163,6 @@ public class AwsS3CopyTransferService implements TransferService {
                     monitor.severe(message);
                     return StreamResult.error(message);
                 });
-    }
-    
-    private String getDestinationFileName(String key, String folder) {
-        if (folder == null) {
-            return key;
-        }
-        
-        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
     }
     
     @Override
@@ -172,6 +178,14 @@ public class AwsS3CopyTransferService implements TransferService {
     @Override
     public void closeAll() {
     
+    }
+    
+    private String getDestinationFileName(String key, String folder) {
+        if (folder == null) {
+            return key;
+        }
+        
+        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
     }
     
     private SecretToken getCredentials(DataAddress source) {
