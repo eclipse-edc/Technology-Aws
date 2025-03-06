@@ -12,6 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
 class S3CopyResourceDefinitionGeneratorTest {
@@ -20,6 +22,7 @@ class S3CopyResourceDefinitionGeneratorTest {
     
     private final String region = "region";
     private final String bucket = "bucket";
+    private final String object = "object";
     private final String keyName = "key";
     private final String endpoint = "http://endpoint";
     private final Policy policy = Policy.Builder.newInstance().build();
@@ -87,6 +90,7 @@ class S3CopyResourceDefinitionGeneratorTest {
                 .type(S3BucketSchema.TYPE)
                 .property(REGION, region)
                 .property(BUCKET_NAME, bucket)
+                .property(OBJECT_NAME, object)
                 .property(ENDPOINT_OVERRIDE, endpoint)
                 .keyName(keyName)
                 .build();
@@ -100,6 +104,38 @@ class S3CopyResourceDefinitionGeneratorTest {
         var s3CopyDefinition = (S3CopyResourceDefinition) definition;
         assertThat(s3CopyDefinition.getDestinationRegion()).isEqualTo(region);
         assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
+        assertThat(s3CopyDefinition.getDestinationObjectName()).isEqualTo(object);
+        assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
+        assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
+        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
+        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
+    }
+    
+    @Test
+    void generate_withDestinationFolder_shouldGenerateResourceDefinition() {
+        var destinationFolder = "folder/";
+        
+        var source = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
+        var destination = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(REGION, region)
+                .property(BUCKET_NAME, bucket)
+                .property(FOLDER_NAME, destinationFolder)
+                .property(OBJECT_NAME, object)
+                .property(ENDPOINT_OVERRIDE, endpoint)
+                .keyName(keyName)
+                .build();
+        var transferProcess = transferProcess(source, destination);
+        
+        var definition = generator.generate(transferProcess, source, policy);
+        
+        assertThat(definition)
+                .isNotNull()
+                .isInstanceOf(S3CopyResourceDefinition.class);
+        var s3CopyDefinition = (S3CopyResourceDefinition) definition;
+        assertThat(s3CopyDefinition.getDestinationRegion()).isEqualTo(region);
+        assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
+        assertThat(s3CopyDefinition.getDestinationObjectName()).isEqualTo(destinationFolder + object);
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
         assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
@@ -113,6 +149,7 @@ class S3CopyResourceDefinitionGeneratorTest {
                 .type(S3BucketSchema.TYPE)
                 .property(REGION, region)
                 .property(BUCKET_NAME, bucket)
+                .property(OBJECT_NAME, object)
                 .keyName(keyName)
                 .build();
         var transferProcess = transferProcess(source, destination);
@@ -125,6 +162,7 @@ class S3CopyResourceDefinitionGeneratorTest {
         var s3CopyDefinition = (S3CopyResourceDefinition) definition;
         assertThat(s3CopyDefinition.getDestinationRegion()).isEqualTo(region);
         assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
+        assertThat(s3CopyDefinition.getDestinationObjectName()).isEqualTo(object);
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isNull();
         assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
@@ -137,6 +175,7 @@ class S3CopyResourceDefinitionGeneratorTest {
         var destination = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .property(BUCKET_NAME, bucket)
+                .property(OBJECT_NAME, object)
                 .property(ENDPOINT_OVERRIDE, endpoint)
                 .keyName(keyName)
                 .build();
@@ -152,11 +191,28 @@ class S3CopyResourceDefinitionGeneratorTest {
         var destination = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .property(REGION, region)
+                .property(OBJECT_NAME, object)
                 .property(ENDPOINT_OVERRIDE, endpoint)
                 .keyName(keyName)
                 .build();
         var transferProcess = transferProcess(source, destination);
     
+        assertThatThrownBy(() -> generator.generate(transferProcess, source, policy))
+                .isInstanceOf(NullPointerException.class);
+    }
+    
+    @Test
+    void generate_noDestinationObjectName_shouldThrowException() {
+        var source = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
+        var destination = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(REGION, region)
+                .property(BUCKET_NAME, bucket)
+                .property(ENDPOINT_OVERRIDE, endpoint)
+                .keyName(keyName)
+                .build();
+        var transferProcess = transferProcess(source, destination);
+        
         assertThatThrownBy(() -> generator.generate(transferProcess, source, policy))
                 .isInstanceOf(NullPointerException.class);
     }
@@ -168,6 +224,7 @@ class S3CopyResourceDefinitionGeneratorTest {
                 .type(S3BucketSchema.TYPE)
                 .property(REGION, region)
                 .property(BUCKET_NAME, bucket)
+                .property(OBJECT_NAME, object)
                 .property(ENDPOINT_OVERRIDE, endpoint)
                 .build();
         var transferProcess = transferProcess(source, destination);

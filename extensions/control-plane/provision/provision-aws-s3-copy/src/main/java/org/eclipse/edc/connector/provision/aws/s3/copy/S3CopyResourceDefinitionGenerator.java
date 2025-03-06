@@ -52,6 +52,10 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
     
     @Override
     public boolean canGenerate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
+        if (transferProcess.getDataDestination() == null) {
+            return false;
+        }
+        
         var sourceType = transferProcess.getContentDataAddress().getType();
         var sinkType = transferProcess.getDestinationType();
         var sourceEndpointOverride = transferProcess.getContentDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
