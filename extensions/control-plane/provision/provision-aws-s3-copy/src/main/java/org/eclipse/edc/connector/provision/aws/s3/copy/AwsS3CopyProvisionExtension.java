@@ -30,7 +30,7 @@ import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
 
 /**
- * Provides data transfer {@link Provisioner}s for executing a cross-account copy of S3 objects.
+ * Provides {@link Provisioner}s for preparing a cross-account copy of S3 objects.
  */
 @Extension(value = AwsS3CopyProvisionExtension.NAME)
 public class AwsS3CopyProvisionExtension implements ServiceExtension {

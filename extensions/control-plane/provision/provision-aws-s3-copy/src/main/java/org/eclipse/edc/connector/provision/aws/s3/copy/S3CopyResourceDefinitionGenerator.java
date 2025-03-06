@@ -30,7 +30,11 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
+/**
+ * Generates information for provisioning AWS resources for a cross-account copy of S3 objects.
+ */
 public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefinitionGenerator {
+    
     @Override
     public @Nullable ResourceDefinition generate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
         var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();

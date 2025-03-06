@@ -46,6 +46,12 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstan
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
 
+/**
+ * Deprovision the AWS resources and policies added through the provisiong process before a
+ * cross-account copy of S3 objects. This includes resetting the bucket policy in the destination
+ * account and deleting the dedicated role in the source account. All operations are executed
+ * consecutively.
+ */
 public class S3CopyDeprovisionPipeline {
     
     private final AwsClientProvider clientProvider;

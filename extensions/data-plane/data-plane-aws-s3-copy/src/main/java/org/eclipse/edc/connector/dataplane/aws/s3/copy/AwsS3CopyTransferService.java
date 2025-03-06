@@ -52,6 +52,10 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 
+/**
+ * Service for executing S3-to-S3 transfers within the AWS infrastructure. Initiates a cross-account
+ * copy of S3 objects between source and destination as a multipart copy operation.
+ */
 public class AwsS3CopyTransferService implements TransferService {
     
     private final AwsClientProvider clientProvider;

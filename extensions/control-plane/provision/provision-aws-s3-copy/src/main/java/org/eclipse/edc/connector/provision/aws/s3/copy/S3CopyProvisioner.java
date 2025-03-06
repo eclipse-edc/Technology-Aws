@@ -33,6 +33,9 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.resourceIdentifier;
 
+/**
+ * Provisions and deprovisions AWS resources and policies to enable a cross-account copy of S3 objects.
+ */
 public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, S3CopyProvisionedResource> {
     
     private final AwsClientProvider clientProvider;
