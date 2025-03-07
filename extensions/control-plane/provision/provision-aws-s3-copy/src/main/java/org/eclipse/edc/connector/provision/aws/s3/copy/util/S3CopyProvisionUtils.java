@@ -32,9 +32,9 @@ import static java.util.Optional.ofNullable;
  * Provides methods which are required in multiple places during the (de)provisioning for
  * S3-to-S3 copy transfers.
  */
-public class S3CopyUtils {
+public class S3CopyProvisionUtils {
     
-    private S3CopyUtils() {}
+    private S3CopyProvisionUtils() {}
     
     /**
      * Creates the name that will be used for provisioned resources like AWS roles, policies and

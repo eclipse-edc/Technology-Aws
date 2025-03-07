@@ -31,7 +31,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.resourceIdentifier;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.resourceIdentifier;
 
 /**
  * Provisions and deprovisions AWS resources and policies to enable a cross-account copy of S3 objects.

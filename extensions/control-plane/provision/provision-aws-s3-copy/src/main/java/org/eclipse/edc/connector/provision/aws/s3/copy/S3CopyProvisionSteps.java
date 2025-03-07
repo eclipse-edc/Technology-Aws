@@ -20,12 +20,12 @@ import software.amazon.awssdk.services.iam.model.Role;
  * DTO for passing information about already provisioned resources between the steps of the
  * {@link S3CopyProvisionPipeline}.
  */
-public class S3CopyProvisionParts {
+public class S3CopyProvisionSteps {
     
     private Role role;
     private String bucketPolicy;
     
-    public S3CopyProvisionParts(Role role) {
+    public S3CopyProvisionSteps(Role role) {
         this.role = role;
     }
     

@@ -44,20 +44,20 @@ import static java.lang.String.format;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_DESTINATION_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_ROLE_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_SOURCE_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_STATEMENT_SID;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.PLACEHOLDER_USER_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyTemplates.EMPTY_BUCKET_POLICY;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.resourceIdentifier;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_OBJECT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_ROLE_ARN;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_BUCKET;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_OBJECT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_STATEMENT_SID;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_USER_ARN;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.EMPTY_BUCKET_POLICY;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.getSecretTokenFromVault;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.resourceIdentifier;
 
 /**
  * Provisions AWS resources and policies to enable a cross-account copy of S3 objects. This includes
@@ -127,7 +127,7 @@ public class S3CopyProvisionPipeline {
         });
     }
     
-    private CompletableFuture<S3CopyProvisionParts> putRolePolicy(IamAsyncClient iamClient,
+    private CompletableFuture<S3CopyProvisionSteps> putRolePolicy(IamAsyncClient iamClient,
                                                                   S3CopyResourceDefinition resourceDefinition,
                                                                   CreateRoleResponse createRoleResponse) {
         var rolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
@@ -146,13 +146,13 @@ public class S3CopyProvisionPipeline {
             
             monitor.debug("S3CopyProvisionPipeline: putting IAM role policy");
             return iamClient.putRolePolicy(putRolePolicyRequest)
-                    .thenApply(policyResponse -> new S3CopyProvisionParts(role));
+                    .thenApply(policyResponse -> new S3CopyProvisionSteps(role));
         });
     }
     
-    private CompletableFuture<S3CopyProvisionParts> getDestinationBucketPolicy(S3AsyncClient s3Client,
+    private CompletableFuture<S3CopyProvisionSteps> getDestinationBucketPolicy(S3AsyncClient s3Client,
                                                                                S3CopyResourceDefinition resourceDefinition,
-                                                                               S3CopyProvisionParts provisionSteps) {
+                                                                               S3CopyProvisionSteps provisionSteps) {
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()
                 .bucket(resourceDefinition.getDestinationBucketName())
                 .build();
@@ -172,9 +172,9 @@ public class S3CopyProvisionPipeline {
         });
     }
     
-    private CompletableFuture<S3CopyProvisionParts> updateDestinationBucketPolicy(S3AsyncClient s3Client,
+    private CompletableFuture<S3CopyProvisionSteps> updateDestinationBucketPolicy(S3AsyncClient s3Client,
                                                                                   S3CopyResourceDefinition resourceDefinition,
-                                                                                  S3CopyProvisionParts provisionSteps) {
+                                                                                  S3CopyProvisionSteps provisionSteps) {
         var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
                 .replace(PLACEHOLDER_STATEMENT_SID, resourceDefinition.getBucketPolicyStatementSid())
                 .replace(PLACEHOLDER_ROLE_ARN, provisionSteps.getRole().arn())
@@ -204,7 +204,7 @@ public class S3CopyProvisionPipeline {
     
     private CompletableFuture<S3ProvisionResponse> assumeRole(StsAsyncClient stsClient,
                                                               S3CopyResourceDefinition resourceDefinition,
-                                                              S3CopyProvisionParts provisionSteps) {
+                                                              S3CopyProvisionSteps provisionSteps) {
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             var role = provisionSteps.getRole();
             var assumeRoleRequest = AssumeRoleRequest.builder()

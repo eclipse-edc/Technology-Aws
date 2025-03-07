@@ -42,12 +42,12 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyConstants.S3_BUCKET_POLICY_STATEMENT_SID;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyUtils.getSecretTokenFromVault;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT_SID;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.getSecretTokenFromVault;
 
 /**
- * Deprovision the AWS resources and policies added through the provisiong process before a
+ * Deprovisions the AWS resources and policies added through the provisiong process before a
  * cross-account copy of S3 objects. This includes resetting the bucket policy in the destination
  * account and deleting the dedicated role in the source account. All operations are executed
  * consecutively.
