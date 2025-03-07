@@ -50,6 +50,7 @@ class S3CopyResourceDefinitionTest {
                 .transferProcessId("tp-id")
                 .destinationRegion("region")
                 .destinationBucketName("bucket")
+                .destinationObjectName("object")
                 .destinationKeyName("key")
                 .bucketPolicyStatementSid("sid")
                 .sourceDataAddress(DataAddress.Builder.newInstance()

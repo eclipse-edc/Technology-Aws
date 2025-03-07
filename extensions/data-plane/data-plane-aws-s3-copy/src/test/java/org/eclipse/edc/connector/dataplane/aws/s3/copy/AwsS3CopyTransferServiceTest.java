@@ -31,6 +31,7 @@ import org.eclipse.edc.validator.spi.Violation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
 
@@ -47,6 +48,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +58,7 @@ class AwsS3CopyTransferServiceTest {
     
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final S3AsyncClient s3Client = mock(S3AsyncClient.class);
+    private final MultipartS3AsyncClient multipartS3Client = mock(MultipartS3AsyncClient.class);
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = mock(TypeManager.class);
     private final DataAddressValidatorRegistry validatorRegistry = mock(DataAddressValidatorRegistry.class);
@@ -247,20 +250,26 @@ class AwsS3CopyTransferServiceTest {
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         
         var copyObjectResponse = CopyObjectResponse.builder().build();
-        when(s3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(completedFuture(copyObjectResponse));
-
-        var source = sourceDataAddress();
-        var destination = destinationDataAddress();
-        var request = dataFlowStartMessage(source, destination);
+        when(multipartS3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(completedFuture(copyObjectResponse));
         
-        var result = transferService.transfer(request).get();
-        
-        assertThat(result.succeeded()).isTrue();
-        verify(s3Client).copyObject(argThat((CopyObjectRequest copyRequest) -> copyRequest.sourceBucket().equals(sourceBucket) &&
-            copyRequest.sourceKey().equals(sourceObject) &&
-            copyRequest.destinationBucket().equals(destinationBucket) &&
-            copyRequest.destinationKey().equals(destinationObject))
-        );
+        try (var s3MultipartClient = mockStatic(MultipartS3AsyncClient.class)) {
+            s3MultipartClient
+                    .when(() -> MultipartS3AsyncClient.create(eq(s3Client), any(), eq(true)))
+                    .thenReturn(multipartS3Client);
+            
+            var source = sourceDataAddress();
+            var destination = destinationDataAddress();
+            var request = dataFlowStartMessage(source, destination);
+            
+            var result = transferService.transfer(request).get();
+            
+            assertThat(result.succeeded()).isTrue();
+            verify(multipartS3Client).copyObject(argThat((CopyObjectRequest copyRequest) -> copyRequest.sourceBucket().equals(sourceBucket) &&
+                    copyRequest.sourceKey().equals(sourceObject) &&
+                    copyRequest.destinationBucket().equals(destinationBucket) &&
+                    copyRequest.destinationKey().equals(destinationObject))
+            );
+        }
     }
     
     @Test
@@ -270,24 +279,30 @@ class AwsS3CopyTransferServiceTest {
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         
         var copyObjectResponse = CopyObjectResponse.builder().build();
-        when(s3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(completedFuture(copyObjectResponse));
+        when(multipartS3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(completedFuture(copyObjectResponse));
         
-        var source = sourceDataAddress();
-        var destination = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .property(REGION, "destinationRegion")
-                .property(BUCKET_NAME, destinationBucket)
-                .build();
-        var request = dataFlowStartMessage(source, destination);
-        
-        var result = transferService.transfer(request).get();
-        
-        assertThat(result.succeeded()).isTrue();
-        verify(s3Client).copyObject(argThat((CopyObjectRequest copyRequest) -> copyRequest.sourceBucket().equals(sourceBucket) &&
-                copyRequest.sourceKey().equals(sourceObject) &&
-                copyRequest.destinationBucket().equals(destinationBucket) &&
-                copyRequest.destinationKey().equals(sourceObject))
-        );
+        try (var s3MultipartClient = mockStatic(MultipartS3AsyncClient.class)) {
+            s3MultipartClient
+                    .when(() -> MultipartS3AsyncClient.create(eq(s3Client), any(), eq(true)))
+                    .thenReturn(multipartS3Client);
+            
+            var source = sourceDataAddress();
+            var destination = DataAddress.Builder.newInstance()
+                    .type(S3BucketSchema.TYPE)
+                    .property(REGION, "destinationRegion")
+                    .property(BUCKET_NAME, destinationBucket)
+                    .build();
+            var request = dataFlowStartMessage(source, destination);
+            
+            var result = transferService.transfer(request).get();
+            
+            assertThat(result.succeeded()).isTrue();
+            verify(multipartS3Client).copyObject(argThat((CopyObjectRequest copyRequest) -> copyRequest.sourceBucket().equals(sourceBucket) &&
+                    copyRequest.sourceKey().equals(sourceObject) &&
+                    copyRequest.destinationBucket().equals(destinationBucket) &&
+                    copyRequest.destinationKey().equals(sourceObject))
+            );
+        }
     }
     
     @Test
@@ -295,15 +310,21 @@ class AwsS3CopyTransferServiceTest {
         when(vault.resolveSecret(keyName)).thenReturn("value");
         when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
-        when(s3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
-    
-        var source = sourceDataAddress();
-        var destination = destinationDataAddress();
-        var request = dataFlowStartMessage(source, destination);
-    
-        var result = transferService.transfer(request).get();
-    
-        assertThat(result.succeeded()).isFalse();
+        when(multipartS3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
+        
+        try (var s3MultipartClient = mockStatic(MultipartS3AsyncClient.class)) {
+            s3MultipartClient
+                    .when(() -> MultipartS3AsyncClient.create(eq(s3Client), any(), eq(true)))
+                    .thenReturn(multipartS3Client);
+            
+            var source = sourceDataAddress();
+            var destination = destinationDataAddress();
+            var request = dataFlowStartMessage(source, destination);
+            
+            var result = transferService.transfer(request).get();
+            
+            assertThat(result.succeeded()).isFalse();
+        }
     }
     
     @Test
