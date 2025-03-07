@@ -40,7 +40,10 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();
         
         var destination = transferProcess.getDataDestination();
-        var destinationFileName = getDestinationFileName(destination.getStringProperty(OBJECT_NAME), destination.getStringProperty(FOLDER_NAME));
+
+        var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
+                destination.getStringProperty(OBJECT_NAME) : transferProcess.getContentDataAddress().getStringProperty(OBJECT_NAME);
+        var destinationFileName = getDestinationFileName(destinationKey, destination.getStringProperty(FOLDER_NAME));
         
         return S3CopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())

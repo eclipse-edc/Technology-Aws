@@ -29,6 +29,7 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class S3CopyResourceDefinitionGeneratorTest {
     
@@ -122,7 +123,40 @@ class S3CopyResourceDefinitionGeneratorTest {
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
         assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
-        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
+        assertThat(s3CopyDefinition.getSourceDataAddress()).isNotNull().isEqualTo(source);
+        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(id -> assertDoesNotThrow(() -> UUID.fromString(id)));
+    }
+    
+    @Test
+    void generate_noDestinationObjectName_shouldGenerateResourceDefinition() {
+        var sourceObject = "source-object";
+        var source = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(OBJECT_NAME, sourceObject)
+                .build();
+        var destination = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(REGION, region)
+                .property(BUCKET_NAME, bucket)
+                .property(ENDPOINT_OVERRIDE, endpoint)
+                .keyName(keyName)
+                .build();
+        var transferProcess = transferProcess(source, destination);
+        
+        var definition = generator.generate(transferProcess, source, policy);
+        
+        assertThat(definition)
+                .isNotNull()
+                .isInstanceOf(S3CopyResourceDefinition.class);
+        var s3CopyDefinition = (S3CopyResourceDefinition) definition;
+        assertThat(s3CopyDefinition.getDestinationRegion()).isEqualTo(region);
+        assertThat(s3CopyDefinition.getDestinationBucketName()).isEqualTo(bucket);
+        assertThat(s3CopyDefinition.getDestinationObjectName()).isEqualTo(sourceObject);
+        assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
+        assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
+        assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
+        assertThat(s3CopyDefinition.getSourceDataAddress()).isNotNull().isEqualTo(source);
+        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(id -> assertDoesNotThrow(() -> UUID.fromString(id)));
     }
     
     @Test
@@ -153,7 +187,8 @@ class S3CopyResourceDefinitionGeneratorTest {
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isEqualTo(endpoint);
         assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
-        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
+        assertThat(s3CopyDefinition.getSourceDataAddress()).isNotNull().isEqualTo(source);
+        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(id -> assertDoesNotThrow(() -> UUID.fromString(id)));
     }
     
     @Test
@@ -180,7 +215,8 @@ class S3CopyResourceDefinitionGeneratorTest {
         assertThat(s3CopyDefinition.getDestinationKeyName()).isEqualTo(keyName);
         assertThat(s3CopyDefinition.getEndpointOverride()).isNull();
         assertThat(s3CopyDefinition.getBucketPolicyStatementSid()).isNotNull().startsWith("edc-transfer_");
-        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(UUID::fromString);
+        assertThat(s3CopyDefinition.getSourceDataAddress()).isNotNull().isEqualTo(source);
+        assertThat(s3CopyDefinition.getId()).isNotNull().satisfies(id -> assertDoesNotThrow(() -> UUID.fromString(id)));
     }
     
     @Test
