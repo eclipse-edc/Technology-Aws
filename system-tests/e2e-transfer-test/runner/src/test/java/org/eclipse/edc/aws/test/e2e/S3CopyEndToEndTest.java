@@ -63,6 +63,7 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForTransferSta
 import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.DEPROVISIONED;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY;
 
 @Testcontainers
 @EndToEndTest
@@ -190,7 +191,7 @@ class S3CopyEndToEndTest {
         assertThatThrownBy(() -> s3Client.getBucketPolicy(GetBucketPolicyRequest.builder()
                 .bucket(destinationBucket)
                 .build()))
-                .isInstanceOfSatisfying(S3Exception.class, ex -> assertThat(ex.awsErrorDetails().errorCode().equals("NoSuchBucketPolicy")));
+                .isInstanceOfSatisfying(S3Exception.class, ex -> assertThat(ex.awsErrorDetails().errorCode().equals(S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY)));
         
         var iamClient = getIamClient();
         assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName().startsWith("edc")));

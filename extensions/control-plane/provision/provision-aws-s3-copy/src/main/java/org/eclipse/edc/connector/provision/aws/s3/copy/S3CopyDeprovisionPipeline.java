@@ -69,10 +69,12 @@ public class S3CopyDeprovisionPipeline {
     }
     
     public CompletableFuture<DeprovisionedResource> deprovision(S3CopyProvisionedResource provisionedResource) {
+        // create S3 client for destination account -> update S3 bucket policy
         var secretToken = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
         var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), provisionedResource.getEndpointOverride(), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
+        // create IAM & STS client for source account -> delete IAM role
         var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), provisionedResource.getEndpointOverride()));
         var roleName = provisionedResource.getSourceAccountRoleName();
         
@@ -94,8 +96,9 @@ public class S3CopyDeprovisionPipeline {
                                                                        S3CopyProvisionedResource provisionedResource,
                                                                        GetBucketPolicyResponse bucketPolicyResponse) {
         var bucketPolicy = bucketPolicyResponse.policy();
-        var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var statementSid = provisionedResource.getBucketPolicyStatementSid();
+        
+        var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var policyJson = Json.createObjectBuilder(typeManager.readValue(bucketPolicy, typeReference)).build();
         
         var statementsBuilder = Json.createArrayBuilder();
@@ -115,46 +118,48 @@ public class S3CopyDeprovisionPipeline {
                 .build();
         
         // since putting a bucket policy with empty statement array fails using the SDK, the bucket
-        // policy is deleted if no statements are present
+        // policy is deleted if no statements are left
         if (updatedBucketPolicy.getJsonArray(S3_BUCKET_POLICY_STATEMENT).isEmpty()) {
+            var deleteBucketPolicyRequest = DeleteBucketPolicyRequest.builder()
+                    .bucket(provisionedResource.getDestinationBucketName())
+                    .build();
+            
             return Failsafe.with(retryPolicy).getStageAsync(() -> {
-                monitor.debug("S3CopyDeprovisionPipeline: updating destination bucket policy");
-                var deleteBucketPolicyRequest = DeleteBucketPolicyRequest.builder()
-                        .bucket(provisionedResource.getDestinationBucketName())
-                        .build();
+                monitor.debug("S3CopyDeprovisionPipeline: deleting destination bucket policy");
                 return s3Client.deleteBucketPolicy(deleteBucketPolicyRequest);
             });
         } else {
+            var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
+                    .bucket(provisionedResource.getDestinationBucketName())
+                    .policy(updatedBucketPolicy.toString())
+                    .build();
+            
             return Failsafe.with(retryPolicy).getStageAsync(() -> {
                 monitor.debug("S3CopyDeprovisionPipeline: updating destination bucket policy");
-                var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
-                        .bucket(provisionedResource.getDestinationBucketName())
-                        .policy(updatedBucketPolicy.toString())
-                        .build();
                 return s3Client.putBucketPolicy(putBucketPolicyRequest);
             });
         }
     }
     
     private CompletableFuture<DeleteRolePolicyResponse> deleteRolePolicy(IamAsyncClient iamClient, String roleName) {
+        var deleteRolePolicyRequest = DeleteRolePolicyRequest.builder()
+                .roleName(roleName)
+                .policyName(roleName)
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            var deleteRolePolicyRequest = DeleteRolePolicyRequest.builder()
-                    .roleName(roleName)
-                    .policyName(roleName)
-                    .build();
-            
             monitor.debug("S3CopyDeprovisionPipeline: deleting IAM role policy");
             return iamClient.deleteRolePolicy(deleteRolePolicyRequest);
         });
     }
     
     private CompletableFuture<DeleteRoleResponse> deleteRole(IamAsyncClient iamClient, String roleName) {
+        var deleteRoleRequest = DeleteRoleRequest.builder()
+                .roleName(roleName)
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             monitor.debug("S3CopyDeprovisionPipeline: deleting IAM role");
-            var deleteRoleRequest = DeleteRoleRequest.builder()
-                    .roleName(roleName)
-                    .build();
-            
             return iamClient.deleteRole(deleteRoleRequest);
         });
     }

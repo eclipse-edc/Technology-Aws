@@ -52,6 +52,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private TypeManager typeManager;
     @Inject
     private ResourceManifestGenerator manifestGenerator;
+    @Inject
+    private ProvisionManager provisionManager;
 
     @Override
     public String name() {
@@ -64,10 +66,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     
         // register resource definition generator
         manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
-    
+        
         // register provisioner
-        var provisionManager = context.getService(ProvisionManager.class);
-    
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int maxRoleSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);

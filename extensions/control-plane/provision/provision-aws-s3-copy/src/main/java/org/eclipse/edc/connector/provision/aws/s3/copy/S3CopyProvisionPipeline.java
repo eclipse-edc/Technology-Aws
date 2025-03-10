@@ -32,6 +32,7 @@ import software.amazon.awssdk.services.iam.model.Tag;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import static java.lang.String.format;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
@@ -52,6 +54,7 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisi
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_STATEMENT_SID;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_USER_ARN;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
@@ -87,12 +90,12 @@ public class S3CopyProvisionPipeline {
     }
     
     public CompletableFuture<S3ProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
-        // create IAM & STS client for source account -> configure & assume IAM role
+        // create IAM & STS client for source account -> create, configure & assume IAM role
         var sourceClientRequest = S3ClientRequest.from(resourceDefinition.getSourceDataAddress().getStringProperty(REGION), resourceDefinition.getEndpointOverride(), null);
         var iamClient = clientProvider.iamAsyncClient(sourceClientRequest);
         var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
         
-        // create S3 client for destination account -> update bucket policy to allow source account role to write objects
+        // create S3 client for destination account -> update S3 bucket policy
         var destinationSecretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
         var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), resourceDefinition.getEndpointOverride(), destinationSecretToken);
         var s3Client = clientProvider.s3AsyncClient(destinationClientRequest);
@@ -101,8 +104,8 @@ public class S3CopyProvisionPipeline {
         return iamClient.getUser()
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
                 .thenCompose(response -> putRolePolicy(iamClient, resourceDefinition, response))
-                .thenCompose(provisionSteps -> getDestinationBucketPolicy(s3Client, resourceDefinition, provisionSteps))
-                .thenCompose(provisionSteps -> updateDestinationBucketPolicy(s3Client, resourceDefinition, provisionSteps))
+                .thenCompose(provisionSteps -> getBucketPolicy(s3Client, resourceDefinition, provisionSteps))
+                .thenCompose(provisionSteps -> updateBucketPolicy(s3Client, resourceDefinition, provisionSteps))
                 .thenCompose(role -> assumeRole(stsClient, resourceDefinition, role));
     }
     
@@ -113,15 +116,15 @@ public class S3CopyProvisionPipeline {
         var trustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
                 .replace(PLACEHOLDER_USER_ARN, getUserResponse.user().arn());
         
+        var createRoleRequest = CreateRoleRequest.builder()
+                .roleName(roleName)
+                .description(format("Role for EDC transfer: %s", roleName))
+                .assumeRolePolicyDocument(trustPolicy)
+                .maxSessionDuration(maxRoleSessionDuration)
+                .tags(roleTags(resourceDefinition))
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            var createRoleRequest = CreateRoleRequest.builder()
-                    .roleName(roleName)
-                    .description(format("Role for EDC transfer: %s", roleName))
-                    .assumeRolePolicyDocument(trustPolicy)
-                    .maxSessionDuration(maxRoleSessionDuration)
-                    .tags(roleTags(resourceDefinition))
-                    .build();
-            
             monitor.debug(format("S3CopyProvisionPipeline: creating IAM role '%s'", roleName));
             return iamClient.createRole(createRoleRequest);
         });
@@ -136,23 +139,23 @@ public class S3CopyProvisionPipeline {
                 .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName())
                 .replace(PLACEHOLDER_DESTINATION_OBJECT, resourceDefinition.getDestinationObjectName());
         
+        var role = createRoleResponse.role();
+        var putRolePolicyRequest = PutRolePolicyRequest.builder()
+                .roleName(role.roleName())
+                .policyName(resourceIdentifier(resourceDefinition))
+                .policyDocument(rolePolicy)
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            var role = createRoleResponse.role();
-            var putRolePolicyRequest = PutRolePolicyRequest.builder()
-                    .roleName(role.roleName())
-                    .policyName(resourceIdentifier(resourceDefinition))
-                    .policyDocument(rolePolicy)
-                    .build();
-            
             monitor.debug("S3CopyProvisionPipeline: putting IAM role policy");
             return iamClient.putRolePolicy(putRolePolicyRequest)
                     .thenApply(policyResponse -> new S3CopyProvisionSteps(role));
         });
     }
     
-    private CompletableFuture<S3CopyProvisionSteps> getDestinationBucketPolicy(S3AsyncClient s3Client,
-                                                                               S3CopyResourceDefinition resourceDefinition,
-                                                                               S3CopyProvisionSteps provisionSteps) {
+    private CompletableFuture<S3CopyProvisionSteps> getBucketPolicy(S3AsyncClient s3Client,
+                                                                    S3CopyResourceDefinition resourceDefinition,
+                                                                    S3CopyProvisionSteps provisionSteps) {
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()
                 .bucket(resourceDefinition.getDestinationBucketName())
                 .build();
@@ -165,16 +168,23 @@ public class S3CopyProvisionPipeline {
                             provisionSteps.setBucketPolicy(result.policy());
                             return provisionSteps;
                         } else {
-                            provisionSteps.setBucketPolicy(EMPTY_BUCKET_POLICY);
-                            return provisionSteps;
+                            if (ex instanceof CompletionException
+                                    && ex.getCause() instanceof S3Exception s3Exception
+                                    && s3Exception.awsErrorDetails().errorCode().equals(S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY)) {
+                                // accessing the bucket policy works, but no bucket policy is set
+                                provisionSteps.setBucketPolicy(EMPTY_BUCKET_POLICY);
+                                return provisionSteps;
+                            }
+                            
+                            throw new RuntimeException("Failed to get destination bucket policy", ex);
                         }
                     });
         });
     }
     
-    private CompletableFuture<S3CopyProvisionSteps> updateDestinationBucketPolicy(S3AsyncClient s3Client,
-                                                                                  S3CopyResourceDefinition resourceDefinition,
-                                                                                  S3CopyProvisionSteps provisionSteps) {
+    private CompletableFuture<S3CopyProvisionSteps> updateBucketPolicy(S3AsyncClient s3Client,
+                                                                       S3CopyResourceDefinition resourceDefinition,
+                                                                       S3CopyProvisionSteps provisionSteps) {
         var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
                 .replace(PLACEHOLDER_STATEMENT_SID, resourceDefinition.getBucketPolicyStatementSid())
                 .replace(PLACEHOLDER_ROLE_ARN, provisionSteps.getRole().arn())
@@ -191,12 +201,13 @@ public class S3CopyProvisionPipeline {
                 .add(S3_BUCKET_POLICY_STATEMENT, statements)
                 .build().toString();
         
+        var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
+                .bucket(resourceDefinition.getDestinationBucketName())
+                .policy(updatedBucketPolicy)
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             monitor.debug("S3CopyProvisionPipeline: updating destination bucket policy");
-            var putBucketPolicyRequest = PutBucketPolicyRequest.builder()
-                    .bucket(resourceDefinition.getDestinationBucketName())
-                    .policy(updatedBucketPolicy)
-                    .build();
             return s3Client.putBucketPolicy(putBucketPolicyRequest)
                     .thenApply(response -> provisionSteps);
         });
@@ -205,13 +216,13 @@ public class S3CopyProvisionPipeline {
     private CompletableFuture<S3ProvisionResponse> assumeRole(StsAsyncClient stsClient,
                                                               S3CopyResourceDefinition resourceDefinition,
                                                               S3CopyProvisionSteps provisionSteps) {
+        var role = provisionSteps.getRole();
+        var assumeRoleRequest = AssumeRoleRequest.builder()
+                .roleArn(role.arn())
+                .roleSessionName(resourceIdentifier(resourceDefinition))
+                .build();
+        
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
-            var role = provisionSteps.getRole();
-            var assumeRoleRequest = AssumeRoleRequest.builder()
-                    .roleArn(role.arn())
-                    .roleSessionName(resourceIdentifier(resourceDefinition))
-                    .build();
-            
             monitor.debug(format("S3CopyProvisionPipeline: assuming role '%s'", role.arn()));
             return stsClient.assumeRole(assumeRoleRequest)
                     .thenApply(response -> new S3ProvisionResponse(role, response.credentials()));

@@ -15,7 +15,7 @@
 package org.eclipse.edc.connector.provision.aws.s3.copy.util;
 
 /**
- * Provides names and placeholders required during the (de)provision process for a cross-account
+ * Provides constants and placeholders required during the (de)provision process for a cross-account
  * copy of S3 objects.
  */
 public class S3CopyProvisionConstants {
@@ -25,6 +25,8 @@ public class S3CopyProvisionConstants {
     public static final String S3_BUCKET_POLICY_STATEMENT  = "Statement";
     
     public static final String S3_BUCKET_POLICY_STATEMENT_SID  = "Sid";
+    
+    public static final String S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY = "NoSuchBucketPolicy";
     
     public static final String PLACEHOLDER_USER_ARN  = "{{user-arn}}";
     public static final String PLACEHOLDER_SOURCE_BUCKET  = "{{source-bucket}}";

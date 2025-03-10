@@ -29,6 +29,7 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.resourceIdentifier;
 
 /**
  * Generates information for provisioning AWS resources for a cross-account copy of S3 objects.
@@ -37,7 +38,7 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
     
     @Override
     public @Nullable ResourceDefinition generate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
-        var bucketPolicyStatementSid = "edc-transfer_" + transferProcess.getId();
+        var bucketPolicyStatementSid = resourceIdentifier(transferProcess.getId());
         
         var destination = transferProcess.getDataDestination();
 
@@ -72,11 +73,9 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
         
         // if endpointOverride set, it needs to be the same for both source & destination
-        if (sourceEndpointOverride != null && destinationEndpointOverride != null) {
-            return isSameType && sourceEndpointOverride.equals(destinationEndpointOverride);
-        }
+        var hasSameEndpointOverride = sameEndpointOverride(sourceEndpointOverride, destinationEndpointOverride);
         
-        return isSameType;
+        return isSameType && hasSameEndpointOverride;
     }
     
     private String getDestinationFileName(String key, String folder) {
@@ -85,5 +84,15 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         }
         
         return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
+    }
+    
+    private boolean sameEndpointOverride(String source, String destination) {
+        if (source == null && destination == null) {
+            return true;
+        } else if (source == null || destination == null) {
+            return false;
+        } else {
+            return source.equals(destination);
+        }
     }
 }

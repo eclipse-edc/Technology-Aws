@@ -45,7 +45,19 @@ public class S3CopyProvisionUtils {
      * @return the name for created resources
      */
     public static String resourceIdentifier(S3CopyResourceDefinition resourceDefinition) {
-        return format("edc-transfer_%s", resourceDefinition.getTransferProcessId());
+        return resourceIdentifier(resourceDefinition.getTransferProcessId());
+    }
+    
+    /**
+     * Creates the name that will be used for provisioned resources like AWS roles, policies and
+     * session names to provide consistent naming of AWS resources that belong to the same EDC
+     * transfer process.
+     *
+     * @param transferProcessId id of the transfer process
+     * @return the name for created resources
+     */
+    public static String resourceIdentifier(String transferProcessId) {
+        return format("edc-transfer_%s", transferProcessId);
     }
     
     /**

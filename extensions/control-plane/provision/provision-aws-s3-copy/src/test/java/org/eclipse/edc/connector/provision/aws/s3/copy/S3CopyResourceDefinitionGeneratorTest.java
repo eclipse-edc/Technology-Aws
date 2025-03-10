@@ -99,6 +99,38 @@ class S3CopyResourceDefinitionGeneratorTest {
     }
     
     @Test
+    void canGenerate_onlySourceEndpointOverride_shouldReturnFalse() {
+        var source = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(ENDPOINT_OVERRIDE, endpoint)
+                .build();
+        var destination = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .build();
+        var transferProcess = transferProcess(source, destination);
+        
+        var result = generator.canGenerate(transferProcess, source, policy);
+        
+        assertThat(result).isFalse();
+    }
+    
+    @Test
+    void canGenerate_onlyDestinationEndpointOverride_shouldReturnFalse() {
+        var source = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .build();
+        var destination = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .property(ENDPOINT_OVERRIDE, endpoint)
+                .build();
+        var transferProcess = transferProcess(source, destination);
+        
+        var result = generator.canGenerate(transferProcess, source, policy);
+        
+        assertThat(result).isFalse();
+    }
+    
+    @Test
     void generate_shouldGenerateResourceDefinition() {
         var source = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
         var destination = DataAddress.Builder.newInstance()
