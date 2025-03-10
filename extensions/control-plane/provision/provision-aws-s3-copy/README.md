@@ -2,12 +2,10 @@
 
 ## What the extension provides
 
-This extension provides support for provisioning the AWS setup required to perform a cross-account transfer of
-S3 objects within the AWS infrastructure. It is therefore developed for use with the 
-[respective data plane extension](../../../data-plane/data-plane-aws-s3-copy/README.md). **This provision extension
-does not provide any value for transfers between different source/destination types as well as S3-to-S3 transfers
-handled by the "standard" S3 data plane!** It sets up precisely the permissions needed to allow for copying S3
-objects between two accounts.
+This extension handles the provisioning of the AWS setup required to perform a cross-account copy of S3 objects within
+the AWS infrastructure. It is developed for use with the
+[S3 copy data plane extension](../../../data-plane/data-plane-aws-s3-copy/README.md) and sets up precisely the
+permissions needed to allow for copying S3 objects between two different accounts.
 
 ### Provisioning sequence
 
@@ -33,7 +31,7 @@ During the provisioning phase, this extension will perform the following provisi
 >- `edc:transfer-process-id`: `<transfer-process-id>`
 
 The data plane can then use the credentials of the assumed role to perform a copy operation between source and
-destination bucket. After a transfer has completed (or terminated), the following deprovision steps will be
+destination bucket. After a transfer has been completed (or terminated), the following deprovision steps will be
 performed:
 1. Get the destination bucket policy
 2. Remove the previously added statement from the bucket policy (or delete the bucket policy if no statements are left)
@@ -63,25 +61,9 @@ edc.aws.secret.access.key=<vault-key-of-secret-access-key>
 For the consumer, a `SecretToken` has to be added to the vault as described in the
 [data-plane-aws-s3 README](../../../data-plane/data-plane-aws-s3/README.md#secret-resolution).
 
-### Recommended usage
-
-The following combination of modules is recommended to use the S3 copy feature:
-
-Control plane:
-```kotlin
-implementation("org.eclipse.edc:provision:provision-aws-s3-copy:<version>")
-```
-
-Data plane:
-```kotlin
-implementation("org.eclipse.edc:provision:data-plane-aws-s3:<version>")
-implementation("org.eclipse.edc:provision:data-plane-aws-s3-copy:<version>")
-implementation("org.eclipse.edc:provision:data-plane-transfer-service-selection:<version>")
-```
-
 ## Required AWS permissions
 
-In the following, the required AWS permissions for the users used on provider and consumer side are listed.
+In the following, the required AWS permissions for the users used on provider and consumer side respectively are listed.
 
 ### Provider
 - iam:GetUser (on own user)
@@ -144,8 +126,10 @@ In the following, the required AWS permissions for the users used on provider an
 - s3:PutBucketPolicy (on destination bucket)
 - s3:DeleteBucketPolicy (on destination bucket)
 
-As `deleteBucketPolicy` will only be called during deprovisioning if there are no statements left other than the one added during provisioning, the permission `s3:DeleteBucketPolicy` is not needed as long as there is always an initial statement in the bucket policy.
-The permission is only required if before initiating a transfer, the destination bucket has an **empty** bucket policy.
+As `deleteBucketPolicy` will only be called during deprovisioning if there are no statements left other than the one
+added during provisioning, the permission `s3:DeleteBucketPolicy` is not needed as long as there is always an initial
+statement in the bucket policy. The permission is only required if before initiating a transfer, the destination bucket
+has an **empty** bucket policy.
 
 #### Example
 
