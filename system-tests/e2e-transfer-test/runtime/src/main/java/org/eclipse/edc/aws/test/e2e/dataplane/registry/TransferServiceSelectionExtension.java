@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.edc.connector.dataplane.aws.registry;
+package org.eclipse.edc.aws.test.e2e.dataplane.registry;
 
 import org.eclipse.edc.connector.dataplane.framework.registry.TransferServiceSelectionStrategy;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;

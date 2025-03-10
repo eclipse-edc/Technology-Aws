@@ -11,5 +11,5 @@
 #       Cofinity-X - initial API and implementation
 #
 
-org.eclipse.edc.connector.dataplane.aws.registry.TransferServiceSelectionExtension
+org.eclipse.edc.aws.test.e2e.dataplane.registry.TransferServiceSelectionExtension
 
