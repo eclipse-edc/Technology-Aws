@@ -91,11 +91,9 @@ public class AwsS3CopyTransferService implements TransferService {
         var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
         
         // if endpointOverride set, it needs to be the same for both source & destination
-        if (sourceEndpointOverride != null && destinationEndpointOverride != null) {
-            return isSameType && sourceEndpointOverride.equals(destinationEndpointOverride);
-        }
+        var hasSameEndpointOverride = sameEndpointOverride(sourceEndpointOverride, destinationEndpointOverride);
         
-        return isSameType;
+        return isSameType && hasSameEndpointOverride;
     }
     
     @Override
@@ -190,6 +188,16 @@ public class AwsS3CopyTransferService implements TransferService {
         }
         
         return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
+    }
+    
+    private boolean sameEndpointOverride(String source, String destination) {
+        if (source == null && destination == null) {
+            return true;
+        } else if (source == null || destination == null) {
+            return false;
+        } else {
+            return source.equals(destination);
+        }
     }
     
     private SecretToken getCredentials(DataAddress source) {

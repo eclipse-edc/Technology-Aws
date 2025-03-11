@@ -88,7 +88,7 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
     }
     
     private StatusResult<ProvisionResponse> provisioningSucceeded(S3CopyResourceDefinition resourceDefinition,
-                                                                  S3ProvisionResponse provisionResponse) {
+                                                                  S3CopyProvisionResponse provisionResponse) {
         var identifier = resourceIdentifier(resourceDefinition);
         var provisionedResource = S3CopyProvisionedResource.Builder.newInstance()
                 .id(identifier)

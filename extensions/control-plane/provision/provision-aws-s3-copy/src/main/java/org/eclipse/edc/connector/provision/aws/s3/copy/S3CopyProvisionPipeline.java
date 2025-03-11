@@ -89,7 +89,7 @@ public class S3CopyProvisionPipeline {
         this.maxRoleSessionDuration = maxRoleSessionDuration;
     }
     
-    public CompletableFuture<S3ProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
+    public CompletableFuture<S3CopyProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
         // create IAM & STS client for source account -> create, configure & assume IAM role
         var sourceClientRequest = S3ClientRequest.from(resourceDefinition.getSourceDataAddress().getStringProperty(REGION), resourceDefinition.getEndpointOverride(), null);
         var iamClient = clientProvider.iamAsyncClient(sourceClientRequest);
@@ -176,7 +176,7 @@ public class S3CopyProvisionPipeline {
                                 return provisionSteps;
                             }
                             
-                            throw new RuntimeException("Failed to get destination bucket policy", ex);
+                            throw new CompletionException("Failed to get destination bucket policy", ex);
                         }
                     });
         });
@@ -213,9 +213,9 @@ public class S3CopyProvisionPipeline {
         });
     }
     
-    private CompletableFuture<S3ProvisionResponse> assumeRole(StsAsyncClient stsClient,
-                                                              S3CopyResourceDefinition resourceDefinition,
-                                                              S3CopyProvisionSteps provisionSteps) {
+    private CompletableFuture<S3CopyProvisionResponse> assumeRole(StsAsyncClient stsClient,
+                                                                  S3CopyResourceDefinition resourceDefinition,
+                                                                  S3CopyProvisionSteps provisionSteps) {
         var role = provisionSteps.getRole();
         var assumeRoleRequest = AssumeRoleRequest.builder()
                 .roleArn(role.arn())
@@ -225,7 +225,7 @@ public class S3CopyProvisionPipeline {
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
             monitor.debug(format("S3CopyProvisionPipeline: assuming role '%s'", role.arn()));
             return stsClient.assumeRole(assumeRoleRequest)
-                    .thenApply(response -> new S3ProvisionResponse(role, response.credentials()));
+                    .thenApply(response -> new S3CopyProvisionResponse(role, response.credentials()));
         });
     }
     

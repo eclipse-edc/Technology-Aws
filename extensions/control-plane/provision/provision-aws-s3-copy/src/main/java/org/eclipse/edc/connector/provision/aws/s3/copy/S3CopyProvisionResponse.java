@@ -17,5 +17,5 @@ package org.eclipse.edc.connector.provision.aws.s3.copy;
 import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.sts.model.Credentials;
 
-public record S3ProvisionResponse(Role role, Credentials credentials) {
+public record S3CopyProvisionResponse(Role role, Credentials credentials) {
 }

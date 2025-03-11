@@ -37,10 +37,10 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
 
     public static final String NAME = "AWS S3 Copy Provision";
     
-    @Setting
-    private static final String PROVISION_MAX_RETRY = "edc.aws.provision.retry.retries.max";
-    @Setting
-    private static final String PROVISION_MAX_ROLE_SESSION_DURATION = "edc.aws.provision.role.duration.session.max";
+    @Setting(key = "edc.aws.provision.retry.retries.max", defaultValue = "" + 10)
+    private int maxRetries;
+    @Setting(key = "edc.aws.provision.role.duration.session.max", defaultValue = "" + 3600)
+    private int maxRoleSessionDuration;
     
     @Inject
     private Vault vault;
@@ -69,9 +69,6 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
         
         // register provisioner
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
-        int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
-        int maxRoleSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
-        
         var provisioner = new S3CopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
         provisionManager.register(provisioner);
 
@@ -90,7 +87,6 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private void registerTypes(TypeManager typeManager) {
         typeManager.registerTypes(S3CopyProvisionedResource.class, S3CopyResourceDefinition.class, AwsTemporarySecretToken.class);
     }
-
 
 }
 
