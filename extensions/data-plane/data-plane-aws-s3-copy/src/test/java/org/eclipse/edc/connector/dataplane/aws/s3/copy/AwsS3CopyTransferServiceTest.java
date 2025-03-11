@@ -14,6 +14,8 @@
 
 package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
@@ -61,6 +63,8 @@ class AwsS3CopyTransferServiceTest {
     private final MultipartS3AsyncClient multipartS3Client = mock(MultipartS3AsyncClient.class);
     private final Vault vault = mock(Vault.class);
     private final TypeManager typeManager = mock(TypeManager.class);
+    private final ObjectMapper objectMapper = mock(ObjectMapper.class);
+    private final JsonNode jsonNode = mock(JsonNode.class);
     private final DataAddressValidatorRegistry validatorRegistry = mock(DataAddressValidatorRegistry.class);
     private final Monitor monitor = mock(Monitor.class);
     
@@ -134,11 +138,14 @@ class AwsS3CopyTransferServiceTest {
     }
     
     @Test
-    void validate_validRequest_shouldReturnSuccess() {
+    void validate_validRequest_shouldReturnSuccess() throws Exception {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
     
         var source = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -246,7 +253,10 @@ class AwsS3CopyTransferServiceTest {
     @Test
     void transfer_copyingObjectSuccessful_shouldReturnSuccess() throws Exception {
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         
         var copyObjectResponse = CopyObjectResponse.builder().build();
@@ -275,7 +285,10 @@ class AwsS3CopyTransferServiceTest {
     @Test
     void transfer_missingDestinationObjectName_shouldReturnSuccess() throws Exception {
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         
         var copyObjectResponse = CopyObjectResponse.builder().build();
@@ -308,7 +321,9 @@ class AwsS3CopyTransferServiceTest {
     @Test
     void transfer_errorCopyingObject_shouldReturnError() throws Exception {
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         when(multipartS3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
         
@@ -359,7 +374,9 @@ class AwsS3CopyTransferServiceTest {
     @Test
     void transfer_invalidSecret_shouldReturnError() throws Exception {
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenThrow(new EdcException("error"));
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenThrow(new EdcException("error"));
     
         var source = sourceDataAddress();
         var destination = destinationDataAddress();

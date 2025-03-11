@@ -25,6 +25,8 @@ dependencies {
 
     implementation(project(":extensions:common:aws:aws-s3-core"))
 
+    implementation(project(":extensions:common:s3-copy-lib"))
+
     implementation(libs.failsafe.core)
 
     testImplementation(libs.edc.core.dataplane)

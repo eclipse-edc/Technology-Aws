@@ -38,6 +38,7 @@ dependencyResolutionManagement {
 
 include(":extensions:common:aws:aws-s3-test")
 include(":extensions:common:aws:aws-s3-core")
+include(":extensions:common:s3-copy-lib")
 include(":extensions:common:vault:vault-aws")
 include(":extensions:common:validator:validator-data-address-s3")
 

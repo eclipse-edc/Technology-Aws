@@ -17,13 +17,9 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.edc.spi.controlplane)
-    implementation(libs.edc.lib.util)
-    implementation(project(":extensions:common:aws:aws-s3-core"))
-    implementation(project(":extensions:common:s3-copy-lib"))
-
-    testImplementation(testFixtures(project(":extensions:common:aws:aws-s3-test")))
-    testImplementation(libs.edc.spi.jsonld)
+    api(project(":spi:common:aws-spi"))
+    api(project(":extensions:common:aws:aws-s3-core"))
+    api(libs.edc.spi.controlplane)
+    api(libs.edc.spi.core)
+    api(libs.edc.lib.util)
 }
-
-

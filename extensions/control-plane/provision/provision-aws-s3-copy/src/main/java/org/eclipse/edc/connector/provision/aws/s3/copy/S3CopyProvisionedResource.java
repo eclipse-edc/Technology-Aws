@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedContentResource;
-import software.amazon.awssdk.services.iam.model.Role;
 
 @JsonDeserialize(builder = S3CopyProvisionedResource.Builder.class)
 public class S3CopyProvisionedResource extends ProvisionedContentResource {

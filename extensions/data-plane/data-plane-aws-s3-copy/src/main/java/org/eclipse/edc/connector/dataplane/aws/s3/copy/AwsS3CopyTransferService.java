@@ -15,22 +15,18 @@
 package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
-import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.TransferService;
-import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
-import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Violation;
@@ -44,8 +40,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.applicableForS3CopyTransfer;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationFileName;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
@@ -82,18 +80,7 @@ public class AwsS3CopyTransferService implements TransferService {
     
     @Override
     public boolean canHandle(DataFlowStartMessage request) {
-        var sourceType = request.getSourceDataAddress().getType();
-        var sinkType = request.getDestinationDataAddress().getType();
-        var sourceEndpointOverride = request.getSourceDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
-        var destinationEndpointOverride = request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
-        
-        // only applicable for S3-to-S3 transfer
-        var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
-        
-        // if endpointOverride set, it needs to be the same for both source & destination
-        var hasSameEndpointOverride = sameEndpointOverride(sourceEndpointOverride, destinationEndpointOverride);
-        
-        return isSameType && hasSameEndpointOverride;
+        return applicableForS3CopyTransfer(request.getSourceDataAddress(), request.getDestinationDataAddress());
     }
     
     @Override
@@ -114,15 +101,6 @@ public class AwsS3CopyTransferService implements TransferService {
         return errors.isEmpty() ? Result.success(true) : Result.failure(errors);
     }
     
-    private ValidationResult validateSourceCredentials(DataAddress source) {
-        if (getCredentials(source) != null) {
-            return ValidationResult.success();
-        }
-        
-        var violation = Violation.violation("No or invalid credential found in vault for given key.", "keyName", source.getKeyName());
-        return ValidationResult.failure(violation);
-    }
-    
     @Override
     public CompletableFuture<StreamResult<Object>> transfer(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
@@ -136,8 +114,10 @@ public class AwsS3CopyTransferService implements TransferService {
         var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
                 destination.getStringProperty(OBJECT_NAME) : sourceKey;
         
-        var secretToken = getCredentials(source);
-        if (secretToken == null) {
+        SecretToken secretToken;
+        try {
+            secretToken = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+        } catch (Exception e) {
             return completedFuture(StreamResult.error("Missing or invalid credentials."));
         }
         
@@ -182,35 +162,13 @@ public class AwsS3CopyTransferService implements TransferService {
     
     }
     
-    private String getDestinationFileName(String key, String folder) {
-        if (folder == null) {
-            return key;
-        }
-        
-        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
-    }
-    
-    private boolean sameEndpointOverride(String source, String destination) {
-        if (source == null && destination == null) {
-            return true;
-        } else if (source == null || destination == null) {
-            return false;
-        } else {
-            return source.equals(destination);
-        }
-    }
-    
-    private SecretToken getCredentials(DataAddress source) {
+    private ValidationResult validateSourceCredentials(DataAddress source) {
         try {
-            return ofNullable(source.getKeyName())
-                    .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                    .map(vault::resolveSecret)
-                    .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                    .map(secret -> typeManager.readValue(secret, AwsTemporarySecretToken.class))
-                    .orElse(null);
-        } catch (EdcException e) {
-            // failed to deserialize secret
-            return null;
+            getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+            return ValidationResult.success();
+        } catch (Exception e) {
+            var violation = Violation.violation("No or invalid credential found in vault for given key.", "keyName", source.getKeyName());
+            return ValidationResult.failure(violation);
         }
     }
 }

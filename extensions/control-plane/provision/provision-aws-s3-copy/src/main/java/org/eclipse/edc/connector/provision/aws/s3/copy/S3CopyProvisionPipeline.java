@@ -43,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static java.lang.String.format;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
@@ -59,7 +60,6 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisi
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.EMPTY_BUCKET_POLICY;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.resourceIdentifier;
 
 /**
@@ -168,9 +168,9 @@ public class S3CopyProvisionPipeline {
                             provisionSteps.setBucketPolicy(result.policy());
                             return provisionSteps;
                         } else {
-                            if (ex instanceof CompletionException
-                                    && ex.getCause() instanceof S3Exception s3Exception
-                                    && s3Exception.awsErrorDetails().errorCode().equals(S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY)) {
+                            if (ex instanceof CompletionException &&
+                                    ex.getCause() instanceof S3Exception s3Exception &&
+                                    s3Exception.awsErrorDetails().errorCode().equals(S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY)) {
                                 // accessing the bucket policy works, but no bucket policy is set
                                 provisionSteps.setBucketPolicy(EMPTY_BUCKET_POLICY);
                                 return provisionSteps;

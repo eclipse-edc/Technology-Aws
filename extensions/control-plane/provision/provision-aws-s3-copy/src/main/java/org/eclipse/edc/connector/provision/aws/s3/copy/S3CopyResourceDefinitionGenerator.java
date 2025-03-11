@@ -14,7 +14,6 @@
 
 package org.eclipse.edc.connector.provision.aws.s3.copy;
 
-import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProviderResourceDefinitionGenerator;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
@@ -22,8 +21,9 @@ import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.jetbrains.annotations.Nullable;
 
-import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.applicableForS3CopyTransfer;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationFileName;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
@@ -60,39 +60,6 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
     
     @Override
     public boolean canGenerate(TransferProcess transferProcess, DataAddress assetAddress, Policy policy) {
-        if (transferProcess.getDataDestination() == null) {
-            return false;
-        }
-        
-        var sourceType = transferProcess.getContentDataAddress().getType();
-        var sinkType = transferProcess.getDestinationType();
-        var sourceEndpointOverride = transferProcess.getContentDataAddress().getStringProperty(ENDPOINT_OVERRIDE);
-        var destinationEndpointOverride = transferProcess.getDataDestination().getStringProperty(ENDPOINT_OVERRIDE);
-        
-        // only applicable for S3-to-S3 transfer
-        var isSameType = S3BucketSchema.TYPE.equals(sourceType) && S3BucketSchema.TYPE.equals(sinkType);
-        
-        // if endpointOverride set, it needs to be the same for both source & destination
-        var hasSameEndpointOverride = sameEndpointOverride(sourceEndpointOverride, destinationEndpointOverride);
-        
-        return isSameType && hasSameEndpointOverride;
-    }
-    
-    private String getDestinationFileName(String key, String folder) {
-        if (folder == null) {
-            return key;
-        }
-        
-        return folder.endsWith("/") ? folder + key : format("%s/%s", folder, key);
-    }
-    
-    private boolean sameEndpointOverride(String source, String destination) {
-        if (source == null && destination == null) {
-            return true;
-        } else if (source == null || destination == null) {
-            return false;
-        } else {
-            return source.equals(destination);
-        }
+        return applicableForS3CopyTransfer(transferProcess.getContentDataAddress(), transferProcess.getDataDestination());
     }
 }
