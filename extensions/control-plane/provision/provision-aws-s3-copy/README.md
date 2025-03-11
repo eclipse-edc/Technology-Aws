@@ -50,13 +50,8 @@ As mentioned above, this extension should be used together with the `data-plane-
 Prerequisites for using this extension are existing source and destination buckets as well as AWS users/roles
 in the source and destination accounts with the respective [necessary permissions](#required-aws-permissions).
 
-For the provider, the `accessKeyId` and `secretAccessKey` of the AWS user need to be present in the vault.
-The keys under which they are stored in the vault need to be set in the configuration using the following properties:
-
-```properties
-edc.aws.access.key=<vault-key-of-access-key-id>
-edc.aws.secret.access.key=<vault-key-of-secret-access-key>
-```
+For the provider, the `accessKeyId` and `secretAccessKey` of the AWS user need to be set as described in the
+[aws-s3-core README](../../../common/aws/aws-s3-core/README.md).
 
 For the consumer, a `SecretToken` has to be added to the vault as described in the
 [data-plane-aws-s3 README](../../../data-plane/data-plane-aws-s3/README.md#secret-resolution).

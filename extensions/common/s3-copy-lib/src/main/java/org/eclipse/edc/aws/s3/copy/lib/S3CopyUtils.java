@@ -45,7 +45,7 @@ public class S3CopyUtils {
      * @param folder destination folder
      * @return the S3 destiation file key
      */
-    public static String getDestinationFileName(String key, String folder) {
+    public static String getDestinationKey(String key, String folder) {
         if (folder == null) {
             return key;
         }

@@ -15,7 +15,6 @@
 package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.connector.dataplane.selector.spi.DataPlaneSelectorService;
 import org.eclipse.edc.connector.dataplane.spi.registry.TransferServiceRegistry;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
@@ -26,7 +25,6 @@ import org.eclipse.edc.spi.system.ServiceExtension;
 import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
-import org.eclipse.edc.web.spi.configuration.context.ControlApiUrl;
 
 /**
  * Provides a {@link org.eclipse.edc.connector.dataplane.spi.pipeline.TransferService} for
@@ -54,11 +52,6 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     private TypeManager typeManager;
     @Inject
     private DataAddressValidatorRegistry validator;
-    
-    @Inject
-    private DataPlaneSelectorService dataPlaneSelectorService;
-    @Inject
-    private ControlApiUrl controlApiUrl;
     
     @Override
     public String name() {

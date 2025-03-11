@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.applicableForS3CopyTransfer;
-import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationFileName;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationKey;
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
@@ -111,7 +111,7 @@ public class AwsS3CopyTransferService implements TransferService {
         var destinationRegion = destination.getStringProperty(REGION);
         var destinationBucketName = destination.getStringProperty(BUCKET_NAME);
         var destinationFolder = destination.getStringProperty(FOLDER_NAME);
-        var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
+        var destinationFileName = destination.getStringProperty(OBJECT_NAME) != null ?
                 destination.getStringProperty(OBJECT_NAME) : sourceKey;
         
         SecretToken secretToken;
@@ -125,19 +125,19 @@ public class AwsS3CopyTransferService implements TransferService {
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         var multipartClient = MultipartS3AsyncClient.create(s3Client, multipartConfiguration, true);
         
-        var destinationFileName = getDestinationFileName(destinationKey, destinationFolder);
+        var destinationKey = getDestinationKey(destinationFileName, destinationFolder);
         
         var copyRequest = CopyObjectRequest.builder()
                 .sourceBucket(sourceBucketName)
                 .sourceKey(sourceKey)
                 .destinationBucket(destinationBucketName)
-                .destinationKey(destinationFileName)
+                .destinationKey(destinationKey)
                 .acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL)
                 .build();
         
         return multipartClient.copyObject(copyRequest)
                 .thenApply(response -> {
-                    monitor.info(format("Successfully copied S3 object %s/%s to %s/%s.", sourceBucketName, sourceKey, destinationBucketName, destinationFileName));
+                    monitor.info(format("Successfully copied S3 object %s/%s to %s/%s.", sourceBucketName, sourceKey, destinationBucketName, destinationKey));
                     return StreamResult.success();
                 })
                 .exceptionally(throwable -> {

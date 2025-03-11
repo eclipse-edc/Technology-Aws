@@ -74,8 +74,9 @@ public class S3CopyDeprovisionPipeline {
         var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), provisionedResource.getEndpointOverride(), secretToken);
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
-        // create IAM & STS client for source account -> delete IAM role
+        // create IAM client for source account -> delete IAM role
         var iamClient = clientProvider.iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), provisionedResource.getEndpointOverride()));
+        
         var roleName = provisionedResource.getSourceAccountRoleName();
         
         var getBucketPolicyRequest = GetBucketPolicyRequest.builder()

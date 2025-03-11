@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.UUID.randomUUID;
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.applicableForS3CopyTransfer;
-import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationFileName;
+import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getDestinationKey;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
@@ -41,17 +41,17 @@ public class S3CopyResourceDefinitionGenerator implements ProviderResourceDefini
         var bucketPolicyStatementSid = resourceIdentifier(transferProcess.getId());
         
         var destination = transferProcess.getDataDestination();
-
-        var destinationKey = destination.getStringProperty(OBJECT_NAME) != null ?
+        
+        var destinationFileName = destination.getStringProperty(OBJECT_NAME) != null ?
                 destination.getStringProperty(OBJECT_NAME) : transferProcess.getContentDataAddress().getStringProperty(OBJECT_NAME);
-        var destinationFileName = getDestinationFileName(destinationKey, destination.getStringProperty(FOLDER_NAME));
+        var destinationKey = getDestinationKey(destinationFileName, destination.getStringProperty(FOLDER_NAME));
         
         return S3CopyResourceDefinition.Builder.newInstance()
                 .id(randomUUID().toString())
                 .endpointOverride(destination.getStringProperty(ENDPOINT_OVERRIDE))
                 .destinationRegion(destination.getStringProperty(REGION))
                 .destinationBucketName(destination.getStringProperty(BUCKET_NAME))
-                .destinationObjectName(destinationFileName)
+                .destinationObjectName(destinationKey)
                 .destinationKeyName(destination.getKeyName())
                 .bucketPolicyStatementSid(bucketPolicyStatementSid)
                 .sourceDataAddress(transferProcess.getContentDataAddress())

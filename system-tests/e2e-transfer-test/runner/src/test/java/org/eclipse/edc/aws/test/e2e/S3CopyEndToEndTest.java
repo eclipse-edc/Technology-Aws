@@ -71,20 +71,20 @@ class S3CopyEndToEndTest {
     
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:3.5.0");
     
-    private String fileContent = "Hello, world!";
-    private String region = "eu-central-1";
+    private final String fileContent = "Hello, world!";
+    private final String region = "eu-central-1";
     
-    private String sourceBucket = "source-bucket";
-    private String sourceObjectName = "source.txt";
-    private String sourceUser = "source-user";
-    private String sourceUserPolicyName = "source-user-policy";
+    private final String sourceBucket = "source-bucket";
+    private final String sourceObjectName = "source.txt";
+    private final String sourceUser = "source-user";
+    private final String sourceUserPolicyName = "source-user-policy";
     private String sourceAccessKeyId;
     private String sourceSecretAccessKey;
     
-    private String destinationBucket = "destination-bucket";
-    private String destinationObjectName = "transferred.txt";
-    private String destinationUser = "destination-user";
-    private String destinationUserPolicyName = "destination-user-policy";
+    private final String destinationBucket = "destination-bucket";
+    private final String destinationObjectName = "transferred.txt";
+    private final String destinationUser = "destination-user";
+    private final String destinationUserPolicyName = "destination-user-policy";
     private String destinationAccessKeyId;
     private String destinationSecretAccessKey;
     

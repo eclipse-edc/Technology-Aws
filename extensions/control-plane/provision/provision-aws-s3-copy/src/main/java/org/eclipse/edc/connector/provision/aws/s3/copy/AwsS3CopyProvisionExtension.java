@@ -62,8 +62,6 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
 
     @Override
     public void initialize(ServiceExtensionContext context) {
-        monitor = context.getMonitor();
-    
         // register resource definition generator
         manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
         
