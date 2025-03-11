@@ -97,12 +97,12 @@ class S3CopyEndToEndTest {
     
     @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("provider",":system-tests:e2e-transfer-test:runtime")
+            new EmbeddedRuntime("provider", ":system-tests:e2e-transfer-test:runtime")
                     .configurationProvider(S3CopyEndToEndTest::providerConfig));
     
     @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("consumer",":system-tests:e2e-transfer-test:runtime")
+            new EmbeddedRuntime("consumer", ":system-tests:e2e-transfer-test:runtime")
                     .configurationProvider(S3CopyEndToEndTest::consumerConfig));
     
     @BeforeEach
@@ -232,51 +232,51 @@ class S3CopyEndToEndTest {
     }
     
     private String sourceUserPolicy() {
-        return "{\n"
-                + "    \"Version\": \"2012-10-17\",\n"
-                + "    \"Statement\": [\n"
-                + "        {\n"
-                + "            \"Sid\": \"iamPermissions\",\n"
-                + "            \"Effect\": \"Allow\",\n"
-                + "            \"Action\": [\n"
-                + "                \"iam:DeleteRolePolicy\",\n"
-                + "                \"iam:TagRole\",\n"
-                + "                \"iam:CreateRole\",\n"
-                + "                \"iam:DeleteRole\",\n"
-                + "                \"iam:PutRolePolicy\",\n"
-                + "                \"iam:GetUser\"\n"
-                + "            ],\n"
-                + "            \"Resource\": [\n"
-                + "                \"arn:aws:iam::000000000000:role/*\",\n"
-                + "                \"arn:aws:iam::000000000000:user/" + sourceUser + "\"\n"
-                + "            ]\n"
-                + "        },\n"
-                + "        {\n"
-                + "            \"Sid\": \"stsPermissions\",\n"
-                + "            \"Effect\": \"Allow\",\n"
-                + "            \"Action\": \"sts:AssumeRole\",\n"
-                + "            \"Resource\": \"arn:aws:iam::000000000000:role/*\"\n"
-                + "        }\n"
-                + "    ]\n"
-                + "}";
+        return "{\n" +
+                "    \"Version\": \"2012-10-17\",\n" +
+                "    \"Statement\": [\n" +
+                "        {\n" +
+                "            \"Sid\": \"iamPermissions\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Action\": [\n" +
+                "                \"iam:DeleteRolePolicy\",\n" +
+                "                \"iam:TagRole\",\n" +
+                "                \"iam:CreateRole\",\n" +
+                "                \"iam:DeleteRole\",\n" +
+                "                \"iam:PutRolePolicy\",\n" +
+                "                \"iam:GetUser\"\n" +
+                "            ],\n" +
+                "            \"Resource\": [\n" +
+                "                \"arn:aws:iam::000000000000:role/*\",\n" +
+                "                \"arn:aws:iam::000000000000:user/" + sourceUser + "\"\n" +
+                "            ]\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"Sid\": \"stsPermissions\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Action\": \"sts:AssumeRole\",\n" +
+                "            \"Resource\": \"arn:aws:iam::000000000000:role/*\"\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
     }
     
     private String destinationUserPolicy() {
-        return "{\n"
-                + "    \"Version\": \"2012-10-17\",\n"
-                + "    \"Statement\": [\n"
-                + "        {\n"
-                + "            \"Sid\": \"s3Permissions\",\n"
-                + "            \"Effect\": \"Allow\",\n"
-                + "            \"Action\": [\n"
-                + "                \"s3:PutBucketPolicy\",\n"
-                + "                \"s3:GetBucketPolicy\",\n"
-                + "                \"s3:DeleteBucketPolicy\"\n"
-                + "            ],\n"
-                + "            \"Resource\": \"arn:aws:s3:::" + destinationBucket + "\"\n"
-                + "        }\n"
-                + "    ]\n"
-                + "}";
+        return "{\n" +
+                "    \"Version\": \"2012-10-17\",\n" +
+                "    \"Statement\": [\n" +
+                "        {\n" +
+                "            \"Sid\": \"s3Permissions\",\n" +
+                "            \"Effect\": \"Allow\",\n" +
+                "            \"Action\": [\n" +
+                "                \"s3:PutBucketPolicy\",\n" +
+                "                \"s3:GetBucketPolicy\",\n" +
+                "                \"s3:DeleteBucketPolicy\"\n" +
+                "            ],\n" +
+                "            \"Resource\": \"arn:aws:s3:::" + destinationBucket + "\"\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
     }
     
     private String awsSecretToken(String accessKeyId, String secretAccessKey) {

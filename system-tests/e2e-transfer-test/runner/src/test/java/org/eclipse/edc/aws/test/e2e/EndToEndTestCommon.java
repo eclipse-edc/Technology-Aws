@@ -99,17 +99,17 @@ public class EndToEndTestCommon {
     }
     
     public static void waitForProviderTransferState(String correlationId, TransferProcessStates state) {
-        var querySpec = "{\n"
-                + "     \"@context\": { \"@vocab\": \"https://w3id.org/edc/v0.0.1/ns/\" },\n"
-                + "     \"@type\": \"QuerySpec\",\n"
-                + "     \"filterExpression\": [\n"
-                + "         {\n"
-                + "             \"operandLeft\": \"correlationId\",\n"
-                + "             \"operator\": \"=\",\n"
-                + "             \"operandRight\": \"" + correlationId + "\"\n"
-                + "         }\n"
-                + "     ]\n"
-                + "}";
+        var querySpec = "{\n" +
+                "     \"@context\": { \"@vocab\": \"https://w3id.org/edc/v0.0.1/ns/\" },\n" +
+                "     \"@type\": \"QuerySpec\",\n" +
+                "     \"filterExpression\": [\n" +
+                "         {\n" +
+                "             \"operandLeft\": \"correlationId\",\n" +
+                "             \"operator\": \"=\",\n" +
+                "             \"operandRight\": \"" + correlationId + "\"\n" +
+                "         }\n" +
+                "     ]\n" +
+                "}";
         var providerTransferId = post(PROVIDER_MANAGEMENT_API + "/transferprocesses/request", querySpec, "[0].@id");
         
         Callable<String> getTransferState = () -> get(PROVIDER_MANAGEMENT_API + "/transferprocesses/" + providerTransferId, "state");
