@@ -214,14 +214,15 @@ class S3CopyEndToEndTest {
     private S3Client getS3Client() {
         return S3Client.builder()
                 .credentialsProvider(localStackCredentials())
-                .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .region(Region.of(region))
+                .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .build();
     }
     
     private IamClient getIamClient() {
         return IamClient.builder()
                 .credentialsProvider(localStackCredentials())
+                .region(Region.AWS_GLOBAL)
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .build();
     }
