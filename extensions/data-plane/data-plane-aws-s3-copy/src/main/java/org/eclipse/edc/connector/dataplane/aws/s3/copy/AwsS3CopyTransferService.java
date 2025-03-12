@@ -73,8 +73,8 @@ public class AwsS3CopyTransferService implements TransferService {
         this.typeManager = typeManager;
         this.validator = validator;
         this.multipartConfiguration = MultipartConfiguration.builder()
-                .thresholdInBytes(chunkSizeInMb * 1024 * 1024L)
-                .minimumPartSizeInBytes(chunkSizeInMb * 1024 * 1024L)
+                .thresholdInBytes(chunkSizeInMb * 1024L * 1024L)
+                .minimumPartSizeInBytes(chunkSizeInMb * 1024L * 1024L)
                 .build();
     }
     
