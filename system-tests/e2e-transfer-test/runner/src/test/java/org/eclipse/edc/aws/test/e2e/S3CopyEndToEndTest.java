@@ -69,7 +69,7 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisi
 @EndToEndTest
 class S3CopyEndToEndTest {
     
-    private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:3.5.0");
+    private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
     
     private final String fileContent = "Hello, world!";
     private final String region = "eu-central-1";
