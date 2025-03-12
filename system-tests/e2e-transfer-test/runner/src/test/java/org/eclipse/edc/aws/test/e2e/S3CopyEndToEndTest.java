@@ -53,7 +53,6 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createAsset;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createConsumerSecret;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createContractDefinition;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createPolicy;
-import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createProviderSecret;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.getAgreementId;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateNegotiation;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateTransfer;
@@ -70,6 +69,9 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisi
 class S3CopyEndToEndTest {
     
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
+    
+    private static final String SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID = "aws.accessKeyId";
+    private static final String SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY = "aws.secretAccessKey";
     
     private final String fileContent = "Hello, world!";
     private final String region = "eu-central-1";
@@ -137,6 +139,9 @@ class S3CopyEndToEndTest {
         sourceAccessKeyId = sourceCredentials.accessKey().accessKeyId();
         sourceSecretAccessKey = sourceCredentials.accessKey().secretAccessKey();
         
+        System.setProperty(SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID, sourceAccessKeyId);
+        System.setProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY, sourceSecretAccessKey);
+        
         // consumer
         s3Client.createBucket(CreateBucketRequest.builder()
                 .bucket(destinationBucket)
@@ -162,13 +167,13 @@ class S3CopyEndToEndTest {
     @AfterEach
     void tearDown() {
         LOCALSTACK_CONTAINER.stop();
+        
+        System.clearProperty(SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID);
+        System.clearProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY);
     }
     
     @Test
     void s3CopyTransfer() {
-        createProviderSecret("source-user-access-key-id", sourceAccessKeyId);
-        createProviderSecret("source-user-secret-access-key", sourceSecretAccessKey);
-        
         createConsumerSecret("s3-credentials", awsSecretToken(destinationAccessKeyId, destinationSecretAccessKey));
         
         createAsset(LOCALSTACK_CONTAINER.getEndpoint().toString());

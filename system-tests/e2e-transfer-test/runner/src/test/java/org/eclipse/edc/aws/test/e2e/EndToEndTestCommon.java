@@ -41,13 +41,6 @@ public class EndToEndTestCommon {
     
     private EndToEndTestCommon() {}
     
-    public static void createProviderSecret(String id, String value) {
-        var requestBody = readFile(TEST_RESOURCES + "secret.json")
-                .replace("{secret-id}", id)
-                .replace("{secret-value}", value);
-        post(PROVIDER_MANAGEMENT_API + "/secrets", requestBody);
-    }
-    
     public static void createConsumerSecret(String id, String value) {
         var requestBody = readFile(TEST_RESOURCES + "secret.json")
                 .replace("{secret-id}", id)
