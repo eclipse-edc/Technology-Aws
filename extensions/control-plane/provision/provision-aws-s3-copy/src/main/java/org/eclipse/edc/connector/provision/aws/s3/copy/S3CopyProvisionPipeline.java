@@ -47,19 +47,11 @@ import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVaul
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_ROLE_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_STATEMENT_SID;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_USER_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.EMPTY_BUCKET_POLICY;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.STATEMENT_ATTRIBUTE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.bucketPolicyStatement;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.crossAccountRolePolicy;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.emptyBucketPolicy;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.roleTrustPolicy;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionUtils.resourceIdentifier;
 
 /**
@@ -68,6 +60,8 @@ import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisi
  * account. All operations are executed consecutively.
  */
 public class S3CopyProvisionPipeline {
+    
+    private static final String S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY = "NoSuchBucketPolicy";
     
     private final AwsClientProvider clientProvider;
     private final Vault vault;
@@ -113,13 +107,12 @@ public class S3CopyProvisionPipeline {
                                                              S3CopyResourceDefinition resourceDefinition,
                                                              GetUserResponse getUserResponse) {
         var roleName = resourceIdentifier(resourceDefinition);
-        var trustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
-                .replace(PLACEHOLDER_USER_ARN, getUserResponse.user().arn());
+        var trustPolicy = roleTrustPolicy(getUserResponse.user().arn());
         
         var createRoleRequest = CreateRoleRequest.builder()
                 .roleName(roleName)
                 .description(format("Role for EDC transfer: %s", roleName))
-                .assumeRolePolicyDocument(trustPolicy)
+                .assumeRolePolicyDocument(trustPolicy.toString())
                 .maxSessionDuration(maxRoleSessionDuration)
                 .tags(roleTags(resourceDefinition))
                 .build();
@@ -133,17 +126,18 @@ public class S3CopyProvisionPipeline {
     private CompletableFuture<S3CopyProvisionSteps> putRolePolicy(IamAsyncClient iamClient,
                                                                   S3CopyResourceDefinition resourceDefinition,
                                                                   CreateRoleResponse createRoleResponse) {
-        var rolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
-                .replace(PLACEHOLDER_SOURCE_BUCKET, resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME))
-                .replace(PLACEHOLDER_SOURCE_OBJECT, resourceDefinition.getSourceDataAddress().getStringProperty(OBJECT_NAME))
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName())
-                .replace(PLACEHOLDER_DESTINATION_OBJECT, resourceDefinition.getDestinationObjectName());
+        var sourceBucket = resourceDefinition.getSourceDataAddress().getStringProperty(BUCKET_NAME);
+        var sourceObject = resourceDefinition.getSourceDataAddress().getStringProperty(OBJECT_NAME);
+        var destinationBucket = resourceDefinition.getDestinationBucketName();
+        var destinationObject = resourceDefinition.getDestinationObjectName();
+        
+        var rolePolicy = crossAccountRolePolicy(sourceBucket, sourceObject, destinationBucket, destinationObject);
         
         var role = createRoleResponse.role();
         var putRolePolicyRequest = PutRolePolicyRequest.builder()
                 .roleName(role.roleName())
                 .policyName(resourceIdentifier(resourceDefinition))
-                .policyDocument(rolePolicy)
+                .policyDocument(rolePolicy.toString())
                 .build();
         
         return Failsafe.with(retryPolicy).getStageAsync(() -> {
@@ -172,7 +166,7 @@ public class S3CopyProvisionPipeline {
                                     ex.getCause() instanceof S3Exception s3Exception &&
                                     s3Exception.awsErrorDetails().errorCode().equals(S3_ERROR_CODE_NO_SUCH_BUCKET_POLICY)) {
                                 // accessing the bucket policy works, but no bucket policy is set
-                                provisionSteps.setBucketPolicy(EMPTY_BUCKET_POLICY);
+                                provisionSteps.setBucketPolicy(emptyBucketPolicy().toString());
                                 return provisionSteps;
                             }
                             
@@ -185,20 +179,20 @@ public class S3CopyProvisionPipeline {
     private CompletableFuture<S3CopyProvisionSteps> updateBucketPolicy(S3AsyncClient s3Client,
                                                                        S3CopyResourceDefinition resourceDefinition,
                                                                        S3CopyProvisionSteps provisionSteps) {
-        var bucketPolicyStatement = BUCKET_POLICY_STATEMENT_TEMPLATE
-                .replace(PLACEHOLDER_STATEMENT_SID, resourceDefinition.getBucketPolicyStatementSid())
-                .replace(PLACEHOLDER_ROLE_ARN, provisionSteps.getRole().arn())
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, resourceDefinition.getDestinationBucketName());
+        var statementSid = resourceDefinition.getBucketPolicyStatementSid();
+        var roleArn = provisionSteps.getRole().arn();
+        var destinationBucket = resourceDefinition.getDestinationBucketName();
+        
+        var statement = bucketPolicyStatement(statementSid, roleArn, destinationBucket);
         
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
-        var statementJson = Json.createObjectBuilder(typeManager.readValue(bucketPolicyStatement, typeReference)).build();
         var policyJson = Json.createObjectBuilder(typeManager.readValue(provisionSteps.getBucketPolicy(), typeReference)).build();
         
-        var statements = Json.createArrayBuilder(policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT))
-                .add(statementJson)
+        var statements = Json.createArrayBuilder(policyJson.getJsonArray(STATEMENT_ATTRIBUTE))
+                .add(statement)
                 .build();
         var updatedBucketPolicy = Json.createObjectBuilder(policyJson)
-                .add(S3_BUCKET_POLICY_STATEMENT, statements)
+                .add(STATEMENT_ATTRIBUTE, statements)
                 .build().toString();
         
         var putBucketPolicyRequest = PutBucketPolicyRequest.builder()

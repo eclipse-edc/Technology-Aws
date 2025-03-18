@@ -14,10 +14,11 @@
 
 package org.eclipse.edc.connector.provision.aws.s3.copy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
 import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
@@ -63,18 +64,11 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_DESTINATION_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_ROLE_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_BUCKET;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_SOURCE_OBJECT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_STATEMENT_SID;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.PLACEHOLDER_USER_ARN;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.BUCKET_POLICY_STATEMENT_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionTemplates.EMPTY_BUCKET_POLICY;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.STATEMENT_ATTRIBUTE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.bucketPolicyStatement;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.crossAccountRolePolicy;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.emptyBucketPolicy;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.roleTrustPolicy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -115,7 +109,7 @@ class S3CopyProvisionerTest {
     }
     
     @Test
-    void provision_shouldProvisionResources() throws JsonProcessingException {
+    void provision_shouldProvisionResources() throws Exception {
         var definition = resourceDefinition();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
@@ -161,20 +155,15 @@ class S3CopyProvisionerTest {
         var createRoleRequestCaptor = ArgumentCaptor.forClass(CreateRoleRequest.class);
         verify(iamClient).createRole(createRoleRequestCaptor.capture());
         var createRoleRequest = createRoleRequestCaptor.getValue();
-        var expectedTrustPolicy = CROSS_ACCOUNT_ROLE_TRUST_POLICY_TEMPLATE
-                .replace(PLACEHOLDER_USER_ARN, userArn);
-        assertThat(createRoleRequest.assumeRolePolicyDocument()).isEqualTo(expectedTrustPolicy);
+        var expectedTrustPolicy = roleTrustPolicy(userArn);
+        assertThat(toObjectNode(createRoleRequest.assumeRolePolicyDocument())).isEqualTo(toObjectNode(expectedTrustPolicy));
         
         // verify role policy of created role
         var putRolePolicyRequestCaptor = ArgumentCaptor.forClass(PutRolePolicyRequest.class);
         verify(iamClient).putRolePolicy(putRolePolicyRequestCaptor.capture());
         var putRolePolicyRequest = putRolePolicyRequestCaptor.getValue();
-        var expectedRolePolicy = CROSS_ACCOUNT_ROLE_POLICY_TEMPLATE
-                .replace(PLACEHOLDER_SOURCE_BUCKET, sourceBucket)
-                .replace(PLACEHOLDER_SOURCE_OBJECT, sourceObject)
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, destinationBucket)
-                .replace(PLACEHOLDER_DESTINATION_OBJECT, destinationObject);
-        assertThat(putRolePolicyRequest.policyDocument()).isEqualTo(expectedRolePolicy);
+        var expectedRolePolicy = crossAccountRolePolicy(sourceBucket, sourceObject, destinationBucket, destinationObject);
+        assertThat(toObjectNode(putRolePolicyRequest.policyDocument())).isEqualTo(toObjectNode(expectedRolePolicy));
         
         // verify bucket policy fetched for destination bucket
         verify(s3Client).getBucketPolicy(argThat((GetBucketPolicyRequest request) -> request.bucket().equals(destinationBucket)));
@@ -191,7 +180,7 @@ class S3CopyProvisionerTest {
     }
     
     @Test
-    void provision_onError_shouldReturnFailedFuture() throws JsonProcessingException {
+    void provision_onError_shouldReturnFailedFuture() throws Exception {
         var definition = resourceDefinition();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
@@ -205,7 +194,7 @@ class S3CopyProvisionerTest {
     }
     
     @Test
-    void deprovision_shouldDeprovisionResources() throws JsonProcessingException {
+    void deprovision_shouldDeprovisionResources() throws Exception {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
@@ -241,7 +230,7 @@ class S3CopyProvisionerTest {
     }
     
     @Test
-    void deprovision_otherBucketPolicyStatements_shouldOnlyRemoveProvisionedStatement() throws JsonProcessingException {
+    void deprovision_otherBucketPolicyStatements_shouldOnlyRemoveProvisionedStatement() throws Exception {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
@@ -281,7 +270,7 @@ class S3CopyProvisionerTest {
     }
     
     @Test
-    void deprovision_onError_shouldReturnFailedFuture() throws JsonProcessingException {
+    void deprovision_onError_shouldReturnFailedFuture() throws Exception {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
@@ -294,21 +283,16 @@ class S3CopyProvisionerTest {
         assertThat(response).failsWithin(1, SECONDS);
     }
     
-    private void verifyBucketPolicy(String policy, String statementSid, String roleArn) throws JsonProcessingException {
+    private void verifyBucketPolicy(String policy, String statementSid, String roleArn) throws Exception {
         var typeReference = new TypeReference<HashMap<String, Object>>() {};
         var policyJson = Json.createObjectBuilder(typeManager.readValue(policy, typeReference)).build();
-        var statements = policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT);
+        var statements = policyJson.getJsonArray(STATEMENT_ATTRIBUTE);
         
         assertThat(statements).hasSize(1);
         
-        var expectedStatementJson = BUCKET_POLICY_STATEMENT_TEMPLATE
-                .replace(PLACEHOLDER_STATEMENT_SID, statementSid)
-                .replace(PLACEHOLDER_ROLE_ARN, roleArn)
-                .replace(PLACEHOLDER_DESTINATION_BUCKET, destinationBucket);
-        var expectedStatement = typeManager.getMapper().readTree(expectedStatementJson);
-        var statement = typeManager.getMapper().readTree(statements.get(0).toString());
+        var expectedStatement = bucketPolicyStatement(statementSid, roleArn, destinationBucket);
         
-        assertThat(statement).isEqualTo(expectedStatement);
+        assertThat(toObjectNode(statements.get(0).toString())).isEqualTo(toObjectNode(expectedStatement));
     }
     
     private S3CopyResourceDefinition resourceDefinition() {
@@ -363,7 +347,7 @@ class S3CopyProvisionerTest {
     
     private GetBucketPolicyResponse getBucketPolicyResponse() {
         return GetBucketPolicyResponse.builder()
-                .policy(EMPTY_BUCKET_POLICY)
+                .policy(emptyBucketPolicy().toString())
                 .build();
     }
     
@@ -460,5 +444,13 @@ class S3CopyProvisionerTest {
                         .expiration(Instant.now().plusSeconds(86400))
                         .build())
                 .build();
+    }
+    
+    private ObjectNode toObjectNode(String json) throws Exception {
+        return (ObjectNode) typeManager.getMapper().readTree(json);
+    }
+    
+    private ObjectNode toObjectNode(JsonObject jsonObject) throws Exception {
+        return toObjectNode(jsonObject.toString());
     }
 }

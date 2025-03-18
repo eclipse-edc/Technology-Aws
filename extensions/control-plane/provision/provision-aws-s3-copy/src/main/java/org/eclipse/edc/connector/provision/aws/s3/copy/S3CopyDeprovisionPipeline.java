@@ -43,8 +43,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT;
-import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyProvisionConstants.S3_BUCKET_POLICY_STATEMENT_SID;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.BUCKET_POLICY_STATEMENT_SID_ATTRIBUTE;
+import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.STATEMENT_ATTRIBUTE;
 
 /**
  * Deprovisions the AWS resources and policies added through the provisiong process before a
@@ -104,9 +104,9 @@ public class S3CopyDeprovisionPipeline {
         
         var statementsBuilder = Json.createArrayBuilder();
         
-        policyJson.getJsonArray(S3_BUCKET_POLICY_STATEMENT).forEach(entry -> {
+        policyJson.getJsonArray(STATEMENT_ATTRIBUTE).forEach(entry -> {
             var statement = (JsonObject) entry;
-            var sid = statement.getJsonString(S3_BUCKET_POLICY_STATEMENT_SID);
+            var sid = statement.getJsonString(BUCKET_POLICY_STATEMENT_SID_ATTRIBUTE);
             
             // add all previously existing statements to bucket policy, omit only statement with Sid specified in provisioned resource
             if (sid == null || !statementSid.equals(sid.getString())) {
@@ -115,12 +115,12 @@ public class S3CopyDeprovisionPipeline {
         });
         
         var updatedBucketPolicy = Json.createObjectBuilder(policyJson)
-                .add(S3_BUCKET_POLICY_STATEMENT, statementsBuilder)
+                .add(STATEMENT_ATTRIBUTE, statementsBuilder)
                 .build();
         
         // since putting a bucket policy with empty statement array fails using the SDK, the bucket
         // policy is deleted if no statements are left
-        if (updatedBucketPolicy.getJsonArray(S3_BUCKET_POLICY_STATEMENT).isEmpty()) {
+        if (updatedBucketPolicy.getJsonArray(STATEMENT_ATTRIBUTE).isEmpty()) {
             var deleteBucketPolicyRequest = DeleteBucketPolicyRequest.builder()
                     .bucket(provisionedResource.getDestinationBucketName())
                     .build();
