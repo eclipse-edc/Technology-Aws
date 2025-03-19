@@ -20,6 +20,7 @@ import dev.failsafe.RetryPolicy;
 import jakarta.json.Json;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
+import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
@@ -43,6 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static java.lang.String.format;
+import static java.util.concurrent.CompletableFuture.failedFuture;
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
@@ -90,8 +92,11 @@ public class S3CopyProvisionPipeline {
         var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
         
         // create S3 client for destination account -> update S3 bucket policy
-        var destinationSecretToken = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
-        var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), resourceDefinition.getEndpointOverride(), destinationSecretToken);
+        var secretTokenResult = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
+        if (secretTokenResult.failed()) {
+            return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
+        }
+        var destinationClientRequest = S3ClientRequest.from(resourceDefinition.getDestinationRegion(), resourceDefinition.getEndpointOverride(), secretTokenResult.getContent());
         var s3Client = clientProvider.s3AsyncClient(destinationClientRequest);
         
         monitor.debug("S3CopyProvisionPipeline: getting IAM user");

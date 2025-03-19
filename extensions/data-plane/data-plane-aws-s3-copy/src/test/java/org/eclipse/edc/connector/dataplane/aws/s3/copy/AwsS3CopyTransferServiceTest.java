@@ -160,12 +160,15 @@ class AwsS3CopyTransferServiceTest {
     }
     
     @Test
-    void validate_invalidSource_shouldReturnFalse() {
+    void validate_invalidSource_shouldReturnFalse() throws Exception {
         var violation = Violation.violation("error", "path");
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.failure(violation));
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
     
         var source = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -180,12 +183,15 @@ class AwsS3CopyTransferServiceTest {
     }
     
     @Test
-    void validate_invalidDestination_shouldReturnFalse() {
+    void validate_invalidDestination_shouldReturnFalse() throws Exception {
         var violation = Violation.violation("error", "path");
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.failure(violation));
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
     
         var source = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -232,11 +238,14 @@ class AwsS3CopyTransferServiceTest {
     }
     
     @Test
-    void validate_invalidDestinationCredentials_shouldReturnFalse() {
+    void validate_invalidDestinationCredentials_shouldReturnFalse() throws Exception {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         when(vault.resolveSecret(keyName)).thenReturn("value");
-        when(typeManager.readValue(anyString(), eq(AwsTemporarySecretToken.class))).thenThrow(new EdcException("error"));
+        when(typeManager.getMapper()).thenReturn(objectMapper);
+        when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
+        when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenThrow(new EdcException("error"));
     
         var source = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -323,6 +332,7 @@ class AwsS3CopyTransferServiceTest {
         when(vault.resolveSecret(keyName)).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
         when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenReturn(temporarySecretToken());
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
         when(multipartS3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
@@ -376,8 +386,9 @@ class AwsS3CopyTransferServiceTest {
         when(vault.resolveSecret(keyName)).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
+        when(jsonNode.has("sessionToken")).thenReturn(true);
         when(objectMapper.treeToValue(any(), eq(AwsTemporarySecretToken.class))).thenThrow(new EdcException("error"));
-    
+        
         var source = sourceDataAddress();
         var destination = destinationDataAddress();
         var request = dataFlowStartMessage(source, destination);

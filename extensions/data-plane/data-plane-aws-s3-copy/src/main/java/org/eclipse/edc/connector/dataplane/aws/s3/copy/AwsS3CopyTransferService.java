@@ -16,7 +16,6 @@ package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
@@ -114,14 +113,12 @@ public class AwsS3CopyTransferService implements TransferService {
         var destinationFileName = destination.getStringProperty(OBJECT_NAME) != null ?
                 destination.getStringProperty(OBJECT_NAME) : sourceKey;
         
-        SecretToken secretToken;
-        try {
-            secretToken = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
-        } catch (Exception e) {
+        var tokenResult = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+        if (tokenResult.failed()) {
             return completedFuture(StreamResult.error("Missing or invalid credentials."));
         }
         
-        var s3ClientRequest = S3ClientRequest.from(destinationRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), secretToken);
+        var s3ClientRequest = S3ClientRequest.from(destinationRegion, request.getDestinationDataAddress().getStringProperty(ENDPOINT_OVERRIDE), tokenResult.getContent());
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         var multipartClient = MultipartS3AsyncClient.create(s3Client, multipartConfiguration, true);
         
@@ -163,12 +160,11 @@ public class AwsS3CopyTransferService implements TransferService {
     }
     
     private ValidationResult validateSourceCredentials(DataAddress source) {
-        try {
-            getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
-            return ValidationResult.success();
-        } catch (Exception e) {
+        var tokenResult = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+        if (tokenResult.failed()) {
             var violation = Violation.violation("No or invalid credential found in vault for given key.", "keyName", source.getKeyName());
             return ValidationResult.failure(violation);
         }
+        return ValidationResult.success();
     }
 }

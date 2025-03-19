@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedResource;
+import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.concurrent.CompletableFuture.failedFuture;
 import static org.eclipse.edc.aws.s3.copy.lib.S3CopyUtils.getSecretTokenFromVault;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.BUCKET_POLICY_STATEMENT_SID_ATTRIBUTE;
 import static org.eclipse.edc.connector.provision.aws.s3.copy.util.S3CopyPolicyUtils.STATEMENT_ATTRIBUTE;
@@ -70,8 +72,11 @@ public class S3CopyDeprovisionPipeline {
     
     public CompletableFuture<DeprovisionedResource> deprovision(S3CopyProvisionedResource provisionedResource) {
         // create S3 client for destination account -> update S3 bucket policy
-        var secretToken = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
-        var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), provisionedResource.getEndpointOverride(), secretToken);
+        var secretTokenResult = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
+        if (secretTokenResult.failed()) {
+            return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
+        }
+        var s3ClientRequest = S3ClientRequest.from(provisionedResource.getDestinationRegion(), provisionedResource.getEndpointOverride(), secretTokenResult.getContent());
         var s3Client = clientProvider.s3AsyncClient(s3ClientRequest);
         
         // create IAM client for source account -> delete IAM role

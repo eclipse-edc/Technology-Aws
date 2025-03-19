@@ -18,13 +18,11 @@ import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
-import org.eclipse.edc.spi.EdcException;
+import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.util.string.StringUtils;
-
-import java.io.IOException;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
@@ -98,28 +96,29 @@ public class S3CopyUtils {
      * @param secretKeyName name of the secret
      * @param vault vault from which to read the secret
      * @param typeManager type manager required for deserialization
-     * @return the deserialized secret token
+     * @return result containing the deserialized secret token or an error message
      */
-    public static SecretToken getSecretTokenFromVault(String secretKeyName, Vault vault, TypeManager typeManager) {
+    public static Result<SecretToken> getSecretTokenFromVault(String secretKeyName, Vault vault, TypeManager typeManager) {
         return ofNullable(secretKeyName)
                 .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
                 .map(vault::resolveSecret)
                 .filter(secret -> !StringUtils.isNullOrBlank(secret))
                 .map(secret -> deserializeSecretToken(secret, typeManager))
-                .orElseThrow(() -> new EdcException(format("Failed to resolve or parse secret with key '%s'", secretKeyName)));
+                .orElse(Result.failure(format("Failed to resolve secret with key '%s'", secretKeyName)));
     }
     
-    private static SecretToken deserializeSecretToken(String secret, TypeManager typeManager) {
+    private static Result<SecretToken> deserializeSecretToken(String secret, TypeManager typeManager) {
         try {
             var objectMapper = typeManager.getMapper();
             var tree = objectMapper.readTree(secret);
+
             if (tree.has("sessionToken")) {
-                return objectMapper.treeToValue(tree, AwsTemporarySecretToken.class);
+                return Result.success(objectMapper.treeToValue(tree, AwsTemporarySecretToken.class));
             } else {
-                return objectMapper.treeToValue(tree, AwsSecretToken.class);
+                return Result.success(objectMapper.treeToValue(tree, AwsSecretToken.class));
             }
-        } catch (IOException e) {
-            throw new EdcException(e);
+        } catch (Exception e) {
+            return Result.failure(format("Failed to parse AWS secret token: %s", e.getMessage()));
         }
     }
     

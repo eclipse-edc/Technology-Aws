@@ -37,9 +37,9 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
 
     public static final String NAME = "AWS S3 Copy Provision";
     
-    @Setting(key = "edc.aws.provision.retry.retries.max", defaultValue = "" + 10)
+    @Setting(key = "edc.aws.provision.retry.retries.max", description = "Maximum number of retries for AWS requests performed during (de)provisioning.", defaultValue = "" + 10)
     private int maxRetries;
-    @Setting(key = "edc.aws.provision.role.duration.session.max", defaultValue = "" + 3600)
+    @Setting(key = "edc.aws.provision.role.duration.session.max", description = "Maximum session duration for roles created during provisioning in seconds.", defaultValue = "" + 3600)
     private int maxRoleSessionDuration;
     
     @Inject
@@ -50,6 +50,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private AwsClientProvider clientProvider;
     @Inject
     private TypeManager typeManager;
+    @Inject
+    private RetryPolicy<Object> retryPolicy;
     @Inject
     private ResourceManifestGenerator manifestGenerator;
     @Inject
@@ -62,24 +64,12 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
 
     @Override
     public void initialize(ServiceExtensionContext context) {
-        // register resource definition generator
         manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
         
-        // register provisioner
-        var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
         var provisioner = new S3CopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
         provisionManager.register(provisioner);
 
         registerTypes(typeManager);
-    }
-
-    @Override
-    public void shutdown() {
-        try {
-            clientProvider.shutdown();
-        } catch (Exception e) {
-            monitor.severe("Error closing AWS client provider", e);
-        }
     }
 
     private void registerTypes(TypeManager typeManager) {
