@@ -76,15 +76,6 @@ public class AwsProvisionExtension implements ServiceExtension {
         registerTypes(typeManager);
     }
 
-    @Override
-    public void shutdown() {
-        try {
-            clientProvider.shutdown();
-        } catch (Exception e) {
-            monitor.severe("Error closing S3 client provider", e);
-        }
-    }
-
     private void registerTypes(TypeManager typeManager) {
         typeManager.registerTypes(S3BucketProvisionedResource.class, S3BucketResourceDefinition.class, AwsTemporarySecretToken.class);
     }

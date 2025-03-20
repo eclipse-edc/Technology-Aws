@@ -55,6 +55,8 @@ public class S3CoreExtension implements ServiceExtension {
     public String name() {
         return NAME;
     }
+    
+    private AwsClientProvider clientProvider;
 
     @Provider
     public AwsClientProvider awsClientProvider(ServiceExtensionContext context) {
@@ -70,8 +72,9 @@ public class S3CoreExtension implements ServiceExtension {
                 .endpointOverride(endpointOverride)
                 .threadPoolSize(threadPoolSize)
                 .build();
-
-        return new AwsClientProviderImpl(configuration);
+        
+        clientProvider = new AwsClientProviderImpl(configuration);
+        return clientProvider;
     }
 
     @NotNull
@@ -86,5 +89,13 @@ public class S3CoreExtension implements ServiceExtension {
 
         return () -> AwsBasicCredentials.create(accessKey, secretKey);
     }
-
+    
+    @Override
+    public void shutdown() {
+        try {
+            clientProvider.shutdown();
+        } catch (Exception e) {
+            monitor.severe("Error closing AWS client provider", e);
+        }
+    }
 }

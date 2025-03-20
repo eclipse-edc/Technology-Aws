@@ -1,0 +1,17 @@
+{
+  "@context": {
+    "@vocab": "https://w3id.org/edc/v0.0.1/ns/"
+  },
+  "@id": "1",
+  "properties": {
+    "name": "example JSON data",
+    "contenttype": "application/json"
+  },
+  "dataAddress": {
+    "type": "AmazonS3",
+    "endpointOverride": "{endpoint-override}",
+    "region": "eu-central-1",
+    "bucketName": "source-bucket",
+    "objectName": "source.txt"
+  }
+}
