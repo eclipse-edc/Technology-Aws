@@ -6,14 +6,12 @@ awaitility = "4.2.1"
 aws = "2.31.11"
 edc = "0.13.0-SNAPSHOT"
 failsafe = "3.3.1"
-junit = "5.11.3"
 testcontainers = "1.20.6"
 restAssured = "5.5.1"
 
 
 [libraries]
 awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
-assertj = { module = "org.assertj:assertj-core", version = "3.27.2" }
 edc-core-dataplane = { module = "org.eclipse.edc:data-plane-core", version.ref = "edc" }
 edc-core-dataPlane-util = { module = "org.eclipse.edc:data-plane-util", version.ref = "edc" }
 edc-spi-controlplane = { module = "org.eclipse.edc:control-plane-spi", version.ref = "edc" }
@@ -53,8 +51,6 @@ edc-iam-mock = { module = "org.eclipse.edc:iam-mock", version.ref = "edc" }
 # third-party deps
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
 restAssured = { module = "io.rest-assured:rest-assured", version.ref = "restAssured" }
-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-localstack = { module = "org.testcontainers:localstack", version.ref = "testcontainers" }
 
