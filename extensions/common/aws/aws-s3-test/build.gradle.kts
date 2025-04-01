@@ -24,9 +24,6 @@ dependencies {
 
     testFixturesImplementation(testFixtures(libs.edc.lib.http))
     testFixturesImplementation(libs.awaitility)
-    testFixturesImplementation(libs.assertj)
-    testFixturesImplementation(libs.junit.jupiter.api)
-    testFixturesRuntimeOnly(libs.junit.jupiter.engine)
     testFixturesApi(libs.aws.s3)
 }
 
