@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.edc.control.plane.api)
     implementation(libs.edc.core.controlplane)
     implementation(libs.edc.core.connector)
+    implementation(libs.edc.core.runtime)
     implementation(libs.edc.token.core)
     implementation(libs.edc.dsp)
     implementation(libs.edc.http)
