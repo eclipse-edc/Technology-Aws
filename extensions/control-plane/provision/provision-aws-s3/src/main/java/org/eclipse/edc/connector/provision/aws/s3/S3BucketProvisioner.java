@@ -25,6 +25,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinit
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
+import org.eclipse.edc.spi.security.Vault;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.sts.model.Credentials;
@@ -38,13 +39,15 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
 
     private final AwsClientProvider clientProvider;
     private final Monitor monitor;
+    private final Vault vault;
     private final RetryPolicy<Object> retryPolicy;
     private final S3BucketProvisionerConfiguration configuration;
 
-    public S3BucketProvisioner(AwsClientProvider clientProvider, Monitor monitor, RetryPolicy<Object> retryPolicy, S3BucketProvisionerConfiguration configuration) {
+    public S3BucketProvisioner(AwsClientProvider clientProvider, Monitor monitor, Vault vault, RetryPolicy<Object> retryPolicy, S3BucketProvisionerConfiguration configuration) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.configuration = configuration;
+        this.vault = vault;
         this.retryPolicy = RetryPolicy.builder(retryPolicy.getConfig())
                 .withMaxRetries(configuration.getMaxRetries())
                 .handle(AwsServiceException.class)
@@ -63,13 +66,21 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
 
     @Override
     public CompletableFuture<StatusResult<ProvisionResponse>> provision(S3BucketResourceDefinition resourceDefinition, Policy policy) {
+        storeAccessKeys(resourceDefinition);
         return S3ProvisionPipeline.Builder.newInstance(retryPolicy)
                 .clientProvider(clientProvider)
                 .roleMaxSessionDuration(configuration.getRoleMaxSessionDuration())
                 .monitor(monitor)
+                .vault(vault)
                 .build()
                 .provision(resourceDefinition)
                 .thenApply(result -> provisionSuccedeed(resourceDefinition, result.getRole(), result.getCredentials()));
+    }
+
+    private void storeAccessKeys(S3BucketResourceDefinition resourceDefinition) {
+        if (resourceDefinition.getAccessKeyId() != null && resourceDefinition.getSecretAccessKeyId() != null) {
+            vault.storeSecret(resourceDefinition.getAccessKeyId(), resourceDefinition.getSecretAccessKeyId());
+        }
     }
 
     @Override

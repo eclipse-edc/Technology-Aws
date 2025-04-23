@@ -66,7 +66,7 @@ public class AwsProvisionExtension implements ServiceExtension {
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int roleMaxSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
         var provisionerConfiguration = new S3BucketProvisionerConfiguration(maxRetries, roleMaxSessionDuration);
-        var s3BucketProvisioner = new S3BucketProvisioner(clientProvider, monitor, retryPolicy, provisionerConfiguration);
+        var s3BucketProvisioner = new S3BucketProvisioner(clientProvider, monitor, vault, retryPolicy, provisionerConfiguration);
         provisionManager.register(s3BucketProvisioner);
 
         // register the generator

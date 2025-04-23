@@ -17,8 +17,10 @@ package org.eclipse.edc.connector.provision.aws.s3;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
+import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.spi.monitor.Monitor;
+import org.eclipse.edc.spi.security.Vault;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
 import software.amazon.awssdk.services.iam.model.CreateRoleResponse;
@@ -28,10 +30,12 @@ import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.iam.model.Tag;
 import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
@@ -67,13 +71,15 @@ public class S3ProvisionPipeline {
     private final RetryPolicy<Object> retryPolicy;
     private final AwsClientProvider clientProvider;
     private final Monitor monitor;
+    private final Vault vault;
     private final int roleMaxSessionDuration;
 
     private S3ProvisionPipeline(RetryPolicy<Object> retryPolicy, AwsClientProvider clientProvider,
-                                Monitor monitor, int roleMaxSessionDuration) {
+                                Monitor monitor, Vault vault, int roleMaxSessionDuration) {
         this.retryPolicy = retryPolicy;
         this.clientProvider = clientProvider;
         this.monitor = monitor;
+        this.vault = vault;
         this.roleMaxSessionDuration = roleMaxSessionDuration;
     }
 
@@ -81,7 +87,7 @@ public class S3ProvisionPipeline {
      * Performs a non-blocking provisioning operation.
      */
     public CompletableFuture<S3ProvisionResponse> provision(S3BucketResourceDefinition resourceDefinition) {
-        var rq = S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
+        var rq = createClientRequest(resourceDefinition);
         var s3AsyncClient = clientProvider.s3AsyncClient(rq);
         var iamClient = clientProvider.iamAsyncClient(rq);
         var stsClient = clientProvider.stsAsyncClient(rq);
@@ -97,6 +103,21 @@ public class S3ProvisionPipeline {
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
                 .thenCompose(response -> createRolePolicy(iamClient, resourceDefinition, response))
                 .thenCompose(role -> assumeRole(stsClient, role));
+    }
+
+    private S3ClientRequest createClientRequest(S3BucketResourceDefinition resourceDefinition) {
+        var baseRequest = S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
+        return Optional.ofNullable(resourceDefinition.getAccessKeyId())
+                .map(accessKeyId -> {
+                    var secretAccessKey = vault.resolveSecret(accessKeyId);
+                    if (secretAccessKey == null) {
+                        monitor.warning("Secret access key not found in the vault for access key ID: " + accessKeyId);
+                        return baseRequest;
+                    }
+                    var awsSecretToken = new AwsSecretToken(accessKeyId, secretAccessKey);
+                    return S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride(), awsSecretToken);
+                })
+                .orElse(baseRequest);
     }
 
     private CompletableFuture<Role> createRolePolicy(IamAsyncClient iamAsyncClient, S3BucketResourceDefinition resourceDefinition, CreateRoleResponse response) {
@@ -157,6 +178,7 @@ public class S3ProvisionPipeline {
         private int roleMaxSessionDuration;
         private Monitor monitor;
         private AwsClientProvider clientProvider;
+        private Vault vault;
 
         private Builder(RetryPolicy<Object> retryPolicy) {
             this.retryPolicy = retryPolicy;
@@ -181,11 +203,17 @@ public class S3ProvisionPipeline {
             return this;
         }
 
+        public Builder vault(Vault vault) {
+            this.vault = vault;
+            return this;
+        }
+
         public S3ProvisionPipeline build() {
             Objects.requireNonNull(retryPolicy);
             Objects.requireNonNull(clientProvider);
             Objects.requireNonNull(monitor);
-            return new S3ProvisionPipeline(retryPolicy, clientProvider, monitor, roleMaxSessionDuration);
+            Objects.requireNonNull(vault);
+            return new S3ProvisionPipeline(retryPolicy, clientProvider, monitor, vault, roleMaxSessionDuration);
         }
     }
 
