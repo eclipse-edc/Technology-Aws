@@ -105,18 +105,19 @@ public class S3ProvisionPipeline {
     }
 
     private S3ClientRequest createClientRequest(S3BucketResourceDefinition resourceDefinition) {
-        var baseRequest = S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
         return Optional.ofNullable(resourceDefinition.getAccessKeyId())
                 .map(accessKeyId -> {
-                    var secretAccessKey = vault.resolveSecret(accessKeyId);
+                    var secretAccessKey = vault.resolveSecret(resourceDefinition.getId());
                     if (secretAccessKey == null) {
-                        monitor.warning("Secret access key not found in the vault for access key ID: " + accessKeyId);
-                        return baseRequest;
+                        return S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
                     }
-                    var awsSecretToken = new AwsSecretToken(accessKeyId, secretAccessKey);
-                    return S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride(), awsSecretToken);
+
+                    return S3ClientRequest.from(
+                            resourceDefinition.getRegionId(),
+                            resourceDefinition.getEndpointOverride(),
+                            new AwsSecretToken(accessKeyId, secretAccessKey));
                 })
-                .orElse(baseRequest);
+                .orElse(S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride()));
     }
 
     private CompletableFuture<Role> createRolePolicy(IamAsyncClient iamAsyncClient, S3BucketResourceDefinition resourceDefinition, CreateRoleResponse response) {

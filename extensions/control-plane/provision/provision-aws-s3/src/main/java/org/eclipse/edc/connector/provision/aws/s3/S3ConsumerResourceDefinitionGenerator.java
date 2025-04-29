@@ -21,6 +21,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ConsumerRes
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;
+import org.eclipse.edc.spi.security.Vault;
 import software.amazon.awssdk.regions.Region;
 
 import static java.util.UUID.randomUUID;
@@ -29,6 +30,13 @@ import static java.util.UUID.randomUUID;
  * Generates S3 buckets on the consumer (requesting connector) that serve as data destinations.
  */
 public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDefinitionGenerator {
+
+
+    private final Vault vault;
+
+    public S3ConsumerResourceDefinitionGenerator(Vault vault) {
+        this.vault = vault;
+    }
 
     @Override
     public ResourceDefinition generate(TransferProcess transferProcess, Policy policy) {
@@ -41,13 +49,21 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
         }
         var id = randomUUID().toString();
 
-        return S3BucketResourceDefinition.Builder.newInstance().id(id)
+        var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
+                .id(id)
                 .bucketName(dataDestination.getStringProperty(S3BucketSchema.BUCKET_NAME))
                 .regionId(dataDestination.getStringProperty(S3BucketSchema.REGION))
-                .endpointOverride(endpointOverride)
-                .accessKeyId(dataDestination.getStringProperty(S3BucketSchema.ACCESS_KEY_ID))
-                .secretAccessKeyId(dataDestination.getStringProperty(S3BucketSchema.SECRET_ACCESS_KEY))
-                .build();
+                .endpointOverride(endpointOverride);
+
+        var accessKeyId = dataDestination.getStringProperty(S3BucketSchema.ACCESS_KEY_ID);
+        var secretAccessKey = dataDestination.getStringProperty(S3BucketSchema.SECRET_ACCESS_KEY);
+
+        if (accessKeyId != null && secretAccessKey != null) {
+            vault.storeSecret(id, secretAccessKey);
+            resourceDefinition.accessKeyId(accessKeyId);
+        }
+
+        return resourceDefinition.build();
     }
 
     @Override

@@ -19,6 +19,7 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.asset.spi.domain.Asset;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcess;
 import org.eclipse.edc.policy.model.Policy;
+import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,15 +29,17 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.Mockito.mock;
 
 
 public class S3ConsumerResourceDefinitionGeneratorTest {
 
     private S3ConsumerResourceDefinitionGenerator generator;
+    private final Vault vault = mock(Vault.class);
 
     @BeforeEach
     void setUp() {
-        generator = new S3ConsumerResourceDefinitionGenerator();
+        generator = new S3ConsumerResourceDefinitionGenerator(vault);
     }
 
     @Test

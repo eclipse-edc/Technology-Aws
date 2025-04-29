@@ -31,7 +31,6 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
     private String bucketName;
     private String endpointOverride;
     private String accessKeyId;
-    private String secretAccessKeyId;
 
     private S3BucketResourceDefinition() {
     }
@@ -49,8 +48,7 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
         return initializeBuilder(new Builder())
                 .regionId(regionId)
                 .bucketName(bucketName)
-                .accessKeyId(accessKeyId)
-                .secretAccessKeyId(secretAccessKeyId);
+                .accessKeyId(accessKeyId);
     }
 
     public String getEndpointOverride() {
@@ -59,10 +57,6 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
 
     public String getAccessKeyId() {
         return accessKeyId;
-    }
-
-    public String getSecretAccessKeyId() {
-        return secretAccessKeyId;
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -93,11 +87,6 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
 
         public Builder accessKeyId(String accessKeyId) {
             resourceDefinition.accessKeyId = accessKeyId;
-            return this;
-        }
-
-        public Builder secretAccessKeyId(String secretAccessKeyId) {
-            resourceDefinition.secretAccessKeyId = secretAccessKeyId;
             return this;
         }
 

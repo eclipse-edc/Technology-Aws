@@ -66,7 +66,6 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
 
     @Override
     public CompletableFuture<StatusResult<ProvisionResponse>> provision(S3BucketResourceDefinition resourceDefinition, Policy policy) {
-        storeAccessKeys(resourceDefinition);
         return S3ProvisionPipeline.Builder.newInstance(retryPolicy)
                 .clientProvider(clientProvider)
                 .roleMaxSessionDuration(configuration.getRoleMaxSessionDuration())
@@ -75,12 +74,6 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
                 .build()
                 .provision(resourceDefinition)
                 .thenApply(result -> provisionSuccedeed(resourceDefinition, result.getRole(), result.getCredentials()));
-    }
-
-    private void storeAccessKeys(S3BucketResourceDefinition resourceDefinition) {
-        if (resourceDefinition.getAccessKeyId() != null && resourceDefinition.getSecretAccessKeyId() != null) {
-            vault.storeSecret(resourceDefinition.getAccessKeyId(), resourceDefinition.getSecretAccessKeyId());
-        }
     }
 
     @Override
