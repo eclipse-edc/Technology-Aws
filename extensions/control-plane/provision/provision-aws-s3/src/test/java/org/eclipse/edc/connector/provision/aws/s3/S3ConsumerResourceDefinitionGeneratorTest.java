@@ -29,7 +29,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 
 public class S3ConsumerResourceDefinitionGeneratorTest {
@@ -63,6 +66,8 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
         assertThat(objectDef.getBucketName()).isEqualTo("test-name");
         assertThat(objectDef.getRegionId()).isEqualTo(Region.EU_WEST_2.id());
         assertThat(objectDef.getId()).satisfies(UUID::fromString);
+        assertThat(objectDef.getAccessKeyId()).isNull();
+        verifyNoInteractions(vault);
     }
 
     @Test
@@ -107,6 +112,34 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
         var policy = Policy.Builder.newInstance().build();
 
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> generator.generate(transferProcess, policy));
+    }
+
+    @Test
+    void generate_withCredentials() {
+        var accessKeyId = "test-access-key";
+        var destination = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE)
+                .property(S3BucketSchema.BUCKET_NAME, "test-name")
+                .property(S3BucketSchema.REGION, Region.EU_WEST_2.id())
+                .property(S3BucketSchema.ACCESS_KEY_ID, accessKeyId)
+                .property(S3BucketSchema.SECRET_ACCESS_KEY, "test-secret-access-key")
+                .build();
+        var asset = Asset.Builder.newInstance().build();
+        var transferProcess = TransferProcess.Builder.newInstance()
+                .dataDestination(destination)
+                .assetId(asset.getId())
+                .correlationId("process-id")
+                .build();
+        var policy = Policy.Builder.newInstance().build();
+
+        var definition = generator.generate(transferProcess, policy);
+
+        assertThat(definition).isInstanceOf(S3BucketResourceDefinition.class);
+        var objectDef = (S3BucketResourceDefinition) definition;
+        assertThat(objectDef.getBucketName()).isEqualTo("test-name");
+        assertThat(objectDef.getRegionId()).isEqualTo(Region.EU_WEST_2.id());
+        assertThat(objectDef.getId()).satisfies(UUID::fromString);
+        assertThat(objectDef.getAccessKeyId()).isEqualTo(accessKeyId);
+        verify(vault).storeSecret(anyString(), anyString());
     }
 
     @Test
