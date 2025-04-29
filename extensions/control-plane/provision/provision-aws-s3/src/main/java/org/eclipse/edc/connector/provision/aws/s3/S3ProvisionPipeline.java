@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_ALIAS;
 
 public class S3ProvisionPipeline {
 
@@ -107,7 +108,7 @@ public class S3ProvisionPipeline {
     private S3ClientRequest createClientRequest(S3BucketResourceDefinition resourceDefinition) {
         return Optional.ofNullable(resourceDefinition.getAccessKeyId())
                 .map(accessKeyId -> {
-                    var secretAccessKey = vault.resolveSecret(resourceDefinition.getId());
+                    var secretAccessKey = vault.resolveSecret(SECRET_ACCESS_ALIAS + "-" + resourceDefinition.getId());
                     if (secretAccessKey == null) {
                         return S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
                     }

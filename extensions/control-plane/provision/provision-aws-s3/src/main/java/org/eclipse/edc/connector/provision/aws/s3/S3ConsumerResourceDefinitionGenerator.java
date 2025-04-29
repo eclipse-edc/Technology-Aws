@@ -31,7 +31,6 @@ import static java.util.UUID.randomUUID;
  */
 public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDefinitionGenerator {
 
-
     private final Vault vault;
 
     public S3ConsumerResourceDefinitionGenerator(Vault vault) {
@@ -59,8 +58,8 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
         var secretAccessKey = dataDestination.getStringProperty(S3BucketSchema.SECRET_ACCESS_KEY);
 
         if (accessKeyId != null && secretAccessKey != null) {
-            vault.storeSecret(id, secretAccessKey);
             resourceDefinition.accessKeyId(accessKeyId);
+            vault.storeSecret(S3BucketSchema.SECRET_ACCESS_ALIAS + "-" + id, secretAccessKey);
         }
 
         return resourceDefinition.build();
