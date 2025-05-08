@@ -33,6 +33,7 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
 @JsonTypeName("dataspaceconnector:s3bucketprovisionedresource")
 public class S3BucketProvisionedResource extends ProvisionedDataDestinationResource {
     private String role;
+    private String accessKeyId;
 
     public String getRegion() {
         return getDataAddress().getStringProperty(REGION);
@@ -53,6 +54,10 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
 
     public String getRole() {
         return role;
+    }
+
+    public String getAccessKeyId() {
+        return accessKeyId;
     }
 
     private S3BucketProvisionedResource() {
@@ -85,6 +90,11 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
 
         public Builder role(String arn) {
             provisionedResource.role = arn;
+            return this;
+        }
+
+        public Builder accessKeyId(String accessKeyId) {
+            provisionedResource.accessKeyId = accessKeyId;
             return this;
         }
 

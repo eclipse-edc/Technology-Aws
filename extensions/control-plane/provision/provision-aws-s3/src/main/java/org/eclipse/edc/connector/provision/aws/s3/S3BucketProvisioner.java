@@ -81,6 +81,7 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
         return S3DeprovisionPipeline.Builder.newInstance(retryPolicy)
                 .clientProvider(clientProvider)
                 .monitor(monitor)
+                .vault(vault)
                 .build()
                 .deprovision(resource)
                 .thenApply(ignore -> StatusResult.success(DeprovisionedResource.Builder.newInstance().provisionedResourceId(resource.getId()).build()));
@@ -97,6 +98,7 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
                 .transferProcessId(resourceDefinition.getTransferProcessId())
                 .resourceName(resourceDefinition.getBucketName())
                 .endpointOverride(resourceDefinition.getEndpointOverride())
+                .accessKeyId(resourceDefinition.getAccessKeyId())
                 .build();
 
         var secretToken = new AwsTemporarySecretToken(credentials.accessKeyId(), credentials.secretAccessKey(), credentials.sessionToken(), credentials.expiration().toEpochMilli());

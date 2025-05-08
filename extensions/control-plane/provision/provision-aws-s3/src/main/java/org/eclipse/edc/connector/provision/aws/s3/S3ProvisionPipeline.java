@@ -38,7 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.String.format;
-import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_ALIAS;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_ALIAS_PREFIX;
 
 public class S3ProvisionPipeline {
 
@@ -106,19 +106,22 @@ public class S3ProvisionPipeline {
     }
 
     private S3ClientRequest createClientRequest(S3BucketResourceDefinition resourceDefinition) {
+        return extractSecretToken(resourceDefinition)
+                .map(secretToken -> S3ClientRequest.from(
+                        resourceDefinition.getRegionId(),
+                        resourceDefinition.getEndpointOverride(),
+                        secretToken))
+                .orElseGet(() -> S3ClientRequest.from(
+                        resourceDefinition.getRegionId(),
+                        resourceDefinition.getEndpointOverride()));
+    }
+
+    private Optional<AwsSecretToken> extractSecretToken(S3BucketResourceDefinition resourceDefinition) {
         return Optional.ofNullable(resourceDefinition.getAccessKeyId())
                 .map(accessKeyId -> {
-                    var secretAccessKey = vault.resolveSecret(SECRET_ACCESS_ALIAS + "-" + resourceDefinition.getId());
-                    if (secretAccessKey == null) {
-                        return S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride());
-                    }
-
-                    return S3ClientRequest.from(
-                            resourceDefinition.getRegionId(),
-                            resourceDefinition.getEndpointOverride(),
-                            new AwsSecretToken(accessKeyId, secretAccessKey));
-                })
-                .orElseGet(() -> S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride()));
+                    var secretAccessKey = vault.resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceDefinition.getId());
+                    return secretAccessKey != null ? new AwsSecretToken(accessKeyId, secretAccessKey) : null;
+                });
     }
 
     private CompletableFuture<Role> createRolePolicy(IamAsyncClient iamAsyncClient, S3BucketResourceDefinition resourceDefinition, CreateRoleResponse response) {

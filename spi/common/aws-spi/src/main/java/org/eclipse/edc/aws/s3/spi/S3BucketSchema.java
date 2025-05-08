@@ -25,5 +25,5 @@ public interface S3BucketSchema {
     String ENDPOINT_OVERRIDE = "endpointOverride";
     String OBJECT_PREFIX = "objectPrefix";
     String OBJECT_NAME = "objectName";
-    String SECRET_ACCESS_ALIAS = "secretAccessAlias";
+    String SECRET_ACCESS_ALIAS_PREFIX = "secretAccessAlias-";
 }

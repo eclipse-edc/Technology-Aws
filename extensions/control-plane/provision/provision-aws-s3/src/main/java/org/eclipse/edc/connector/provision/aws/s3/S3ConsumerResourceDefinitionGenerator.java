@@ -59,7 +59,7 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
 
         if (accessKeyId != null && secretAccessKey != null) {
             resourceDefinition.accessKeyId(accessKeyId);
-            vault.storeSecret(S3BucketSchema.SECRET_ACCESS_ALIAS + "-" + id, secretAccessKey);
+            vault.storeSecret(S3BucketSchema.SECRET_ACCESS_ALIAS_PREFIX + id, secretAccessKey);
         }
 
         return resourceDefinition.build();
