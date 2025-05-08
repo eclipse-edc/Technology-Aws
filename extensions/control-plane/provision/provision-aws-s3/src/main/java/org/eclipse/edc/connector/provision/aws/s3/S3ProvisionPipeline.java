@@ -118,7 +118,7 @@ public class S3ProvisionPipeline {
                             resourceDefinition.getEndpointOverride(),
                             new AwsSecretToken(accessKeyId, secretAccessKey));
                 })
-                .orElse(S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride()));
+                .orElseGet(() -> S3ClientRequest.from(resourceDefinition.getRegionId(), resourceDefinition.getEndpointOverride()));
     }
 
     private CompletableFuture<Role> createRolePolicy(IamAsyncClient iamAsyncClient, S3BucketResourceDefinition resourceDefinition, CreateRoleResponse response) {
