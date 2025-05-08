@@ -72,14 +72,12 @@ public class AwsClientProviderImpl implements AwsClientProvider {
 
     @Override
     public IamAsyncClient iamAsyncClient(S3ClientRequest clientRequest) {
-        var key = clientRequest.endpointOverride() != null ? clientRequest.endpointOverride() : NO_ENDPOINT_OVERRIDE;
-        return iamAsyncClients.computeIfAbsent(key, s -> createIamAsyncClient(clientRequest.endpointOverride()));
+        return createIamAsyncClient(clientRequest);
     }
 
     @Override
     public StsAsyncClient stsAsyncClient(S3ClientRequest clientRequest) {
-        var key = clientRequest.region() + "/" + clientRequest.endpointOverride();
-        return stsAsyncClients.computeIfAbsent(key, s -> createStsClient(clientRequest.region(), clientRequest.endpointOverride()));
+        return createStsAsyncClient(clientRequest);
     }
 
     @Override
@@ -95,20 +93,19 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         var region = s3ClientRequest.region();
         var endpointOverride = s3ClientRequest.endpointOverride();
 
-        if (token != null) {
-            if (token instanceof AwsTemporarySecretToken temporary) {
-                var credentials = AwsSessionCredentials.create(temporary.accessKeyId(), temporary.secretAccessKey(),
-                        temporary.sessionToken());
-                return createS3Client(StaticCredentialsProvider.create(credentials), region, endpointOverride);
-            }
-            if (token instanceof AwsSecretToken secretToken) {
-                var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
-                return createS3Client(StaticCredentialsProvider.create(credentials), region, endpointOverride);
-            }
-            throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
-        } else {
+        if (token == null) {
             return s3Clients.computeIfAbsent(region, s3Client -> createS3Client(credentialsProvider, region, endpointOverride));
         }
+
+        if (token instanceof AwsTemporarySecretToken temporary) {
+            return createS3Client(createTemporaryStaticCredentials(temporary), region, endpointOverride);
+        }
+
+        if (token instanceof AwsSecretToken secretToken) {
+            return createS3Client(createStaticCredentials(secretToken), region, endpointOverride);
+        }
+
+        throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
     }
 
     private S3Client createS3Client(AwsCredentialsProvider credentialsProvider, String region, String endpointOverride) {
@@ -125,22 +122,21 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         var token = s3ClientRequest.secretToken();
         var region = s3ClientRequest.region();
         var endpointOverride = s3ClientRequest.endpointOverride();
-    
-        if (token != null) {
-            if (token instanceof AwsTemporarySecretToken temporary) {
-                var credentials = AwsSessionCredentials.create(temporary.accessKeyId(), temporary.secretAccessKey(),
-                        temporary.sessionToken());
-                return createS3AsyncClient(StaticCredentialsProvider.create(credentials), region, endpointOverride);
-            }
-            if (token instanceof AwsSecretToken secretToken) {
-                var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
-                return createS3AsyncClient(StaticCredentialsProvider.create(credentials), region, endpointOverride);
-            }
-            throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
-        } else {
+
+        if (token == null) {
             var key = s3ClientRequest.region() + "/" + s3ClientRequest.endpointOverride();
             return s3AsyncClients.computeIfAbsent(key, s3Client -> createS3AsyncClient(credentialsProvider, region, endpointOverride));
         }
+
+        if (token instanceof AwsTemporarySecretToken temporary) {
+            return createS3AsyncClient(createTemporaryStaticCredentials(temporary), region, endpointOverride);
+        }
+
+        if (token instanceof AwsSecretToken secretToken) {
+            return createS3AsyncClient(createStaticCredentials(secretToken), region, endpointOverride);
+        }
+
+        throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
     }
 
     private S3AsyncClient createS3AsyncClient(AwsCredentialsProvider credentialsProvider, String region, String endpointOverride) {
@@ -155,7 +151,29 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         return builder.build();
     }
 
-    private StsAsyncClient createStsClient(String region, String endpointOverride) {
+    private StsAsyncClient createStsAsyncClient(S3ClientRequest clientRequest) {
+        var token = clientRequest.secretToken();
+        var region = clientRequest.region();
+        var endpointOverride = clientRequest.endpointOverride();
+
+        if (token == null) {
+            var key = clientRequest.region() + "/" + clientRequest.endpointOverride();
+            return stsAsyncClients.computeIfAbsent(key, s ->
+                    createStsClient(credentialsProvider, clientRequest.region(), clientRequest.endpointOverride()));
+        }
+
+        if (token instanceof AwsTemporarySecretToken temporary) {
+            return createStsClient(createTemporaryStaticCredentials(temporary), region, endpointOverride);
+        }
+
+        if (token instanceof AwsSecretToken secretToken) {
+            return createStsClient(createStaticCredentials(secretToken), region, endpointOverride);
+        }
+
+        throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
+    }
+
+    private StsAsyncClient createStsClient(AwsCredentialsProvider credentialsProvider, String region, String endpointOverride) {
         var builder = StsAsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
@@ -166,7 +184,38 @@ public class AwsClientProviderImpl implements AwsClientProvider {
         return builder.build();
     }
 
-    private IamAsyncClient createIamAsyncClient(String endpointOverride) {
+    private IamAsyncClient createIamAsyncClient(S3ClientRequest clientRequest) {
+        var token = clientRequest.secretToken();
+        var endpointOverride = clientRequest.endpointOverride();
+
+        if (token == null) {
+            var key = clientRequest.endpointOverride() != null ? clientRequest.endpointOverride() : NO_ENDPOINT_OVERRIDE;
+            return iamAsyncClients.computeIfAbsent(key, s ->
+                    createIamAsyncClient(credentialsProvider, clientRequest.endpointOverride()));
+        }
+
+        if (token instanceof AwsTemporarySecretToken temporary) {
+            return createIamAsyncClient(createTemporaryStaticCredentials(temporary), endpointOverride);
+        }
+
+        if (token instanceof AwsSecretToken secretToken) {
+            return createIamAsyncClient(createStaticCredentials(secretToken), endpointOverride);
+        }
+
+        throw new EdcException(String.format("SecretToken %s is not supported", token.getClass()));
+    }
+
+    private AwsCredentialsProvider createTemporaryStaticCredentials(AwsTemporarySecretToken temporary) {
+        var credentials = AwsSessionCredentials.create(temporary.accessKeyId(), temporary.secretAccessKey(), temporary.sessionToken());
+        return StaticCredentialsProvider.create(credentials);
+    }
+
+    private AwsCredentialsProvider createStaticCredentials(AwsSecretToken secretToken) {
+        var credentials = AwsBasicCredentials.create(secretToken.getAccessKeyId(), secretToken.getSecretAccessKey());
+        return StaticCredentialsProvider.create(credentials);
+    }
+
+    private IamAsyncClient createIamAsyncClient(AwsCredentialsProvider credentialsProvider, String endpointOverride) {
         var builder = IamAsyncClient.builder()
                 .asyncConfiguration(b -> b.advancedOption(FUTURE_COMPLETION_EXECUTOR, executor))
                 .credentialsProvider(credentialsProvider)
