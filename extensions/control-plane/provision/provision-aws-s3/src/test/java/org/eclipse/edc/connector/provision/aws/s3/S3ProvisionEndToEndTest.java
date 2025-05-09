@@ -38,12 +38,7 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.iam.IamClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -65,6 +60,8 @@ class S3ProvisionEndToEndTest {
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
 
     private static final RetryPolicy<Object> RETRY_POLICY = RetryPolicy.ofDefaults();
+    private final Vault vault = mock(Vault.class);
+    private final Monitor monitor = mock(Monitor.class);
 
     @Container
     private static final LocalStackContainer LOCALSTACK_CONTAINER = new LocalStackContainer(LOCALSTACK_DOCKER_IMAGE)
@@ -80,8 +77,7 @@ class S3ProvisionEndToEndTest {
                     .configurationProvider(S3ProvisionEndToEndTest::runtimeConfig));
 
     private S3ProvisionPipeline pipeline;
-    private final Vault vault = mock(Vault.class);
-    private final Monitor monitor = mock(Monitor.class);
+
 
     @BeforeEach
     void setUp() {
@@ -89,12 +85,10 @@ class S3ProvisionEndToEndTest {
         var awsClientProviderConfiguration = AwsClientProviderConfiguration.Builder.newInstance()
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3))
-                .threadPoolSize(10)
+                .threadPoolSize(1)
                 .build();
 
         var clientProvider = new AwsClientProviderImpl(awsClientProviderConfiguration);
-        var s3Client = getS3Client();
-        var iamClient = getIamClient();
         when(vault.resolveSecret(anyString())).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
 
         pipeline = S3ProvisionPipeline.Builder
@@ -129,31 +123,6 @@ class S3ProvisionEndToEndTest {
         assertNotNull(response.getRole());
         assertNotNull(response.getCredentials());
         assertEquals(resourceDefinition.getTransferProcessId(), response.getRole().roleName());
-    }
-
-    private StaticCredentialsProvider localStackCredentials() {
-        return StaticCredentialsProvider.create(AwsBasicCredentials
-                .create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey()));
-    }
-
-    private S3Client getS3Client() {
-        return S3Client.builder()
-                .credentialsProvider(localStackCredentials())
-                .region(Region.of(LOCALSTACK_CONTAINER.getRegion()))
-                .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey())))
-                .build();
-    }
-
-    private IamClient getIamClient() {
-        return IamClient.builder()
-                .credentialsProvider(localStackCredentials())
-                .region(Region.AWS_GLOBAL)
-                .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey())))
-                .build();
     }
 
     private static Config runtimeConfig() {
