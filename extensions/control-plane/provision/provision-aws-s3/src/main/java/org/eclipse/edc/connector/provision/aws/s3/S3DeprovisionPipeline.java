@@ -62,7 +62,7 @@ public class S3DeprovisionPipeline {
     /**
      * Performs a non-blocking deprovisioning operation.
      */
-    public CompletableFuture<?> deprovision(S3BucketProvisionedResource resource) {
+    public CompletableFuture<DeprovisionedResource> deprovision(S3BucketProvisionedResource resource) {
         var rq = createClientRequest(resource);
         var s3Client = clientProvider.s3AsyncClient(rq);
         var iamClient = clientProvider.iamAsyncClient(rq);
