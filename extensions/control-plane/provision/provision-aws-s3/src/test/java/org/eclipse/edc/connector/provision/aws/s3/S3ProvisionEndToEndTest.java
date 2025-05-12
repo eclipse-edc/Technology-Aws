@@ -38,16 +38,17 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_ALIAS_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.IAM;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
@@ -83,13 +84,12 @@ class S3ProvisionEndToEndTest {
     void setUp() {
         LOCALSTACK_CONTAINER.start();
         var awsClientProviderConfiguration = AwsClientProviderConfiguration.Builder.newInstance()
-                .credentialsProvider(DefaultCredentialsProvider.create())
+                .credentialsProvider(() -> AwsBasicCredentials.create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey()))
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3))
                 .threadPoolSize(1)
                 .build();
 
         var clientProvider = new AwsClientProviderImpl(awsClientProviderConfiguration);
-        when(vault.resolveSecret(anyString())).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
 
         pipeline = S3ProvisionPipeline.Builder
                 .newInstance(RETRY_POLICY)
@@ -106,23 +106,45 @@ class S3ProvisionEndToEndTest {
     }
 
     @Test
-    void provision_createsBucketAndRole() {
+    void provision_createsBucketAndRole_withCredentialsFromDataDestination() {
+        var resourceId = UUID.randomUUID().toString();
         var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
+                .id(resourceId)
                 .transferProcessId(UUID.randomUUID().toString())
                 .regionId(LOCALSTACK_CONTAINER.getRegion())
                 .accessKeyId(LOCALSTACK_CONTAINER.getAccessKey())
+                .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
                 .bucketName("test-bucket")
                 .build();
+        when(vault.resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceId)).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
 
-        CompletableFuture<S3ProvisionResponse> responseFuture = pipeline.provision(resourceDefinition);
-
-        S3ProvisionResponse response = responseFuture.join(); // todo: maybe not this join
+        var response = pipeline.provision(resourceDefinition).join();
 
         assertNotNull(response);
         assertNotNull(response.getRole());
+        assertThat(response.getRole().roleName()).isEqualTo(resourceDefinition.getTransferProcessId());
         assertNotNull(response.getCredentials());
-        assertEquals(resourceDefinition.getTransferProcessId(), response.getRole().roleName());
+        verify(vault).resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceId);
+    }
+
+    @Test
+    void provision_createsBucketAndRole_withApplicationCredentials() {
+        var resourceId = UUID.randomUUID().toString();
+        var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
+                .id(resourceId)
+                .transferProcessId(UUID.randomUUID().toString())
+                .regionId(LOCALSTACK_CONTAINER.getRegion())
+                .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
+                .bucketName("test-bucket")
+                .build();
+
+        var response = pipeline.provision(resourceDefinition).join();
+
+        assertNotNull(response);
+        assertNotNull(response.getRole());
+        assertThat(response.getRole().roleName()).isEqualTo(resourceDefinition.getTransferProcessId());
+        assertNotNull(response.getCredentials());
+        verifyNoInteractions(vault);
     }
 
     private static Config runtimeConfig() {
@@ -146,6 +168,8 @@ class S3ProvisionEndToEndTest {
                 put("edc.dpf.selector.url", "http://localhost:8383/control/v1/dataplanes");
                 put("edc.transfer.proxy.token.signer.privatekey.alias", "private-key");
                 put("edc.transfer.proxy.token.verifier.publickey.alias", "public-key");
+                put("edc.aws.access.key", "test-key");
+                put("edc.aws.secret.access.key", "secret-key");
             }
         };
 
