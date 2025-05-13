@@ -83,7 +83,7 @@ public class AwsS3CopyTransferService implements TransferService {
     }
     
     @Override
-    public Result<Boolean> validate(DataFlowStartMessage request) {
+    public Result<Void> validate(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
         var sourceResult = validator.validateSource(source);
         var sourceCredentialsResult = validateSourceCredentials(source);
@@ -97,7 +97,7 @@ public class AwsS3CopyTransferService implements TransferService {
                 .flatMap(List::stream)
                 .toList();
         
-        return errors.isEmpty() ? Result.success(true) : Result.failure(errors);
+        return errors.isEmpty() ? Result.success() : Result.failure(errors);
     }
     
     @Override
