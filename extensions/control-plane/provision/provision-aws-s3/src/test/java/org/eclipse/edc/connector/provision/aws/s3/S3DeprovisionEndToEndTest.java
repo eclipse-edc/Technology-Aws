@@ -25,6 +25,7 @@ import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
+import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.configuration.Config;
@@ -71,8 +72,8 @@ class S3DeprovisionEndToEndTest {
 
     private static final RetryPolicy<Object> RETRY_POLICY = RetryPolicy.ofDefaults();
     private static final String BUCKET_NAME = "test-bucket";
-    private final Vault vault = mock(Vault.class);
-    private final Monitor monitor = mock(Monitor.class);
+    private final Vault vault = mock();
+    private final Monitor monitor = mock();
 
     @Container
     private static final LocalStackContainer LOCALSTACK_CONTAINER = new LocalStackContainer(LOCALSTACK_DOCKER_IMAGE)
@@ -87,9 +88,7 @@ class S3DeprovisionEndToEndTest {
                     .registerServiceMock(ResourceManifestGenerator.class, mock(ResourceManifestGenerator.class))
                     .configurationProvider(S3DeprovisionEndToEndTest::runtimeConfig));
 
-    private S3ProvisionPipeline provisionPipeline;
-    private S3DeprovisionPipeline deprovisionPipeline;
-
+    private S3BucketProvisioner s3BucketProvisioner;
 
     @BeforeEach
     void setUp() {
@@ -112,20 +111,10 @@ class S3DeprovisionEndToEndTest {
                 .key("sourceObjectName")
                 .build(), RequestBody.fromBytes("fileContent".getBytes()));
 
-        deprovisionPipeline = S3DeprovisionPipeline.Builder
-                .newInstance(RETRY_POLICY)
-                .clientProvider(clientProvider)
-                .monitor(monitor)
-                .vault(vault)
-                .build();
 
-        provisionPipeline = S3ProvisionPipeline.Builder
-                .newInstance(RETRY_POLICY)
-                .clientProvider(clientProvider)
-                .monitor(monitor)
-                .vault(vault)
-                .roleMaxSessionDuration(1000)
-                .build();
+        var provisionerConfiguration = new S3BucketProvisionerConfiguration(10, 1000);
+        s3BucketProvisioner = new S3BucketProvisioner(
+                clientProvider, monitor, vault, RETRY_POLICY, provisionerConfiguration);
     }
 
     @AfterEach
@@ -142,7 +131,7 @@ class S3DeprovisionEndToEndTest {
                 .id(deprovisionResourceId)
                 .transferProcessId(transferProcessId)
                 .hasToken(true)
-                .role(provisionedResource.getRole().roleName())
+                .role(provisionedResource.getRole())
                 .accessKeyId(LOCALSTACK_CONTAINER.getAccessKey())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
                 .bucketName(BUCKET_NAME)
@@ -157,12 +146,16 @@ class S3DeprovisionEndToEndTest {
                 .build();
         when(vault.resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + deprovisionResourceId)).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
 
-        var deprovisionResponse = deprovisionPipeline.deprovision(deprovisionResourceDefinition).join();
+        var deprovisionResponse = s3BucketProvisioner.deprovision(
+                deprovisionResourceDefinition, Policy.Builder.newInstance().build()).join();
 
         assertNotNull(deprovisionResponse);
-        assertThat(deprovisionResponse.getProvisionedResourceId()).isEqualTo(deprovisionResourceId);
-        assertNull(deprovisionResponse.getErrorMessage());
-        assertThat(deprovisionResponse.isInProcess()).isFalse();
+        assertNull(deprovisionResponse.getFailure());
+        assertNotNull(deprovisionResponse.getContent());
+        assertThat(deprovisionResponse.getContent().isError()).isFalse();
+        assertThat(deprovisionResponse.getContent().getProvisionedResourceId()).isEqualTo(deprovisionResourceId);
+        assertNull(deprovisionResponse.getContent().getErrorMessage());
+        assertThat(deprovisionResponse.getContent().isInProcess()).isFalse();
         verify(vault).resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + deprovisionResourceId);
     }
 
@@ -175,7 +168,7 @@ class S3DeprovisionEndToEndTest {
                 .id(deprovisionResourceId)
                 .transferProcessId(transferProcessId)
                 .hasToken(true)
-                .role(provisionedResource.getRole().roleName())
+                .role(provisionedResource.getRole())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
                 .bucketName(BUCKET_NAME)
                 .resourceDefinitionId(deprovisionResourceId)
@@ -188,16 +181,20 @@ class S3DeprovisionEndToEndTest {
                         .build())
                 .build();
 
-        var deprovisionResponse = deprovisionPipeline.deprovision(deprovisionResourceDefinition).join();
+        var deprovisionResponse = s3BucketProvisioner.deprovision(
+                deprovisionResourceDefinition, Policy.Builder.newInstance().build()).join();
 
         assertNotNull(deprovisionResponse);
-        assertThat(deprovisionResponse.getProvisionedResourceId()).isEqualTo(deprovisionResourceId);
-        assertNull(deprovisionResponse.getErrorMessage());
-        assertThat(deprovisionResponse.isInProcess()).isFalse();
+        assertNull(deprovisionResponse.getFailure());
+        assertNotNull(deprovisionResponse.getContent());
+        assertThat(deprovisionResponse.getContent().isError()).isFalse();
+        assertThat(deprovisionResponse.getContent().getProvisionedResourceId()).isEqualTo(deprovisionResourceId);
+        assertNull(deprovisionResponse.getContent().getErrorMessage());
+        assertThat(deprovisionResponse.getContent().isInProcess()).isFalse();
         verify(vault, times(0)).resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + deprovisionResourceId);
     }
 
-    private S3ProvisionResponse provisionTestResource(String transferProcessId, boolean hasResourceCredentials) {
+    private S3BucketProvisionedResource provisionTestResource(String transferProcessId, boolean hasResourceCredentials) {
         var resourceId = UUID.randomUUID().toString();
         var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
                 .id(resourceId)
@@ -211,7 +208,8 @@ class S3DeprovisionEndToEndTest {
             when(vault.resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceId)).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
         }
 
-        return provisionPipeline.provision(resourceDefinition.build()).join();
+        var result = s3BucketProvisioner.provision(resourceDefinition.build(), Policy.Builder.newInstance().build()).join();
+        return (S3BucketProvisionedResource) result.getContent().getResource();
     }
 
     private S3Client getS3Client(AwsCredentialsProvider credentialsProvider) {

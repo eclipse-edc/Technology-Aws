@@ -20,12 +20,15 @@ import org.eclipse.edc.aws.s3.AwsClientProviderConfiguration;
 import org.eclipse.edc.aws.s3.AwsClientProviderImpl;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProvisionManager;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ResourceManifestGenerator;
+import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionResponse;
 import org.eclipse.edc.json.JacksonTypeManager;
 import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
+import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
+import org.eclipse.edc.spi.response.StatusResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.configuration.Config;
 import org.eclipse.edc.spi.system.configuration.ConfigFactory;
@@ -46,6 +49,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.SECRET_ACCESS_ALIAS_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -61,8 +65,9 @@ class S3ProvisionEndToEndTest {
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
 
     private static final RetryPolicy<Object> RETRY_POLICY = RetryPolicy.ofDefaults();
-    private final Vault vault = mock(Vault.class);
-    private final Monitor monitor = mock(Monitor.class);
+    private static final String BUCKET_NAME = "test-bucket";
+    private final Vault vault = mock();
+    private final Monitor monitor = mock();
 
     @Container
     private static final LocalStackContainer LOCALSTACK_CONTAINER = new LocalStackContainer(LOCALSTACK_DOCKER_IMAGE)
@@ -77,8 +82,7 @@ class S3ProvisionEndToEndTest {
                     .registerServiceMock(ResourceManifestGenerator.class, mock(ResourceManifestGenerator.class))
                     .configurationProvider(S3ProvisionEndToEndTest::runtimeConfig));
 
-    private S3ProvisionPipeline pipeline;
-
+    private S3BucketProvisioner provisioner;
 
     @BeforeEach
     void setUp() {
@@ -90,14 +94,8 @@ class S3ProvisionEndToEndTest {
                 .build();
 
         var clientProvider = new AwsClientProviderImpl(awsClientProviderConfiguration);
-
-        pipeline = S3ProvisionPipeline.Builder
-                .newInstance(RETRY_POLICY)
-                .clientProvider(clientProvider)
-                .monitor(monitor)
-                .vault(vault)
-                .roleMaxSessionDuration(1000)
-                .build();
+        var provisionerConfiguration = new S3BucketProvisionerConfiguration(10, 1000);
+        provisioner = new S3BucketProvisioner(clientProvider, monitor, vault, RETRY_POLICY, provisionerConfiguration);
     }
 
     @AfterEach
@@ -108,43 +106,67 @@ class S3ProvisionEndToEndTest {
     @Test
     void provision_createsBucketAndRole_withCredentialsFromDataDestination() {
         var resourceId = UUID.randomUUID().toString();
+        var transferProcessId = UUID.randomUUID().toString();
         var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
                 .id(resourceId)
-                .transferProcessId(UUID.randomUUID().toString())
+                .transferProcessId(transferProcessId)
                 .regionId(LOCALSTACK_CONTAINER.getRegion())
                 .accessKeyId(LOCALSTACK_CONTAINER.getAccessKey())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
-                .bucketName("test-bucket")
+                .bucketName(BUCKET_NAME)
                 .build();
         when(vault.resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceId)).thenReturn(LOCALSTACK_CONTAINER.getSecretKey());
 
-        var response = pipeline.provision(resourceDefinition).join();
+        var response = provisioner.provision(resourceDefinition, Policy.Builder.newInstance().build()).join();
 
         assertNotNull(response);
-        assertNotNull(response.getRole());
-        assertThat(response.getRole().roleName()).isEqualTo(resourceDefinition.getTransferProcessId());
-        assertNotNull(response.getCredentials());
+        assertNull(response.getFailure());
+        assertNotNull(response.getContent());
+        assertNotNull(response.getContent().getResource());
+        assertThat(response.getContent().isInProcess()).isFalse();
+        assertThat(response.getContent().getResource()).isInstanceOf(S3BucketProvisionedResource.class);
+        validateS3BucketProvisionedResource(response, resourceDefinition, resourceId, transferProcessId, LOCALSTACK_CONTAINER.getAccessKey());
         verify(vault).resolveSecret(SECRET_ACCESS_ALIAS_PREFIX + resourceId);
     }
 
     @Test
     void provision_createsBucketAndRole_withApplicationCredentials() {
         var resourceId = UUID.randomUUID().toString();
+        var transferProcessId = UUID.randomUUID().toString();
         var resourceDefinition = S3BucketResourceDefinition.Builder.newInstance()
                 .id(resourceId)
-                .transferProcessId(UUID.randomUUID().toString())
+                .transferProcessId(transferProcessId)
                 .regionId(LOCALSTACK_CONTAINER.getRegion())
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString())
-                .bucketName("test-bucket")
+                .bucketName(BUCKET_NAME)
                 .build();
 
-        var response = pipeline.provision(resourceDefinition).join();
+        var response = provisioner.provision(resourceDefinition, Policy.Builder.newInstance().build()).join();
 
         assertNotNull(response);
-        assertNotNull(response.getRole());
-        assertThat(response.getRole().roleName()).isEqualTo(resourceDefinition.getTransferProcessId());
-        assertNotNull(response.getCredentials());
+        assertNull(response.getFailure());
+        assertNotNull(response.getContent());
+        assertNotNull(response.getContent().getResource());
+        assertThat(response.getContent().isInProcess()).isFalse();
+        assertThat(response.getContent().getResource()).isInstanceOf(S3BucketProvisionedResource.class);
+        validateS3BucketProvisionedResource(response, resourceDefinition, resourceId, transferProcessId, null);
         verifyNoInteractions(vault);
+    }
+
+    private static void validateS3BucketProvisionedResource(
+            StatusResult<ProvisionResponse> response,
+            S3BucketResourceDefinition resourceDefinition,
+            String resourceId,
+            String transferProcessId,
+            String accessKeyId) {
+        var s3BucketProvisionedResource = (S3BucketProvisionedResource) response.getContent().getResource();
+        assertNotNull(s3BucketProvisionedResource.getRole());
+        assertThat(s3BucketProvisionedResource.getRole()).isEqualTo(resourceDefinition.getTransferProcessId());
+        assertThat(s3BucketProvisionedResource.getBucketName()).isEqualTo(BUCKET_NAME);
+        assertThat(s3BucketProvisionedResource.getEndpointOverride()).isEqualTo(LOCALSTACK_CONTAINER.getEndpointOverride(S3).toString());
+        assertThat(s3BucketProvisionedResource.getResourceDefinitionId()).isEqualTo(resourceId);
+        assertThat(s3BucketProvisionedResource.getTransferProcessId()).isEqualTo(transferProcessId);
+        assertThat(s3BucketProvisionedResource.getAccessKeyId()).isEqualTo(accessKeyId);
     }
 
     private static Config runtimeConfig() {
