@@ -59,7 +59,7 @@ class S3BucketProvisionerTest {
     private final StsAsyncClient stsClient = mock(StsAsyncClient.class);
     private final S3AsyncClient s3Client = mock(S3AsyncClient.class);
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
-    private final Vault vault = mock(Vault.class);
+    private final Vault vault = mock();
 
     @BeforeEach
     void setUp() {

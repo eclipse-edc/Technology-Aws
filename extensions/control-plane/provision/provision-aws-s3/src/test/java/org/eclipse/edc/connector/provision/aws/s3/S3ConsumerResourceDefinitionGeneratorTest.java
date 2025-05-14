@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 public class S3ConsumerResourceDefinitionGeneratorTest {
 
     private S3ConsumerResourceDefinitionGenerator generator;
-    private final Vault vault = mock(Vault.class);
+    private final Vault vault = mock();
 
     @BeforeEach
     void setUp() {
