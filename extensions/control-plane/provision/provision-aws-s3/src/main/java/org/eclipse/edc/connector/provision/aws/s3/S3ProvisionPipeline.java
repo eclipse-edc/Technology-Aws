@@ -89,14 +89,13 @@ public class S3ProvisionPipeline {
         var bucketName = resourceDefinition.getBucketName();
         var headBucketRequest = HeadBucketRequest.builder().bucket(bucketName).build();
         var createBucketRequest = CreateBucketRequest.builder().bucket(bucketName).createBucketConfiguration(CreateBucketConfiguration.builder().build()).build();
-        monitor.debug("S3ProvisionPipeline: checking if bucket " + bucketName + " exists");
 
         return s3AsyncClient.headBucket(headBucketRequest).thenCompose(response -> {
             monitor.debug("S3ProvisionPipeline: bucket " + bucketName + " already exists, skipping creation");
             return CompletableFuture.completedFuture(null);
         }).exceptionally(throwable -> {
-            monitor.debug("S3ProvisionPipeline: create bucket " + bucketName + " as it does not exist");
-            return s3AsyncClient.createBucket(createBucketRequest).join();
+            monitor.debug("S3ProvisionPipeline: creating bucket " + bucketName + " as it does not exist");
+            return s3AsyncClient.createBucket(createBucketRequest);
         })
                 .thenCompose(r -> getUser(iamClient))
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
