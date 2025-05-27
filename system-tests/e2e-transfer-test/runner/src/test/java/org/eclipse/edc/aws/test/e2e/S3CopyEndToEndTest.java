@@ -83,7 +83,7 @@ class S3CopyEndToEndTest {
     private String sourceSecretAccessKey;
     
     private final String destinationBucket = "destination-bucket";
-    private final String destinationObjectName = "transferred.txt";
+    private final String destinationObjectName = "source.txt";
     private final String destinationUser = "destination-user";
     private final String destinationUserPolicyName = "destination-user-policy";
     private String destinationAccessKeyId;
@@ -142,9 +142,6 @@ class S3CopyEndToEndTest {
         System.setProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY, sourceSecretAccessKey);
         
         // consumer
-        s3Client.createBucket(CreateBucketRequest.builder()
-                .bucket(destinationBucket)
-                .build());
         iamClient.createPolicy(CreatePolicyRequest.builder()
                 .policyName(destinationUserPolicyName)
                 .policyDocument(destinationUserPolicy())
@@ -198,7 +195,7 @@ class S3CopyEndToEndTest {
                 .isInstanceOfSatisfying(S3Exception.class, ex -> assertThat(ex.awsErrorDetails().errorCode().equals("NoSuchBucketPolicy")));
         
         var iamClient = getIamClient();
-        assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName().startsWith("edc")));
+        assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName()).startsWith("edc"));
     }
     
     private String readS3DestinationObject() {
