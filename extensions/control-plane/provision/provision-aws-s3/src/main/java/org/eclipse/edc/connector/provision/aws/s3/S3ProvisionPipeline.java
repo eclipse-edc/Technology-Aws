@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.iam.model.Tag;
 import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
@@ -85,14 +86,18 @@ public class S3ProvisionPipeline {
         var s3AsyncClient = clientProvider.s3AsyncClient(rq);
         var iamClient = clientProvider.iamAsyncClient(rq);
         var stsClient = clientProvider.stsAsyncClient(rq);
+        var bucketName = resourceDefinition.getBucketName();
+        var headBucketRequest = HeadBucketRequest.builder().bucket(bucketName).build();
+        var createBucketRequest = CreateBucketRequest.builder().bucket(bucketName).createBucketConfiguration(CreateBucketConfiguration.builder().build()).build();
+        monitor.debug("S3ProvisionPipeline: checking if bucket " + bucketName + " exists");
 
-        var request = CreateBucketRequest.builder()
-                .bucket(resourceDefinition.getBucketName())
-                .createBucketConfiguration(CreateBucketConfiguration.builder().build())
-                .build();
-
-        monitor.debug("S3ProvisionPipeline: create bucket " + resourceDefinition.getBucketName());
-        return s3AsyncClient.createBucket(request)
+        return s3AsyncClient.headBucket(headBucketRequest).thenCompose(response -> {
+            monitor.debug("S3ProvisionPipeline: bucket " + bucketName + " already exists, skipping creation");
+            return CompletableFuture.completedFuture(null);
+        }).exceptionally(throwable -> {
+            monitor.debug("S3ProvisionPipeline: create bucket " + bucketName + " as it does not exist");
+            return s3AsyncClient.createBucket(createBucketRequest).join();
+        })
                 .thenCompose(r -> getUser(iamClient))
                 .thenCompose(response -> createRole(iamClient, resourceDefinition, response))
                 .thenCompose(response -> createRolePolicy(iamClient, resourceDefinition, response))
