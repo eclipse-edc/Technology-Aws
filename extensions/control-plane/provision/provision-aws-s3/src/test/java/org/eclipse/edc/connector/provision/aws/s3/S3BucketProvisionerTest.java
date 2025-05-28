@@ -35,6 +35,7 @@ import software.amazon.awssdk.services.iam.model.User;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.CreateBucketResponse;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.sts.StsAsyncClient;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
@@ -49,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -73,7 +75,7 @@ class S3BucketProvisionerTest {
     }
 
     @Test
-    void verify_basic_provision() {
+    void verify_basic_provision_with_bucket_creation() {
         var userResponse = GetUserResponse.builder().user(User.builder().arn("testarn").build()).build();
         var createRoleResponse = CreateRoleResponse.builder().role(Role.builder().roleName("roleName").arn("testarn").build()).build();
         var putRolePolicyResponse = PutRolePolicyResponse.builder().build();
@@ -87,6 +89,7 @@ class S3BucketProvisionerTest {
         var assumeRoleResponse = AssumeRoleResponse.builder().credentials(credentials).build();
         when(stsClient.assumeRole(isA(AssumeRoleRequest.class))).thenReturn(completedFuture(assumeRoleResponse));
 
+        when(s3Client.headBucket(isA(HeadBucketRequest.class))).thenReturn(failedFuture(new RuntimeException("any")));
         var createBucketResponse = CreateBucketResponse.builder().build();
         when(s3Client.createBucket(isA(CreateBucketRequest.class))).thenReturn(completedFuture(createBucketResponse));
 
@@ -102,10 +105,12 @@ class S3BucketProvisionerTest {
             assertThat(secretToken.sessionToken()).isEqualTo("sessionToken");
         });
         verify(iamClient).putRolePolicy(isA(PutRolePolicyRequest.class));
+        verify(s3Client).createBucket(isA(CreateBucketRequest.class));
     }
 
     @Test
     void should_return_failed_future_on_error() {
+        when(s3Client.headBucket(isA(HeadBucketRequest.class))).thenReturn(failedFuture(new RuntimeException("any")));
         when(s3Client.createBucket(isA(CreateBucketRequest.class))).thenReturn(failedFuture(new RuntimeException("any")));
         S3BucketResourceDefinition definition = S3BucketResourceDefinition.Builder.newInstance().id("test").regionId(Region.US_EAST_1.id()).bucketName("test").transferProcessId("test").build();
 
@@ -114,6 +119,40 @@ class S3BucketProvisionerTest {
         var response = provisioner.provision(definition, policy);
 
         assertThat(response).failsWithin(1, SECONDS);
+        verify(s3Client).createBucket(isA(CreateBucketRequest.class));
+    }
+
+    @Test
+    void verify_basic_provision_with_existing_bucket() {
+        var userResponse = GetUserResponse.builder().user(User.builder().arn("testarn").build()).build();
+        var createRoleResponse = CreateRoleResponse.builder().role(Role.builder().roleName("roleName").arn("testarn").build()).build();
+        var putRolePolicyResponse = PutRolePolicyResponse.builder().build();
+        when(iamClient.getUser()).thenReturn(completedFuture(userResponse));
+        when(iamClient.createRole(isA(CreateRoleRequest.class))).thenReturn(completedFuture(createRoleResponse));
+        when(iamClient.putRolePolicy(isA(PutRolePolicyRequest.class))).thenReturn(completedFuture(putRolePolicyResponse));
+
+        var credentials = Credentials.builder()
+                .accessKeyId("accessKeyId").secretAccessKey("secretAccessKey").sessionToken("sessionToken")
+                .expiration(Instant.now()).build();
+        var assumeRoleResponse = AssumeRoleResponse.builder().credentials(credentials).build();
+        when(stsClient.assumeRole(isA(AssumeRoleRequest.class))).thenReturn(completedFuture(assumeRoleResponse));
+
+        when(s3Client.headBucket(isA(HeadBucketRequest.class))).thenReturn(completedFuture(null));
+
+        S3BucketResourceDefinition definition = S3BucketResourceDefinition.Builder.newInstance().id("test").regionId(Region.US_EAST_1.id()).bucketName("test").transferProcessId("test").build();
+        var policy = Policy.Builder.newInstance().build();
+
+        var response = provisioner.provision(definition, policy).join().getContent();
+
+        assertThat(response.getResource()).isInstanceOfSatisfying(S3BucketProvisionedResource.class, resource -> assertThat(resource.getRole()).isEqualTo("roleName"));
+        assertThat(response.getSecretToken()).isInstanceOfSatisfying(AwsTemporarySecretToken.class, secretToken -> {
+            assertThat(secretToken.accessKeyId()).isEqualTo("accessKeyId");
+            assertThat(secretToken.secretAccessKey()).isEqualTo("secretAccessKey");
+            assertThat(secretToken.sessionToken()).isEqualTo("sessionToken");
+        });
+        verify(iamClient).putRolePolicy(isA(PutRolePolicyRequest.class));
+        verify(s3Client).headBucket(isA(HeadBucketRequest.class));
+        verify(s3Client, times(0)).createBucket(isA(CreateBucketRequest.class));
     }
 
 }
