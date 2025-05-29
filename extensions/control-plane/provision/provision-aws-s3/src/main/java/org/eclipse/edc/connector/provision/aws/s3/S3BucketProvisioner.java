@@ -25,6 +25,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinit
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
+import org.eclipse.edc.spi.security.Vault;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.sts.model.Credentials;
@@ -38,13 +39,15 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
 
     private final AwsClientProvider clientProvider;
     private final Monitor monitor;
+    private final Vault vault;
     private final RetryPolicy<Object> retryPolicy;
     private final S3BucketProvisionerConfiguration configuration;
 
-    public S3BucketProvisioner(AwsClientProvider clientProvider, Monitor monitor, RetryPolicy<Object> retryPolicy, S3BucketProvisionerConfiguration configuration) {
+    public S3BucketProvisioner(AwsClientProvider clientProvider, Monitor monitor, Vault vault, RetryPolicy<Object> retryPolicy, S3BucketProvisionerConfiguration configuration) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.configuration = configuration;
+        this.vault = vault;
         this.retryPolicy = RetryPolicy.builder(retryPolicy.getConfig())
                 .withMaxRetries(configuration.getMaxRetries())
                 .handle(AwsServiceException.class)
@@ -67,6 +70,7 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
                 .clientProvider(clientProvider)
                 .roleMaxSessionDuration(configuration.getRoleMaxSessionDuration())
                 .monitor(monitor)
+                .vault(vault)
                 .build()
                 .provision(resourceDefinition)
                 .thenApply(result -> provisionSuccedeed(resourceDefinition, result.getRole(), result.getCredentials()));
@@ -77,6 +81,7 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
         return S3DeprovisionPipeline.Builder.newInstance(retryPolicy)
                 .clientProvider(clientProvider)
                 .monitor(monitor)
+                .vault(vault)
                 .build()
                 .deprovision(resource)
                 .thenApply(ignore -> StatusResult.success(DeprovisionedResource.Builder.newInstance().provisionedResourceId(resource.getId()).build()));
@@ -93,6 +98,8 @@ public class S3BucketProvisioner implements Provisioner<S3BucketResourceDefiniti
                 .transferProcessId(resourceDefinition.getTransferProcessId())
                 .resourceName(resourceDefinition.getBucketName())
                 .endpointOverride(resourceDefinition.getEndpointOverride())
+                .accessKeyId(resourceDefinition.getAccessKeyId())
+                .objectName(resourceDefinition.getObjectName())
                 .build();
 
         var secretToken = new AwsTemporarySecretToken(credentials.accessKeyId(), credentials.secretAccessKey(), credentials.sessionToken(), credentials.expiration().toEpochMilli());

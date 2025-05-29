@@ -21,6 +21,8 @@ dependencies {
     testImplementation(project(":extensions:common:aws:aws-s3-core"))
     testImplementation(project(":extensions:control-plane:provision:provision-aws-s3-copy"))
     testImplementation(project(":extensions:data-plane:data-plane-aws-s3-copy"))
+    testImplementation(project(":extensions:control-plane:provision:provision-aws-s3"))
+    testImplementation(project(":extensions:data-plane:data-plane-aws-s3"))
 
     testImplementation(libs.edc.junit)
     testImplementation(testFixtures(libs.edc.management.api.test.fixtures))

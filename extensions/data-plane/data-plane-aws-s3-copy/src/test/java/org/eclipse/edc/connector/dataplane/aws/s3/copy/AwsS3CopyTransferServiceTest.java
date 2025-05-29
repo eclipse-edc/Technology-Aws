@@ -61,7 +61,7 @@ class AwsS3CopyTransferServiceTest {
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
     private final S3AsyncClient s3Client = mock(S3AsyncClient.class);
     private final MultipartS3AsyncClient multipartS3Client = mock(MultipartS3AsyncClient.class);
-    private final Vault vault = mock(Vault.class);
+    private final Vault vault = mock();
     private final TypeManager typeManager = mock(TypeManager.class);
     private final ObjectMapper objectMapper = mock(ObjectMapper.class);
     private final JsonNode jsonNode = mock(JsonNode.class);

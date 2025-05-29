@@ -21,6 +21,7 @@ plugins {
 dependencies {
     implementation(project(":spi:common:aws-spi"))
     implementation(project(":extensions:common:aws:aws-s3-core"))
+    implementation(project(":extensions:control-plane:provision:provision-aws-s3"))
     implementation(project(":extensions:control-plane:provision:provision-aws-s3-copy"))
     implementation(project(":extensions:data-plane:data-plane-aws-s3-copy"))
     implementation(project(":extensions:data-plane:data-plane-aws-s3"))
