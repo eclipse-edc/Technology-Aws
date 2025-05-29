@@ -31,6 +31,7 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
     private String bucketName;
     private String endpointOverride;
     private String accessKeyId;
+    private String objectName;
 
     private S3BucketResourceDefinition() {
     }
@@ -48,11 +49,16 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
         return initializeBuilder(new Builder())
                 .regionId(regionId)
                 .bucketName(bucketName)
+                .objectName(objectName)
                 .accessKeyId(accessKeyId);
     }
 
     public String getEndpointOverride() {
         return endpointOverride;
+    }
+
+    public String getObjectName() {
+        return objectName;
     }
 
     public String getAccessKeyId() {
@@ -87,6 +93,11 @@ public class S3BucketResourceDefinition extends ResourceDefinition {
 
         public Builder accessKeyId(String accessKeyId) {
             resourceDefinition.accessKeyId = accessKeyId;
+            return this;
+        }
+
+        public Builder objectName(String objectName) {
+            resourceDefinition.objectName = objectName;
             return this;
         }
 

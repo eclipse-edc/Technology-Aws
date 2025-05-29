@@ -83,7 +83,7 @@ class S3CopyEndToEndTest {
     private String sourceSecretAccessKey;
     
     private final String destinationBucket = "destination-bucket";
-    private final String destinationObjectName = "source.txt";
+    private final String destinationObjectName = "transferred.txt";
     private final String destinationUser = "destination-user";
     private final String destinationUserPolicyName = "destination-user-policy";
     private String destinationAccessKeyId;

@@ -52,7 +52,8 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
                 .id(id)
                 .bucketName(dataDestination.getStringProperty(S3BucketSchema.BUCKET_NAME))
                 .regionId(dataDestination.getStringProperty(S3BucketSchema.REGION))
-                .endpointOverride(endpointOverride);
+                .endpointOverride(endpointOverride)
+                .objectName(dataDestination.getStringProperty(S3BucketSchema.OBJECT_NAME));
 
         var accessKeyId = dataDestination.getStringProperty(S3BucketSchema.ACCESS_KEY_ID);
         var secretAccessKey = dataDestination.getStringProperty(S3BucketSchema.SECRET_ACCESS_KEY);
