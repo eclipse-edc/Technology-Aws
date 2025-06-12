@@ -98,12 +98,12 @@ class S3CopyEndToEndTest {
     
     @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("provider", ":system-tests:e2e-transfer-test:runtime")
+            new EmbeddedRuntime("provider", getAdditionalModules())
                     .configurationProvider(S3CopyEndToEndTest::providerConfig));
     
     @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("consumer", ":system-tests:e2e-transfer-test:runtime")
+            new EmbeddedRuntime("consumer", getAdditionalModules())
                     .configurationProvider(S3CopyEndToEndTest::consumerConfig));
     
     @BeforeEach
@@ -235,7 +235,15 @@ class S3CopyEndToEndTest {
         return StaticCredentialsProvider.create(AwsBasicCredentials
                 .create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey()));
     }
-    
+
+    private static String[] getAdditionalModules() {
+        return new String[]{
+                ":system-tests:e2e-transfer-test:runtime",
+                ":extensions:data-plane:data-plane-aws-s3-copy",
+                ":extensions:control-plane:provision:provision-aws-s3-copy",
+        };
+    }
+
     private String sourceUserPolicy() {
         return "{\n" +
                 "    \"Version\": \"2012-10-17\",\n" +
