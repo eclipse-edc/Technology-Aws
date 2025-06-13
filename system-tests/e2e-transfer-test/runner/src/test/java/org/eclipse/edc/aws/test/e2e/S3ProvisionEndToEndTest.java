@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 Cofinity-X
+ *  Copyright (c) 2025 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  *  This program and the accompanying materials are made available under the
  *  terms of the Apache License, Version 2.0 which is available at
@@ -8,7 +8,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Contributors:
- *       Cofinity-X - initial API and implementation
+ *       Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
  *
  */
 
@@ -62,57 +62,57 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForTransferSta
 import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.DEPROVISIONED;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.IAM;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.STS;
 
-@Testcontainers
 @EndToEndTest
-class S3CopyEndToEndTest {
-    
+@Testcontainers
+class S3ProvisionEndToEndTest {
+
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
-    
+
     private static final String SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID = "aws.accessKeyId";
     private static final String SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY = "aws.secretAccessKey";
-    
+
     private final String fileContent = "Hello, world!";
     private final String region = "eu-central-1";
-    
+
     private final String sourceBucket = "source-bucket";
     private final String sourceObjectName = "source.txt";
     private final String sourceUser = "source-user";
     private final String sourceUserPolicyName = "source-user-policy";
     private String sourceAccessKeyId;
     private String sourceSecretAccessKey;
-    
+
     private final String destinationBucket = "destination-bucket";
     private final String destinationObjectName = "transferred.txt";
     private final String destinationUser = "destination-user";
     private final String destinationUserPolicyName = "destination-user-policy";
     private String destinationAccessKeyId;
     private String destinationSecretAccessKey;
-    
+
     @Container
-    private static final LocalStackContainer LOCALSTACK_CONTAINER = new LocalStackContainer(LOCALSTACK_DOCKER_IMAGE)
-            .withServices(
-                    LocalStackContainer.Service.S3,
-                    LocalStackContainer.Service.IAM,
-                    LocalStackContainer.Service.STS);
-    
+    private static final LocalStackContainer LOCALSTACK_CONTAINER =
+            new LocalStackContainer(LOCALSTACK_DOCKER_IMAGE).withServices(S3, IAM, STS);
+
     @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
             new EmbeddedRuntime("provider", getAdditionalModules())
-                    .configurationProvider(S3CopyEndToEndTest::providerConfig));
-    
+                    .configurationProvider(S3ProvisionEndToEndTest::providerConfig));
+
     @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
             new EmbeddedRuntime("consumer", getAdditionalModules())
-                    .configurationProvider(S3CopyEndToEndTest::consumerConfig));
-    
+                    .configurationProvider(S3ProvisionEndToEndTest::consumerConfig));
+
     @BeforeEach
     void setUp() {
         LOCALSTACK_CONTAINER.start();
-        
+
         var s3Client = getS3Client();
         var iamClient = getIamClient();
-        
+
         // provider
         s3Client.createBucket(CreateBucketRequest.builder()
                 .bucket(sourceBucket)
@@ -137,14 +137,11 @@ class S3CopyEndToEndTest {
                 .build());
         sourceAccessKeyId = sourceCredentials.accessKey().accessKeyId();
         sourceSecretAccessKey = sourceCredentials.accessKey().secretAccessKey();
-        
+
         System.setProperty(SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID, sourceAccessKeyId);
         System.setProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY, sourceSecretAccessKey);
-        
+
         // consumer
-        s3Client.createBucket(CreateBucketRequest.builder()
-                .bucket(destinationBucket)
-                .build());
         iamClient.createPolicy(CreatePolicyRequest.builder()
                 .policyName(destinationUserPolicyName)
                 .policyDocument(destinationUserPolicy())
@@ -162,45 +159,49 @@ class S3CopyEndToEndTest {
         destinationAccessKeyId = destinationCredentials.accessKey().accessKeyId();
         destinationSecretAccessKey = destinationCredentials.accessKey().secretAccessKey();
     }
-    
+
     @AfterEach
     void tearDown() {
         LOCALSTACK_CONTAINER.stop();
-        
+
         System.clearProperty(SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID);
         System.clearProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY);
     }
-    
+
     @Test
-    void s3CopyTransfer() {
+    void provision_createsBucketAndRole_withCredentialsFromDataDestination() {
         createConsumerSecret("s3-credentials", awsSecretToken(destinationAccessKeyId, destinationSecretAccessKey));
-        
+
         createAsset(LOCALSTACK_CONTAINER.getEndpoint().toString());
         createPolicy();
         createContractDefinition();
-        
+
         var negotiationId = initiateNegotiation();
         waitForNegotiationState(negotiationId, FINALIZED);
         var agreementId = getAgreementId(negotiationId);
-        
-        var transferId = initiateTransfer(agreementId, LOCALSTACK_CONTAINER.getEndpoint().toString());
+
+        var transferId = initiateTransfer(
+                agreementId,
+                LOCALSTACK_CONTAINER.getEndpoint().toString(),
+                LOCALSTACK_CONTAINER.getAccessKey(),
+                LOCALSTACK_CONTAINER.getSecretKey());
         waitForTransferState(transferId, COMPLETED);
-        
+
         var destinationFileContent = readS3DestinationObject();
         assertThat(destinationFileContent).isEqualTo(fileContent);
-        
+
         waitForProviderTransferState(transferId, DEPROVISIONED);
-        
+
         var s3Client = getS3Client();
         assertThatThrownBy(() -> s3Client.getBucketPolicy(GetBucketPolicyRequest.builder()
                 .bucket(destinationBucket)
                 .build()))
                 .isInstanceOfSatisfying(S3Exception.class, ex -> assertThat(ex.awsErrorDetails().errorCode().equals("NoSuchBucketPolicy")));
-        
+
         var iamClient = getIamClient();
-        assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName().startsWith("edc")));
+        assertThat(iamClient.listRoles().roles()).noneSatisfy(role -> assertThat(role.roleName()).startsWith("edc"));
     }
-    
+
     private String readS3DestinationObject() {
         var s3Client = getS3Client();
         var getObjectRequest = GetObjectRequest.builder()
@@ -214,7 +215,7 @@ class S3CopyEndToEndTest {
             throw new RuntimeException(e);
         }
     }
-    
+
     private S3Client getS3Client() {
         return S3Client.builder()
                 .credentialsProvider(localStackCredentials())
@@ -222,7 +223,7 @@ class S3CopyEndToEndTest {
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .build();
     }
-    
+
     private IamClient getIamClient() {
         return IamClient.builder()
                 .credentialsProvider(localStackCredentials())
@@ -230,18 +231,10 @@ class S3CopyEndToEndTest {
                 .endpointOverride(LOCALSTACK_CONTAINER.getEndpoint())
                 .build();
     }
-    
+
     private StaticCredentialsProvider localStackCredentials() {
         return StaticCredentialsProvider.create(AwsBasicCredentials
                 .create(LOCALSTACK_CONTAINER.getAccessKey(), LOCALSTACK_CONTAINER.getSecretKey()));
-    }
-
-    private static String[] getAdditionalModules() {
-        return new String[]{
-                ":system-tests:e2e-transfer-test:runtime",
-                ":extensions:data-plane:data-plane-aws-s3-copy",
-                ":extensions:control-plane:provision:provision-aws-s3-copy",
-        };
     }
 
     private String sourceUserPolicy() {
@@ -273,7 +266,7 @@ class S3CopyEndToEndTest {
                 "    ]\n" +
                 "}";
     }
-    
+
     private String destinationUserPolicy() {
         return "{\n" +
                 "    \"Version\": \"2012-10-17\",\n" +
@@ -291,11 +284,18 @@ class S3CopyEndToEndTest {
                 "    ]\n" +
                 "}";
     }
-    
+
     private String awsSecretToken(String accessKeyId, String secretAccessKey) {
         return "{\\\"edctype\\\":\\\"dataspaceconnector:secrettoken\\\",\\\"accessKeyId\\\":\\\"" + accessKeyId + "\\\",\\\"secretAccessKey\\\":\\\"" + secretAccessKey + "\\\"}";
     }
-    
+
+    private static String[] getAdditionalModules() {
+        return new String[]{
+                ":system-tests:e2e-transfer-test:runtime",
+                ":extensions:control-plane:provision:provision-aws-s3"
+        };
+    }
+
     private static Config providerConfig() {
         var settings = new HashMap<String, String>() {
             {
@@ -321,10 +321,10 @@ class S3CopyEndToEndTest {
                 put("edc.aws.secret.access.key", "source-user-secret-access-key");
             }
         };
-        
+
         return ConfigFactory.fromMap(settings);
     }
-    
+
     private static Config consumerConfig() {
         var settings = new HashMap<String, String>() {
             {
@@ -348,7 +348,7 @@ class S3CopyEndToEndTest {
                 put("edc.transfer.proxy.token.verifier.publickey.alias", "public-key");
             }
         };
-        
+
         return ConfigFactory.fromMap(settings);
     }
 }

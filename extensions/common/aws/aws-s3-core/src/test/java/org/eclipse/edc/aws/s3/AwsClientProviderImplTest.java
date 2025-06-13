@@ -19,13 +19,14 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 
 import java.net.URI;
+import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AwsClientProviderImplTest {
 
     private AwsClientProvider clientProvider;
-    
+
     @BeforeEach
     void setUp() {
         var config = AwsClientProviderConfiguration.Builder.newInstance()
@@ -33,45 +34,87 @@ class AwsClientProviderImplTest {
                 .build();
         clientProvider = new AwsClientProviderImpl(config);
     }
-    
+
     @Test
     void iamAsyncClient_noEndpointOverride_shouldReturnClient() {
         var clientRequest = S3ClientRequest.from("region", null);
-        
+
         var client = clientProvider.iamAsyncClient(clientRequest);
-        
+
         assertThat(client).isNotNull();
         assertThat(client.serviceClientConfiguration().endpointOverride()).isEmpty();
     }
-    
+
     @Test
     void iamAsyncClient_requestMultipleTimesNoEndpointOverride_shouldReturnSameClient() {
         var clientRequest = S3ClientRequest.from("region", null);
-        
+
         var client1 = clientProvider.iamAsyncClient(clientRequest);
         var client2 = clientProvider.iamAsyncClient(clientRequest);
-        
+
         assertThat(client1).isSameAs(client2);
     }
-    
+
     @Test
     void iamAsyncClient_withEndpointOverride_shouldReturnClient() {
         var endpointOverride = "https://endpointOverride";
         var clientRequest = S3ClientRequest.from("region", endpointOverride);
-    
+
         var client = clientProvider.iamAsyncClient(clientRequest);
-    
+
         assertThat(client).isNotNull();
         assertThat(client.serviceClientConfiguration().endpointOverride()).contains(URI.create(endpointOverride));
     }
-    
+
     @Test
     void iamAsyncClient_requestMultipleTimesWithEndpointOverride_shouldReturnSameClient() {
         var clientRequest = S3ClientRequest.from("region", "https://endpointOverride");
-        
+
         var client1 = clientProvider.iamAsyncClient(clientRequest);
         var client2 = clientProvider.iamAsyncClient(clientRequest);
-        
+
         assertThat(client1).isSameAs(client2);
+    }
+
+    @Test
+    void iamAsyncClient_withSecretToken_shouldReturnClient() throws ExecutionException, InterruptedException {
+        var token = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        var clientRequest = S3ClientRequest.from("region", "https://endpointOverride", token);
+
+        var client = clientProvider.iamAsyncClient(clientRequest);
+
+        assertThat(client).isNotNull();
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().accessKeyId())
+                .isEqualTo(token.getAccessKeyId());
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().secretAccessKey())
+                .isEqualTo(token.getSecretAccessKey());
+    }
+
+    @Test
+    void stsAsyncClient_withSecretToken_shouldReturnClient() throws ExecutionException, InterruptedException {
+        var token = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        var clientRequest = S3ClientRequest.from("region", "https://endpointOverride", token);
+
+        var client = clientProvider.stsAsyncClient(clientRequest);
+
+        assertThat(client).isNotNull();
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().accessKeyId())
+                .isEqualTo(token.getAccessKeyId());
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().secretAccessKey())
+                .isEqualTo(token.getSecretAccessKey());
+    }
+
+    @Test
+    void s3AsyncClient_withSecretToken_shouldReturnClient() throws ExecutionException, InterruptedException {
+        var token = new AwsSecretToken("accessKeyId", "secretAccessKey");
+        var clientRequest = S3ClientRequest.from("region", "https://endpointOverride", token);
+
+        var client = clientProvider.s3AsyncClient(clientRequest);
+
+        assertThat(client).isNotNull();
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().accessKeyId())
+                .isEqualTo(token.getAccessKeyId());
+        assertThat(client.serviceClientConfiguration().credentialsProvider().resolveIdentity().get().secretAccessKey())
+                .isEqualTo(token.getSecretAccessKey());
     }
 }

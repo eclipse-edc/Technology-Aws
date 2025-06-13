@@ -83,7 +83,16 @@ public class EndToEndTestCommon {
                 .replace("{endpoint-override}", endpointOverride);
         return post(CONSUMER_MANAGEMENT_API + "/transferprocesses", requestBody, "@id");
     }
-    
+
+    public static String initiateTransfer(String agreementId, String endpointOverride, String accessKeyId, String secretAccessKey) {
+        var requestBody = readFile(TEST_RESOURCES + "initiate-negotiation-with-aws-credentials.json")
+                .replace("{agreement-id}", agreementId)
+                .replace("{endpoint-override}", endpointOverride)
+                .replace("{accessKeyId}", accessKeyId)
+                .replace("{secretAccessKey}", secretAccessKey);
+        return post(CONSUMER_MANAGEMENT_API + "/transferprocesses", requestBody, "@id");
+    }
+
     public static void waitForTransferState(String transferProcessId, TransferProcessStates state) {
         Callable<String> getTransferState = () -> get(CONSUMER_MANAGEMENT_API + "/transferprocesses/" + transferProcessId, "state");
         

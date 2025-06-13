@@ -49,6 +49,10 @@ public class AwsProvisionExtension implements ServiceExtension {
 
     @Inject
     private TypeManager typeManager;
+    @Inject
+    private ProvisionManager provisionManager;
+    @Inject
+    private RetryPolicy<Object> retryPolicy;
 
     @Override
     public String name() {
@@ -59,19 +63,15 @@ public class AwsProvisionExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         monitor = context.getMonitor();
 
-        var provisionManager = context.getService(ProvisionManager.class);
-
-        var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
-
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int roleMaxSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
         var provisionerConfiguration = new S3BucketProvisionerConfiguration(maxRetries, roleMaxSessionDuration);
-        var s3BucketProvisioner = new S3BucketProvisioner(clientProvider, monitor, retryPolicy, provisionerConfiguration);
+        var s3BucketProvisioner = new S3BucketProvisioner(clientProvider, monitor, vault, retryPolicy, provisionerConfiguration);
         provisionManager.register(s3BucketProvisioner);
 
         // register the generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);
-        manifestGenerator.registerGenerator(new S3ConsumerResourceDefinitionGenerator());
+        manifestGenerator.registerGenerator(new S3ConsumerResourceDefinitionGenerator(vault));
 
         registerTypes(typeManager);
     }

@@ -20,6 +20,7 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
+import org.eclipse.edc.spi.security.Vault;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.regions.Region;
@@ -60,6 +61,7 @@ class S3BucketProvisionerTest {
     private final StsAsyncClient stsClient = mock(StsAsyncClient.class);
     private final S3AsyncClient s3Client = mock(S3AsyncClient.class);
     private final AwsClientProvider clientProvider = mock(AwsClientProvider.class);
+    private final Vault vault = mock();
 
     @BeforeEach
     void setUp() {
@@ -69,7 +71,7 @@ class S3BucketProvisionerTest {
 
         var configuration = new S3BucketProvisionerConfiguration(2, 3600);
 
-        provisioner = new S3BucketProvisioner(clientProvider, mock(Monitor.class), RetryPolicy.ofDefaults(), configuration);
+        provisioner = new S3BucketProvisioner(clientProvider, mock(Monitor.class), vault, RetryPolicy.ofDefaults(), configuration);
     }
 
     @Test

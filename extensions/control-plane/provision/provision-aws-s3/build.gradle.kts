@@ -21,6 +21,8 @@ dependencies {
     api(project(":extensions:common:aws:aws-s3-core"))
 
     testImplementation(testFixtures(project(":extensions:common:aws:aws-s3-test")))
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.localstack)
 }
 
 
