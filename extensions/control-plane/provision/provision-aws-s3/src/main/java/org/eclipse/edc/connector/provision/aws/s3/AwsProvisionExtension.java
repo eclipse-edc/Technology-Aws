@@ -49,6 +49,10 @@ public class AwsProvisionExtension implements ServiceExtension {
 
     @Inject
     private TypeManager typeManager;
+    @Inject
+    private ProvisionManager provisionManager;
+    @Inject
+    private RetryPolicy<Object> retryPolicy;
 
     @Override
     public String name() {
@@ -58,10 +62,6 @@ public class AwsProvisionExtension implements ServiceExtension {
     @Override
     public void initialize(ServiceExtensionContext context) {
         monitor = context.getMonitor();
-
-        var provisionManager = context.getService(ProvisionManager.class);
-
-        var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
 
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int roleMaxSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);
