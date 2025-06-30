@@ -62,4 +62,4 @@ aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws" }
 aws-secretsmanager = { module = "software.amazon.awssdk:secretsmanager", version.ref = "aws" }
 
 [plugins]
-shadow = { id = "com.gradleup.shadow", version = "8.3.6" }
+shadow = { id = "com.gradleup.shadow", version = "8.3.7" }
