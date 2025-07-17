@@ -10,6 +10,7 @@
  *  Contributors:
  *       ZF Friedrichshafen AG - Initial API and Implementation
  *       SAP SE - refactoring
+ *       Cofinity-X - fix exception in canGenerate for PULL transfers
  *
  */
 
@@ -179,4 +180,15 @@ public class S3ConsumerResourceDefinitionGeneratorTest {
         assertThat(definition).isFalse();
     }
 
+    @Test
+    void canGenerate_dataDestinationNull_shouldReturnFalse() {
+        var transferProcess = TransferProcess.Builder.newInstance()
+                .assetId("asset-id")
+                .contractId("contract-id")
+                .build();
+        var policy = Policy.Builder.newInstance().build();
+        
+        var definition = generator.canGenerate(transferProcess, policy);
+        assertThat(definition).isFalse();
+    }
 }

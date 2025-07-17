@@ -11,6 +11,7 @@
  *       Microsoft Corporation - initial API and implementation
  *       ZF Friedrichshafen AG - improvements (refactoring of generate method)
  *       SAP SE - refactoring
+ *       Cofinity-X - fix exception in canGenerate for PULL transfers
  *
  */
 
@@ -68,6 +69,7 @@ public class S3ConsumerResourceDefinitionGenerator implements ConsumerResourceDe
 
     @Override
     public boolean canGenerate(TransferProcess dataRequest, Policy policy) {
-        return S3BucketSchema.TYPE.equals(dataRequest.getDestinationType());
+        return dataRequest.getDataDestination() != null &&
+                S3BucketSchema.TYPE.equals(dataRequest.getDestinationType());
     }
 }
