@@ -3,7 +3,6 @@ name: Release
 on:
   workflow_dispatch:
 
-
 jobs:
 
   Run-Tests:
@@ -12,5 +11,5 @@ jobs:
 
   Release:
     needs: [ Run-Tests ]
-    uses: eclipse-edc/.github/.github/workflows/technology-release.yml@main
+    uses: eclipse-edc/.github/.github/workflows/release.yml@main
     secrets: inherit

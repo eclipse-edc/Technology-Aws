@@ -10,7 +10,7 @@ on:
 
 jobs:
   Prepare-Release:
-    uses: eclipse-edc/.github/.github/workflows/technology-prepare-release.yml@main
+    uses: eclipse-edc/.github/.github/workflows/prepare-release.yml@main
     secrets: inherit
     with:
       version: ${{ inputs.version }}
