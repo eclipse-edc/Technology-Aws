@@ -16,11 +16,11 @@ rootProject.name = "technology-aws"
 
 pluginManagement {
     repositories {
+        gradlePluginPortal()
+        mavenCentral()
         maven {
             url = uri("https://central.sonatype.com/repository/maven-snapshots/")
         }
-        mavenCentral()
-        gradlePluginPortal()
     }
 }
 
@@ -40,5 +40,3 @@ include(":spi:common:aws-spi")
 
 include(":system-tests:e2e-transfer-test:runner")
 include(":system-tests:e2e-transfer-test:runtime")
-
-include(":version-catalog")
