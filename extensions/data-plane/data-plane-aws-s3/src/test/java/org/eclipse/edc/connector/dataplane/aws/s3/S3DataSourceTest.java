@@ -18,11 +18,18 @@ import org.eclipse.edc.connector.dataplane.aws.s3.exceptions.S3DataSourceExcepti
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,6 +44,7 @@ public class S3DataSourceTest {
 
     private static final String BUCKET_NAME = "bucketName";
     private static final String OBJECT_NAME = "object-1";
+    private static final String OBJECT_FOLDER_NAME = "my-folder/";
     private static final String OBJECT_PREFIX = "my-prefix/";
     private static final String ERROR_MESSAGE = "Error message";
     private final S3Client s3Client = mock();
@@ -128,6 +136,42 @@ public class S3DataSourceTest {
         assertThat(s3DataSourceException.getMessage()).isEqualTo(ERROR_MESSAGE);
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(S3DataSourceInput.class)
+    void shouldSelectFilteredByFolderNameAndOrPrefixS3Objects(String folderName, String prefix, String name, String expectedValue) {
+
+        var key = new StringBuilder();
+        if (folderName != null) {
+            key.append(folderName);
+            if (!folderName.endsWith("/")) {
+                key.append("/");
+            }
+        }
+        if (prefix != null) {
+            key.append(prefix);
+        }
+        key.append(name);
+
+        var mockResponse = ListObjectsV2Response.builder().contents(
+                S3Object.builder().key(key.toString()).build()
+        ).build();
+
+        var s3Datasource = S3DataSource.Builder.newInstance()
+                .bucketName(BUCKET_NAME)
+                .objectName(name)
+                .folderName(folderName)
+                .objectPrefix(prefix)
+                .client(s3Client)
+                .build();
+
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(mockResponse);
+
+        var result = s3Datasource.openPartStream();
+        assertThat(result.succeeded()).isTrue();
+        var list = result.getContent().toList();
+        assertThat(list.get(0).name()).isEqualTo(expectedValue);
+    }
+
     @Nested
     class Close {
 
@@ -145,5 +189,16 @@ public class S3DataSourceTest {
             verify(s3Client, never()).close();
         }
 
+    }
+
+    private static class S3DataSourceInput implements ArgumentsProvider {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+
+            return Stream.of(
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), null, OBJECT_NAME, OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
+                    Arguments.of(null, null, OBJECT_NAME, OBJECT_NAME));
+        }
     }
 }
