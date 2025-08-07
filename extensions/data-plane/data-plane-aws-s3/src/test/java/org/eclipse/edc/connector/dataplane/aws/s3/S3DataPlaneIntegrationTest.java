@@ -25,6 +25,7 @@ import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -36,6 +37,7 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -62,8 +64,6 @@ public class S3DataPlaneIntegrationTest {
     private static final String OBJECT_PREFIX = "object-prefix/";
     private static final String KEY_NAME = "key-name";
     private static final String OBJECT_NAME = "text-document.txt";
-    private static final String FOLDER_NAME_IN_DESTINATION = "folder-name-in-destination/";
-    private static final String OBJECT_NAME_IN_DESTINATION = "object-name-in-destination";
 
     @Container
     private final MinioContainer sourceMinio = new MinioContainer();
@@ -101,12 +101,78 @@ public class S3DataPlaneIntegrationTest {
         destinationClient.deleteBucket(destinationBucketName);
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(SingleObjectNamesToTransfer.class)
-    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name, String key) {
+    @Test
+    void shouldSelectAllS3Objects() {
+        var folderNameInDestination = "folder-name-in-destination/";
         var objectContent = UUID.randomUUID().toString();
 
-        sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
+        List<String>  objectNames = new ArrayList<>();
+        objectNames.add(OBJECT_NAME);
+        objectNames.add(OBJECT_PREFIX + OBJECT_NAME);
+        objectNames.add(OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME);
+
+        for (String objectName : objectNames) {
+            sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
+        }
+
+        var sourceAddress = createMultiObjectsDataAddress("/", null);
+
+        var destinationAddress = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .keyName(KEY_NAME)
+                .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(S3BucketSchema.FOLDER_NAME, folderNameInDestination)
+                .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
+                .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
+                .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
+                .build();
+
+        var request = DataFlowStartMessage.Builder.newInstance()
+                .id(UUID.randomUUID().toString())
+                .processId(UUID.randomUUID().toString())
+                .sourceDataAddress(sourceAddress)
+                .destinationDataAddress(destinationAddress)
+                .build();
+
+        var sink = sinkFactory.createSink(request);
+        var source = sourceFactory.createSource(request);
+
+        var transferResult = sink.transfer(source);
+        assertThat(transferResult).succeedsWithin(5, SECONDS);
+
+        for (var objectName : objectNames) {
+            var objectKeyInDestination = new StringBuilder();
+            objectKeyInDestination.append(folderNameInDestination);
+            objectKeyInDestination.append(objectName);
+
+            assertThat(destinationClient.getObject(destinationBucketName, objectKeyInDestination.toString()))
+                    .succeedsWithin(5, SECONDS)
+                    .extracting(ResponseBytes::response)
+                    .extracting(GetObjectResponse::contentLength)
+                    .extracting(Long::intValue)
+                    .isEqualTo(objectContent.length());
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(SingleObjectNamesToTransfer.class)
+    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name) {
+        var objectNameInDestination = "object-name-in-destination";
+        var objectContent = UUID.randomUUID().toString();
+
+        var objectKey = new StringBuilder();
+        if (folderName != null) {
+            objectKey.append(folderName);
+            if (!folderName.endsWith("/")) {
+                objectKey.append("/");
+            }
+        }
+        if (prefix != null) {
+            objectKey.append(prefix);
+        }
+        objectKey.append(name);
+        sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
 
         var sourceAddress = createSingleObjectDataAddress(folderName, prefix, name);
 
@@ -115,7 +181,7 @@ public class S3DataPlaneIntegrationTest {
                 .keyName(KEY_NAME)
                 .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
+                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
                 .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
@@ -135,7 +201,7 @@ public class S3DataPlaneIntegrationTest {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        assertThat(destinationClient.getObject(destinationBucketName, OBJECT_NAME_IN_DESTINATION))
+        assertThat(destinationClient.getObject(destinationBucketName, objectNameInDestination))
                 .succeedsWithin(5, SECONDS)
                 .extracting(ResponseBytes::response)
                 .extracting(GetObjectResponse::contentLength)
@@ -145,11 +211,25 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(MultiObjectsNamesToTransfer.class)
-    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> keys, List<String> namesInDestination) {
+    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames) {
+
+        var folderNameInDestination = "folder-name-in-destination/";
+        var objectNameInDestination = "object-name-in-destination";
         var objectContent = UUID.randomUUID().toString();
 
-        for (var key : keys) {
-            sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
+        for (var objectName : objectNames) {
+            var objectKey = new StringBuilder();
+            if (folderName != null) {
+                objectKey.append(folderName);
+                if (!folderName.endsWith("/")) {
+                    objectKey.append("/");
+                }
+            }
+            if (prefix != null) {
+                objectKey.append(prefix);
+            }
+            objectKey.append(objectName);
+            sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
         }
 
         var sourceAddress = createMultiObjectsDataAddress(folderName, prefix);
@@ -159,8 +239,8 @@ public class S3DataPlaneIntegrationTest {
                 .keyName(KEY_NAME)
                 .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.FOLDER_NAME, FOLDER_NAME_IN_DESTINATION)
-                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
+                .property(S3BucketSchema.FOLDER_NAME, folderNameInDestination)
+                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
                 .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
@@ -179,8 +259,15 @@ public class S3DataPlaneIntegrationTest {
         var transferResult = sink.transfer(source);
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        for (var name : namesInDestination) {
-            assertThat(destinationClient.getObject(destinationBucketName, name))
+        for (var objectName : objectNames) {
+            var objectKeyInDestination = new StringBuilder();
+            objectKeyInDestination.append(folderNameInDestination);
+            if (prefix != null) {
+                objectKeyInDestination.append(prefix);
+            }
+            objectKeyInDestination.append(objectName);
+
+            assertThat(destinationClient.getObject(destinationBucketName, objectKeyInDestination.toString()))
                     .succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
@@ -230,10 +317,10 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME),
-                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_PREFIX + "1-" + OBJECT_NAME),
-                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME),
-                    Arguments.of(null, null, "1-" + OBJECT_NAME, "1-" + OBJECT_NAME));
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME),
+                    Arguments.of(null, null, "1-" + OBJECT_NAME));
         }
     }
 
@@ -242,15 +329,9 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX,
-                            List.of((OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + OBJECT_PREFIX + "2-" + OBJECT_NAME)),
-                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
-                    Arguments.of(null, OBJECT_PREFIX,
-                            List.of((OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_PREFIX + "2-" + OBJECT_NAME)),
-                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
-                    Arguments.of(OBJECT_FOLDER_NAME, null,
-                            List.of((OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + "2-" + OBJECT_NAME)),
-                            List.of((FOLDER_NAME_IN_DESTINATION + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + "2-" + OBJECT_NAME)))
+                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
+                    Arguments.of(null, OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
+                    Arguments.of(OBJECT_FOLDER_NAME, null, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME))
             );
         }
     }
