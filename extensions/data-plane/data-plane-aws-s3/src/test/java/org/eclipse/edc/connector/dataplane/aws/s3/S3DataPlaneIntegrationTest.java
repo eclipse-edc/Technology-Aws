@@ -25,6 +25,7 @@ import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -36,6 +37,7 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -97,6 +99,60 @@ public class S3DataPlaneIntegrationTest {
     void tearDown() {
         sourceClient.deleteBucket(sourceBucketName);
         destinationClient.deleteBucket(destinationBucketName);
+    }
+
+    @Test
+    void shouldSelectAllS3Objects() {
+        var folderNameInDestination = "folder-name-in-destination/";
+        var objectContent = UUID.randomUUID().toString();
+
+        List<String>  objectNames = new ArrayList<>();
+        objectNames.add(OBJECT_NAME);
+        objectNames.add(OBJECT_PREFIX + OBJECT_NAME);
+        objectNames.add(OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME);
+
+        for (String objectName : objectNames) {
+            sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
+        }
+
+        var sourceAddress = createMultiObjectsDataAddress("/", null);
+
+        var destinationAddress = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .keyName(KEY_NAME)
+                .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(S3BucketSchema.FOLDER_NAME, folderNameInDestination)
+                .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
+                .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
+                .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
+                .build();
+
+        var request = DataFlowStartMessage.Builder.newInstance()
+                .id(UUID.randomUUID().toString())
+                .processId(UUID.randomUUID().toString())
+                .sourceDataAddress(sourceAddress)
+                .destinationDataAddress(destinationAddress)
+                .build();
+
+        var sink = sinkFactory.createSink(request);
+        var source = sourceFactory.createSource(request);
+
+        var transferResult = sink.transfer(source);
+        assertThat(transferResult).succeedsWithin(5, SECONDS);
+
+        for (var objectName : objectNames) {
+            var objectKeyInDestination = new StringBuilder();
+            objectKeyInDestination.append(folderNameInDestination);
+            objectKeyInDestination.append(objectName);
+
+            assertThat(destinationClient.getObject(destinationBucketName, objectKeyInDestination.toString()))
+                    .succeedsWithin(5, SECONDS)
+                    .extracting(ResponseBytes::response)
+                    .extracting(GetObjectResponse::contentLength)
+                    .extracting(Long::intValue)
+                    .isEqualTo(objectContent.length());
+        }
     }
 
     @ParameterizedTest
@@ -204,7 +260,6 @@ public class S3DataPlaneIntegrationTest {
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
         for (var objectName : objectNames) {
-
             var objectKeyInDestination = new StringBuilder();
             objectKeyInDestination.append(folderNameInDestination);
             if (prefix != null) {
