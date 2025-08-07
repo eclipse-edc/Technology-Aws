@@ -154,7 +154,7 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(MultiObjectsNamesToTransfer.class)
-    void shouldCopy_UsingDestinationfolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames) {
+    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames) {
 
         var folderNameInDestination = "folder-name-in-destination/";
         var objectNameInDestination = "object-name-in-destination";
