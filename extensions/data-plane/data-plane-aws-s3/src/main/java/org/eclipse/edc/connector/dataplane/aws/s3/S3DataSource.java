@@ -70,18 +70,16 @@ class S3DataSource implements DataSource {
 
         if (!(isNullOrEmpty(objectFolderName) && isNullOrEmpty(objectPrefix))) {
 
-            if (objectFolderName.equals("/") && objectPrefix == null) {
-                objectFolderName = "";
-            }
-
             var filter = getFilter(objectFolderName, objectPrefix);
+
             var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
-            objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
 
             if (s3Objects.isEmpty()) {
                 return failure(new StreamFailure(
                         List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
             }
+
+            objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
 
             var s3PartStream = s3Objects.stream()
                     .map(S3Object::key)
@@ -128,6 +126,14 @@ class S3DataSource implements DataSource {
     }
 
     private String getFilter(String objectFolderName, String objectPrefix) {
+
+        if (objectFolderName != null && !objectFolderName.isEmpty()) {
+
+            if (objectFolderName.equals("/") && objectPrefix == null) {
+                objectFolderName = "";
+            }
+        }
+
         objectFolderName = objectFolderName != null ? objectFolderName : "";
         objectPrefix = objectPrefix != null ? objectPrefix : "";
 

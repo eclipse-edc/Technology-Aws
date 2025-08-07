@@ -107,9 +107,9 @@ public class S3DataPlaneIntegrationTest {
         var objectContent = UUID.randomUUID().toString();
 
         List<String>  objectNames = new ArrayList<>();
-        objectNames.add(KEY_NAME);
-        objectNames.add(OBJECT_PREFIX + KEY_NAME);
-        objectNames.add(OBJECT_FOLDER_NAME + OBJECT_PREFIX + KEY_NAME);
+        objectNames.add(OBJECT_NAME);
+        objectNames.add(OBJECT_PREFIX + OBJECT_NAME);
+        objectNames.add(OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME);
 
         for (String objectName : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
