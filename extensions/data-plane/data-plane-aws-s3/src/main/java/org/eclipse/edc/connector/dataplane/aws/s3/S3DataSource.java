@@ -68,12 +68,13 @@ class S3DataSource implements DataSource {
             objectFolderName += "/";
         }
 
-        if (objectPrefix != null || objectFolderName != null) {
+        if (!(objectFolderName == null && objectPrefix == null)) {
 
-            objectPrefix = objectPrefix != null ? objectPrefix : "";
-            objectFolderName = objectFolderName != null ? objectFolderName : "";
+            var filter = getFilter(objectFolderName, objectPrefix);
 
-            var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects();
+            var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
+
+            objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
 
             if (s3Objects.isEmpty()) {
                 return failure(new StreamFailure(
@@ -104,7 +105,7 @@ class S3DataSource implements DataSource {
      *
      * @return A list of S3 objects.
      */
-    private List<S3Object> fetchFilteredByFolderNameAndOrPrefixS3Objects() {
+    private List<S3Object> fetchFilteredByFolderNameAndOrPrefixS3Objects(String filter) {
 
         String continuationToken = null;
         List<S3Object> s3Objects = new ArrayList<>();
@@ -113,7 +114,7 @@ class S3DataSource implements DataSource {
 
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
-                    .prefix(objectFolderName + objectPrefix)
+                    .prefix(filter)
                     .continuationToken(continuationToken)
                     .build();
 
@@ -126,6 +127,18 @@ class S3DataSource implements DataSource {
         } while (continuationToken != null);
 
         return s3Objects;
+    }
+
+    private String getFilter(String objectFolderName, String objectPrefix) {
+
+        StringBuilder filter = new StringBuilder();
+
+        objectFolderName = objectFolderName != null ? objectFolderName : "";
+        objectPrefix = objectPrefix != null ? objectPrefix : "";
+
+        filter.append(objectFolderName).append(objectPrefix);
+
+        return filter.toString();
     }
 
     @Override
