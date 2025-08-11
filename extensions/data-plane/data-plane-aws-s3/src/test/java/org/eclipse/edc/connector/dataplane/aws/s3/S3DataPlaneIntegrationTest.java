@@ -117,7 +117,7 @@ public class S3DataPlaneIntegrationTest {
         objectKey.append(name);
         sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
 
-        var sourceAddress = singleObjectCreateDataAddress(folderName, prefix, name);
+        var sourceAddress = createSingleObjectDataAddress(folderName, prefix, name);
 
         var destinationAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -175,7 +175,7 @@ public class S3DataPlaneIntegrationTest {
             sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
         }
 
-        var sourceAddress = multiObjectsCreateDataAddress(folderName, prefix);
+        var sourceAddress = createMultiObjectsDataAddress(folderName, prefix);
 
         var destinationAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -220,7 +220,7 @@ public class S3DataPlaneIntegrationTest {
         }
     }
 
-    private DataAddress singleObjectCreateDataAddress(String folderName, String prefix, String name) {
+    private DataAddress createSingleObjectDataAddress(String folderName, String prefix, String name) {
         var dataAddressBuilder = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(KEY_NAME)
@@ -238,7 +238,7 @@ public class S3DataPlaneIntegrationTest {
         return dataAddressBuilder.property(S3BucketSchema.OBJECT_NAME, name).build();
     }
 
-    private DataAddress multiObjectsCreateDataAddress(String folderName, String prefix) {
+    private DataAddress createMultiObjectsDataAddress(String folderName, String prefix) {
         var dataAddressBuilder = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(KEY_NAME)
