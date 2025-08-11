@@ -61,6 +61,7 @@ public class S3DataPlaneIntegrationTest {
     private static final String OBJECT_FOLDER_NAME = "object-folder-name/";
     private static final String OBJECT_PREFIX = "object-prefix/";
     private static final String KEY_NAME = "key-name";
+    private static final String OBJECT_NAME = "text-document.txt";
 
     @Container
     private final MinioContainer sourceMinio = new MinioContainer();
@@ -258,8 +259,6 @@ public class S3DataPlaneIntegrationTest {
 
     private static class SingleObjectNamesToTransfer implements ArgumentsProvider {
 
-        private static final String OBJECT_NAME = "text-document.txt";
-
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
@@ -271,8 +270,6 @@ public class S3DataPlaneIntegrationTest {
     }
 
     private static class MultiObjectsNamesToTransfer implements ArgumentsProvider {
-
-        private static final String OBJECT_NAME = "text-document.txt";
 
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
