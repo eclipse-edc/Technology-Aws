@@ -115,7 +115,7 @@ public class S3DataPlaneIntegrationTest {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
         }
 
-        var sourceAddress = multiObjectsCreateDataAddress("/", null);
+        var sourceAddress = createMultiObjectsDataAddress("/", null);
 
         var destinationAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
