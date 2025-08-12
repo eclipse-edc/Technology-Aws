@@ -36,7 +36,7 @@ The behavior of object transfers can be customized using `DataAddress` propertie
   when determining which objects to transfer. It allows for both multiple object transfers and fetching a single object
   when necessary.
 
-> Note: Using `folderName` or `objectPrefix` introduces an additional step to list all objects whose keys match the specified "filter" (folderName + objectPrefix).
+> Note: Using `folderName` or/and `objectPrefix` introduces an additional step to list all objects whose keys match the specified "filter".
 
 ### S3DataSink Properties and behavior
 
