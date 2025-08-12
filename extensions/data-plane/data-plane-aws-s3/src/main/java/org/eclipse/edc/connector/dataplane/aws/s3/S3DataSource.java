@@ -68,7 +68,7 @@ class S3DataSource implements DataSource {
             objectFolderName += "/";
         }
 
-        if (!(objectFolderName == null && objectPrefix == null)) {
+        if (!(isNullOrEmpty(objectFolderName) && isNullOrEmpty(objectPrefix))) {
 
             var filter = getFilter(objectFolderName, objectPrefix);
 
