@@ -71,9 +71,7 @@ class S3DataSource implements DataSource {
         if (!(isNullOrEmpty(objectFolderName) && isNullOrEmpty(objectPrefix))) {
 
             var filter = getFilter(objectFolderName, objectPrefix);
-
             var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
-
             objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
 
             if (s3Objects.isEmpty()) {
@@ -111,7 +109,6 @@ class S3DataSource implements DataSource {
         List<S3Object> s3Objects = new ArrayList<>();
 
         do {
-
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
                     .prefix(filter)
@@ -119,26 +116,18 @@ class S3DataSource implements DataSource {
                     .build();
 
             var response = client.listObjectsV2(listObjectsRequest);
-
             s3Objects.addAll(response.contents().stream().filter(isFile).toList());
-
             continuationToken = response.nextContinuationToken();
-
         } while (continuationToken != null);
 
         return s3Objects;
     }
 
     private String getFilter(String objectFolderName, String objectPrefix) {
-
-        StringBuilder filter = new StringBuilder();
-
         objectFolderName = objectFolderName != null ? objectFolderName : "";
         objectPrefix = objectPrefix != null ? objectPrefix : "";
 
-        filter.append(objectFolderName).append(objectPrefix);
-
-        return filter.toString();
+        return (objectFolderName + objectPrefix);
     }
 
     @Override
