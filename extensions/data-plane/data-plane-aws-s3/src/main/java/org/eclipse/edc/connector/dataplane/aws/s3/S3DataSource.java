@@ -127,13 +127,7 @@ class S3DataSource implements DataSource {
 
     private String getFilter(String objectFolderName, String objectPrefix) {
 
-        if (objectFolderName != null && !objectFolderName.isEmpty()) {
-
-            if (objectFolderName.equals("/") && objectPrefix == null) {
-                objectFolderName = "";
-            }
-        }
-
+        objectFolderName = !isNullOrEmpty(objectFolderName) &&  objectFolderName.equals("/") ? "" : objectFolderName;
         objectFolderName = objectFolderName != null ? objectFolderName : "";
         objectPrefix = objectPrefix != null ? objectPrefix : "";
 
