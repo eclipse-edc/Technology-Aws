@@ -44,6 +44,7 @@ class S3DataSource implements DataSource {
     private String objectName;
     @Deprecated(since = "0.5.2")
     private String keyPrefix;
+    private String objectFolderName;
     private String objectPrefix;
     private S3Client client;
     private Monitor monitor;
@@ -63,18 +64,27 @@ class S3DataSource implements DataSource {
             this.objectPrefix = keyPrefix;
         }
 
-        if (objectPrefix != null) {
+        if (!isNullOrEmpty(objectFolderName) && !objectFolderName.endsWith("/")) {
+            objectFolderName += "/";
+        }
 
-            var s3Objects = this.fetchPrefixedS3Objects();
+        if (!(isNullOrEmpty(objectFolderName) && isNullOrEmpty(objectPrefix))) {
+
+            var filter = getFilter(objectFolderName, objectPrefix);
+
+            var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
 
             if (s3Objects.isEmpty()) {
                 return failure(new StreamFailure(
                         List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
             }
 
+            objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
+
             var s3PartStream = s3Objects.stream()
                     .map(S3Object::key)
-                    .map(key -> (Part) new S3Part(client, key, bucketName));
+                    .map(key -> objectFolderName.endsWith("/") ? key.substring(objectFolderName.length()) : key)
+                    .map(key -> (Part) new S3Part(client, key, bucketName, objectFolderName));
 
             return success(s3PartStream);
 
@@ -87,7 +97,7 @@ class S3DataSource implements DataSource {
             this.objectName = keyName;
         }
 
-        return success(Stream.of(new S3Part(client, objectName, bucketName)));
+        return success(Stream.of(new S3Part(client, objectName, bucketName, "")));
     }
 
     /**
@@ -95,28 +105,33 @@ class S3DataSource implements DataSource {
      *
      * @return A list of S3 objects.
      */
-    private List<S3Object> fetchPrefixedS3Objects() {
+    private List<S3Object> fetchFilteredByFolderNameAndOrPrefixS3Objects(String filter) {
 
         String continuationToken = null;
         List<S3Object> s3Objects = new ArrayList<>();
 
         do {
-
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
-                    .prefix(objectPrefix)
+                    .prefix(filter)
                     .continuationToken(continuationToken)
                     .build();
 
             var response = client.listObjectsV2(listObjectsRequest);
-
             s3Objects.addAll(response.contents().stream().filter(isFile).toList());
-
             continuationToken = response.nextContinuationToken();
-
         } while (continuationToken != null);
 
         return s3Objects;
+    }
+
+    private String getFilter(String objectFolderName, String objectPrefix) {
+
+        objectFolderName = !isNullOrEmpty(objectFolderName) &&  objectFolderName.equals("/") ? "" : objectFolderName;
+        objectFolderName = objectFolderName != null ? objectFolderName : "";
+        objectPrefix = objectPrefix != null ? objectPrefix : "";
+
+        return (objectFolderName + objectPrefix);
     }
 
     @Override
@@ -128,11 +143,13 @@ class S3DataSource implements DataSource {
         private final S3Client client;
         private final String objectName;
         private final String bucketName;
+        private final String folderName;
 
-        S3Part(S3Client client, String objectName, String bucketName) {
+        S3Part(S3Client client, String objectName, String bucketName, String folderName) {
             this.client = client;
             this.objectName = objectName;
             this.bucketName = bucketName;
+            this.folderName = folderName;
         }
 
         @Override
@@ -149,7 +166,7 @@ class S3DataSource implements DataSource {
         @Override
         public InputStream openStream() {
             try {
-                var request = GetObjectRequest.builder().key(objectName).bucket(bucketName).build();
+                var request = GetObjectRequest.builder().key(folderName + objectName).bucket(bucketName).build();
                 return client.getObject(request);
             } catch (Exception e) {
                 throw new S3DataSourceException(e.getMessage(), e);
@@ -180,6 +197,11 @@ class S3DataSource implements DataSource {
 
         public Builder objectName(String objectName) {
             source.objectName = objectName;
+            return this;
+        }
+
+        public Builder folderName(String folderName) {
+            source.objectFolderName = folderName;
             return this;
         }
 
