@@ -38,6 +38,8 @@ The behavior of object transfers can be customized using `DataAddress` propertie
   When used in combination, both properties will be used for object selection through the concatenation of `folderName` 
   with `objectPrefix` (`folderName` + `objectPrefix`). Similarly, the `folderName` part will be removed from the object name 
   in the destination.
+- When `folderName` attribute is requested as slash (folderName = "/") and `objectPrefix` is empty or null an entire s3 
+  bucket transfer is triggered.
 - When `folderName` and `objectPrefix` are not present, transfer only the object with a key matching the `objectName`
   property.
 - Precedence: `folderName` and/or `objectPrefix` take precedence over `objectName` when determining which objects to
