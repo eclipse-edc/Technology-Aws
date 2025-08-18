@@ -44,7 +44,7 @@ class S3DataSource implements DataSource {
     private String objectName;
     @Deprecated(since = "0.5.2")
     private String keyPrefix;
-    private String objectFolderName;
+    private String folderName;
     private String objectPrefix;
     private S3Client client;
     private Monitor monitor;
@@ -64,15 +64,11 @@ class S3DataSource implements DataSource {
             this.objectPrefix = keyPrefix;
         }
 
-        if (!isNullOrEmpty(objectFolderName) && !objectFolderName.endsWith("/")) {
-            objectFolderName += "/";
-        }
+        if (!(isNullOrEmpty(folderName) && isNullOrEmpty(objectPrefix))) {
 
-        if (!(isNullOrEmpty(objectFolderName) && isNullOrEmpty(objectPrefix))) {
-
-            var filter = getFilter(objectFolderName, objectPrefix);
+            var refinedFolderName = getRefinedFolderName(folderName);
+            var filter = getFilter(refinedFolderName, objectPrefix);
             var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
-            objectFolderName = !(isNullOrEmpty(objectFolderName) || objectFolderName.equals("/")) ? objectFolderName : "";
 
             if (s3Objects.isEmpty()) {
                 return failure(new StreamFailure(
@@ -81,8 +77,8 @@ class S3DataSource implements DataSource {
 
             var s3PartStream = s3Objects.stream()
                     .map(S3Object::key)
-                    .map(key -> objectFolderName.endsWith("/") ? key.substring(objectFolderName.length()) : key)
-                    .map(key -> (Part) new S3Part(client, key, bucketName, objectFolderName));
+                    .map(key -> !isNullOrEmpty(refinedFolderName) ? key.substring(refinedFolderName.length()) : key)
+                    .map(key -> (Part) new S3Part(client, key, bucketName, refinedFolderName));
 
             return success(s3PartStream);
 
@@ -123,11 +119,15 @@ class S3DataSource implements DataSource {
         return s3Objects;
     }
 
-    private String getFilter(String objectFolderName, String objectPrefix) {
-        objectFolderName = objectFolderName != null ? objectFolderName : "";
+    private String getFilter(String folderName, String objectPrefix) {
         objectPrefix = objectPrefix != null ? objectPrefix : "";
+        return (folderName + objectPrefix);
+    }
 
-        return (objectFolderName + objectPrefix);
+    private String getRefinedFolderName(String folderName) {
+        if (isNullOrEmpty(folderName)) return "";
+        folderName += !folderName.endsWith("/") ? "/" : "";
+        return folderName;
     }
 
     @Override
@@ -197,7 +197,7 @@ class S3DataSource implements DataSource {
         }
 
         public Builder folderName(String folderName) {
-            source.objectFolderName = folderName;
+            source.folderName = folderName;
             return this;
         }
 
