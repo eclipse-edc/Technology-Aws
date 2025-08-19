@@ -142,9 +142,7 @@ public class S3DataPlaneIntegrationTest {
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
         for (var objectName : objectNames) {
-            var objectKeyInDestination = folderNameInDestination + objectName;
-
-            assertThat(destinationClient.getObject(destinationBucketName, objectKeyInDestination.toString()))
+            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination + objectName))
                     .succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
