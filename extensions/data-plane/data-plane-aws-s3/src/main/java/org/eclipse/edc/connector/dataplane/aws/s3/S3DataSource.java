@@ -125,8 +125,12 @@ class S3DataSource implements DataSource {
     }
 
     private String getRefinedFolderName(String folderName) {
-        if (isNullOrEmpty(folderName)) return "";
-        folderName += !folderName.endsWith("/") ? "/" : "";
+        if (isNullOrEmpty(folderName)) {
+            return "";
+        }
+        if (!folderName.endsWith("/")) {
+            return folderName + "/";
+        }
         return folderName;
     }
 
