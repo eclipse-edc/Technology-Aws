@@ -27,15 +27,20 @@ When as a source, it supports copying a single or multiple objects.
 
 The behavior of object transfers can be customized using `DataAddress` properties.
 
-- When only `folderName` is present, transfer all objects with keys that start with the specified `folderName`, knowing
-  it will be removed from the transferred object name unless a defined `objectName` is present in DataSink.
-- When only `objectPrefix` is present, transfer all objects with keys that start with the specified `objectPrefix`.
-- When `folderName` and `objectPrefix` are present, transfer all the objects with keys that start with the specified
-  `folderName` + `objectPrefix`. The first will be removed from the transferred object name unless a defined 
-  `objectName` is present in DataSink.
+- There are three different ways to select objects by specifying a `folderName` and/or a `objectPrefix`.
+  Objects in an S3 bucket are persisted under the same root directory (the bucket), and a structured organization is
+  achievable by using object key prefixes. There are cases where maintaining the key prefix in the data destination
+  is desirable but other cases where it's not.
+  When using `folderName`, one can aggregate objects contained within a folder like structure. The `folderName` part will
+  be removed in the destination.
+  Using `objectPrefix`, one can aggregate objects whose key is prefixed by the specified string. The property can still
+  be used for folder like aggregation but the prefix part will not be removed in the destination.
+  When used in combination, both properties will be used for object selection through the concatenation of `folderName`
+  with `objectPrefix` (`folderName` + `objectPrefix`). Similarly, the `folderName` part will be removed from the object name
+  in the destination.
 - When `folderName` and `objectPrefix` are not present, transfer only the object with a key matching the `objectName`
   property.
-- Precedence: `folderName` and/or `objectPrefix` take precedence over `objectName` when determining which objects to 
+- Precedence: `folderName` and/or `objectPrefix` take precedence over `objectName` when determining which objects to
   transfer. It allows for both multiple object transfers and fetching a single object when necessary.
 
 > Note: Using `folderName` or/and `objectPrefix` introduces an additional step to list all objects whose keys match the specified "filter".
