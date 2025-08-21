@@ -56,8 +56,8 @@ class S3DataSource implements DataSource {
         }
 
         var refinedFolderName = getRefinedFolderName(folderName);
-        var filter = getFilter(refinedFolderName, objectPrefix);
-        var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
+        var prefix = getPrefix(refinedFolderName, objectPrefix);
+        var s3Objects = this.fetchPrefixedS3Objects(prefix);
 
         if (s3Objects.isEmpty()) {
             return failure(new StreamFailure(
@@ -77,7 +77,7 @@ class S3DataSource implements DataSource {
      *
      * @return A list of S3 objects.
      */
-    private List<S3Object> fetchFilteredByFolderNameAndOrPrefixS3Objects(String filter) {
+    private List<S3Object> fetchPrefixedS3Objects(String prefix) {
 
         String continuationToken = null;
         List<S3Object> s3Objects = new ArrayList<>();
@@ -85,7 +85,7 @@ class S3DataSource implements DataSource {
         do {
             var listObjectsRequest = ListObjectsV2Request.builder()
                     .bucket(bucketName)
-                    .prefix(filter)
+                    .prefix(prefix)
                     .continuationToken(continuationToken)
                     .build();
 
@@ -96,8 +96,8 @@ class S3DataSource implements DataSource {
 
         return s3Objects;
     }
-    
-    private String getFilter(String folderName, String objectPrefix) {
+
+    private String getPrefix(String folderName, String objectPrefix) {
         return (folderName + (objectPrefix != null ? objectPrefix : ""));
     }
 
