@@ -84,12 +84,10 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
         return S3DataSource.Builder.newInstance()
                 .bucketName(source.getStringProperty(BUCKET_NAME))
-                .keyName(source.getKeyName())
                 .objectName(source.getStringProperty(OBJECT_NAME))
                 .folderName(source.getStringProperty(FOLDER_NAME))
                 .objectPrefix(source.getStringProperty(OBJECT_PREFIX))
                 .client(this.clientProvider.s3Client(s3ClientRequest))
-                .monitor(monitor)
                 .build();
     }
 
