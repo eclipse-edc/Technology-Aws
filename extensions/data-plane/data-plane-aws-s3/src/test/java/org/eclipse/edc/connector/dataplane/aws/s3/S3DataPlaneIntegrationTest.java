@@ -62,6 +62,8 @@ public class S3DataPlaneIntegrationTest {
     private static final String OBJECT_PREFIX = "object-prefix/";
     private static final String KEY_NAME = "key-name";
     private static final String OBJECT_NAME = "text-document.txt";
+    private static final String FOLDER_NAME_IN_DESTINATION = "folder-name-in-destination/";
+    private static final String OBJECT_NAME_IN_DESTINATION = "object-name-in-destination";
 
     @Container
     private final MinioContainer sourceMinio = new MinioContainer();
@@ -101,22 +103,10 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(SingleObjectNamesToTransfer.class)
-    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name) {
-        var objectNameInDestination = "object-name-in-destination";
+    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name, String key) {
         var objectContent = UUID.randomUUID().toString();
 
-        var objectKey = new StringBuilder();
-        if (folderName != null) {
-            objectKey.append(folderName);
-            if (!folderName.endsWith("/")) {
-                objectKey.append("/");
-            }
-        }
-        if (prefix != null) {
-            objectKey.append(prefix);
-        }
-        objectKey.append(name);
-        sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
+        sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
 
         var sourceAddress = createSingleObjectDataAddress(folderName, prefix, name);
 
@@ -125,7 +115,7 @@ public class S3DataPlaneIntegrationTest {
                 .keyName(KEY_NAME)
                 .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
+                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
                 .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
@@ -145,7 +135,7 @@ public class S3DataPlaneIntegrationTest {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        assertThat(destinationClient.getObject(destinationBucketName, objectNameInDestination))
+        assertThat(destinationClient.getObject(destinationBucketName, OBJECT_NAME_IN_DESTINATION))
                 .succeedsWithin(5, SECONDS)
                 .extracting(ResponseBytes::response)
                 .extracting(GetObjectResponse::contentLength)
@@ -155,25 +145,11 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(MultiObjectsNamesToTransfer.class)
-    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames) {
-
-        var folderNameInDestination = "folder-name-in-destination/";
-        var objectNameInDestination = "object-name-in-destination";
+    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> keys, List<String> namesInDestination) {
         var objectContent = UUID.randomUUID().toString();
 
-        for (var objectName : objectNames) {
-            var objectKey = new StringBuilder();
-            if (folderName != null) {
-                objectKey.append(folderName);
-                if (!folderName.endsWith("/")) {
-                    objectKey.append("/");
-                }
-            }
-            if (prefix != null) {
-                objectKey.append(prefix);
-            }
-            objectKey.append(objectName);
-            sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
+        for (var key : keys) {
+            sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
         }
 
         var sourceAddress = createMultiObjectsDataAddress(folderName, prefix);
@@ -183,8 +159,8 @@ public class S3DataPlaneIntegrationTest {
                 .keyName(KEY_NAME)
                 .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.FOLDER_NAME, folderNameInDestination)
-                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
+                .property(S3BucketSchema.FOLDER_NAME, FOLDER_NAME_IN_DESTINATION)
+                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
                 .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
@@ -203,16 +179,8 @@ public class S3DataPlaneIntegrationTest {
         var transferResult = sink.transfer(source);
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        for (var objectName : objectNames) {
-
-            var objectKeyInDestination = new StringBuilder();
-            objectKeyInDestination.append(folderNameInDestination);
-            if (prefix != null) {
-                objectKeyInDestination.append(prefix);
-            }
-            objectKeyInDestination.append(objectName);
-
-            assertThat(destinationClient.getObject(destinationBucketName, objectKeyInDestination.toString()))
+        for (var name : namesInDestination) {
+            assertThat(destinationClient.getObject(destinationBucketName, name))
                     .succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
@@ -262,10 +230,10 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME),
-                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME),
-                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME),
-                    Arguments.of(null, null, "1-" + OBJECT_NAME));
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME),
+                    Arguments.of(null, null, "1-" + OBJECT_NAME, "1-" + OBJECT_NAME));
         }
     }
 
@@ -274,9 +242,15 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
-                    Arguments.of(null, OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
-                    Arguments.of(OBJECT_FOLDER_NAME, null, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME))
+                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX,
+                            List.of((OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + OBJECT_PREFIX + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
+                    Arguments.of(null, OBJECT_PREFIX,
+                            List.of((OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_PREFIX + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
+                    Arguments.of(OBJECT_FOLDER_NAME, null,
+                            List.of((OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + "2-" + OBJECT_NAME)))
             );
         }
     }
