@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_PREFIX;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
@@ -44,11 +45,11 @@ public class S3SourceDataAddressValidator implements Validator<DataAddress> {
             }
         });
 
-        if (Stream.of(OBJECT_NAME, OBJECT_PREFIX)
+        if (Stream.of(OBJECT_NAME, OBJECT_PREFIX, FOLDER_NAME)
                 .map(dataAddress::getStringProperty)
                 .allMatch(it -> (it == null || it.isBlank()))) {
-            violations.add(violation("Either the '%s' or '%s' attribute must be provided."
-                    .formatted(OBJECT_NAME, OBJECT_PREFIX), OBJECT_NAME, null));
+            violations.add(violation("Either the '%s' or '%s' or '%s' attribute must be provided."
+                    .formatted(OBJECT_NAME, OBJECT_PREFIX, FOLDER_NAME), OBJECT_NAME, null));
         }
 
         if (violations.isEmpty()) {
