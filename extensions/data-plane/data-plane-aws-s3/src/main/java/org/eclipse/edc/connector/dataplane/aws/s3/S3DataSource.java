@@ -51,27 +51,25 @@ class S3DataSource implements DataSource {
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
 
-        if (!(isNullOrEmpty(folderName) && isNullOrEmpty(objectPrefix))) {
-
-            var refinedFolderName = getRefinedFolderName(folderName);
-            var filter = getFilter(refinedFolderName, objectPrefix);
-            var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
-
-            if (s3Objects.isEmpty()) {
-                return failure(new StreamFailure(
-                        List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
-            }
-
-            var s3PartStream = s3Objects.stream()
-                    .map(S3Object::key)
-                    .map(key -> !isNullOrEmpty(refinedFolderName) ? key.substring(refinedFolderName.length()) : key)
-                    .map(key -> (Part) new S3Part(client, key, bucketName, refinedFolderName));
-
-            return success(s3PartStream);
-
+        if (isNullOrEmpty(folderName) && isNullOrEmpty(objectPrefix)) {
+            return success(Stream.of(new S3Part(client, objectName, bucketName, "")));
         }
 
-        return success(Stream.of(new S3Part(client, objectName, bucketName, "")));
+        var refinedFolderName = getRefinedFolderName(folderName);
+        var filter = getFilter(refinedFolderName, objectPrefix);
+        var s3Objects = this.fetchFilteredByFolderNameAndOrPrefixS3Objects(filter);
+
+        if (s3Objects.isEmpty()) {
+            return failure(new StreamFailure(
+                    List.of("Error listing S3 objects in the bucket: Object not found"), GENERAL_ERROR));
+        }
+
+        var s3PartStream = s3Objects.stream()
+                .map(S3Object::key)
+                .map(key -> !isNullOrEmpty(refinedFolderName) ? key.substring(refinedFolderName.length()) : key)
+                .map(key -> (Part) new S3Part(client, key, bucketName, refinedFolderName));
+
+        return success(s3PartStream);
     }
 
     /**
@@ -98,10 +96,9 @@ class S3DataSource implements DataSource {
 
         return s3Objects;
     }
-
+    
     private String getFilter(String folderName, String objectPrefix) {
-        objectPrefix = objectPrefix != null ? objectPrefix : "";
-        return (folderName + objectPrefix);
+        return (folderName + (objectPrefix != null ? objectPrefix : ""));
     }
 
     private String getRefinedFolderName(String folderName) {
