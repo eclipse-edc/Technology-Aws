@@ -25,6 +25,8 @@ import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
@@ -32,8 +34,10 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -171,6 +175,22 @@ public class S3DataSourceTest {
         var list = result.getContent().toList();
         assertThat(list.get(0).name()).isEqualTo(expectedValue);
     }
+
+    @Test
+    void shouldFail_when() {
+        var s3Part = new S3DataSource.S3Part(s3Client, OBJECT_PREFIX + OBJECT_NAME, BUCKET_NAME, OBJECT_FOLDER_NAME);
+
+        var expectedRequest = HeadObjectRequest.builder()
+                .key(OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME)
+                .bucket(BUCKET_NAME)
+                .build();
+
+        when(s3Client.headObject(eq(expectedRequest)))
+                .thenReturn(HeadObjectResponse.builder().contentLength(2L).build());
+
+        assertDoesNotThrow(s3Part::size);
+    }
+
 
     @Nested
     class Close {

@@ -116,7 +116,7 @@ class S3DataSource implements DataSource {
 
     }
 
-    private static class S3Part implements Part {
+    protected static class S3Part implements Part {
         private final S3Client client;
         private final String objectName;
         private final String bucketName;
@@ -136,7 +136,7 @@ class S3DataSource implements DataSource {
 
         @Override
         public long size() {
-            var request = HeadObjectRequest.builder().key(objectName).bucket(bucketName).build();
+            var request = HeadObjectRequest.builder().key(folderName + objectName).bucket(bucketName).build();
             return client.headObject(request).contentLength();
         }
 
