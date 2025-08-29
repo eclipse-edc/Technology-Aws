@@ -66,9 +66,8 @@ class S3DataSource implements DataSource {
 
         var s3PartStream = s3Objects.stream()
                 .map(S3Object::key)
-                .map(key -> !isNullOrEmpty(refinedFolderName) ? key.substring(refinedFolderName.length()) : key)
+                .map(key -> key.substring(refinedFolderName.length()))
                 .map(key -> (Part) new S3Part(client, key, bucketName, refinedFolderName));
-
         return success(s3PartStream);
     }
 
@@ -98,7 +97,7 @@ class S3DataSource implements DataSource {
     }
 
     private String getPrefix(String folderName, String objectPrefix) {
-        return (folderName + (objectPrefix != null ? objectPrefix : ""));
+        return folderName + (objectPrefix != null ? objectPrefix : "");
     }
 
     private String getRefinedFolderName(String folderName) {
