@@ -55,7 +55,6 @@ public class S3DataSourceTest {
 
     @Test
     void should_select_prefixed_objects_case_key_prefix_is_present() {
-
         var mockResponse = ListObjectsV2Response.builder().contents(
                 S3Object.builder().key("my-prefix/object-1").build(),
                 S3Object.builder().key("my-prefix/object-2").build()
@@ -79,7 +78,6 @@ public class S3DataSourceTest {
 
     @Test
     void should_fail_case_no_object_is_found() {
-
         var mockResponse = ListObjectsV2Response.builder().build();
 
         var s3Datasource = S3DataSource.Builder.newInstance()
@@ -99,7 +97,6 @@ public class S3DataSourceTest {
 
     @Test
     void should_select_single_object_case_key_prefix_is_not_present() {
-
         var s3Datasource = S3DataSource.Builder.newInstance()
                 .bucketName(BUCKET_NAME)
                 .objectName(OBJECT_NAME)
@@ -116,7 +113,6 @@ public class S3DataSourceTest {
 
     @Test
     void should_throw_datasource_exception_case_object_fetching_fails() {
-
         var mockResponse = ListObjectsV2Response.builder().contents(
                 S3Object.builder().key("my-prefix/object-1").build(),
                 S3Object.builder().key("my-prefix/object-2").build()
@@ -142,22 +138,9 @@ public class S3DataSourceTest {
 
     @ParameterizedTest
     @ArgumentsSource(S3DataSourceInput.class)
-    void shouldSelectFilteredByFolderNameAndOrPrefixS3Objects(String folderName, String prefix, String name, String expectedValue) {
-
-        var key = new StringBuilder();
-        if (folderName != null) {
-            key.append(folderName);
-            if (!folderName.endsWith("/")) {
-                key.append("/");
-            }
-        }
-        if (prefix != null) {
-            key.append(prefix);
-        }
-        key.append(name);
-
+    void shouldSelectFilteredByFolderNameAndOrPrefixS3Objects(String folderName, String prefix, String name, String key, String expectedValue) {
         var mockResponse = ListObjectsV2Response.builder().contents(
-                S3Object.builder().key(key.toString()).build()
+                S3Object.builder().key(key).build()
         ).build();
 
         var s3Datasource = S3DataSource.Builder.newInstance()
@@ -215,10 +198,10 @@ public class S3DataSourceTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
 
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
-                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), null, OBJECT_NAME, OBJECT_NAME),
-                    Arguments.of(null, OBJECT_PREFIX, OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
-                    Arguments.of(null, null, OBJECT_NAME, OBJECT_NAME));
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), null, OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_NAME, OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME, OBJECT_PREFIX + OBJECT_NAME),
+                    Arguments.of(null, null, OBJECT_NAME, OBJECT_NAME, OBJECT_NAME));
         }
     }
 }
