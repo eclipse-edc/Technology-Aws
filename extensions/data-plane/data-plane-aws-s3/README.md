@@ -18,7 +18,7 @@ When as a source, it supports copying a single or multiple objects.
 | `bucketName`       | Defines the name of the S3 bucket                                      | `source`, `destination` | `true`                                                |
 | `objectName`       | Defines the name of the S3 object                                      | `source`, `destination` | `true` (in `source` if `objectPrefix` is not present) |
 | `objectPrefix`     | Defines the prefix of the S3 objects to be fetched ( `objectPrefix/` ) | `source`                | `true` (if `objectName` is not present)               |
-| `folderName`       | Defines the folder name for S3 objects to be grouped ( `folderName/` ) | `destination`           | `false`                                               |
+| `folderName`       | Defines the folder name for S3 objects to be grouped ( `folderName/` ) | `source`, `destination` | `false`                                               |
 | `keyName`          | Defines the `vault` entry containing the secret token/credentials      | `source`, `destination` | `false`                                               |
 | `accessKeyId`      | Defines the access key id to access S3 Bucket/Object                   | `source`, `destination` | `false`                                               |
 | `secretAccessKey`  | Defines the secret access key id to access S3 Bucket/Object            | `source`, `destination` | `false`                                               |
@@ -27,12 +27,23 @@ When as a source, it supports copying a single or multiple objects.
 
 The behavior of object transfers can be customized using `DataAddress` properties.
 
-- When `objectPrefix` is present, transfer all objects with keys that start with the specified prefix.
-- When `objectPrefix` is not present, transfer only the object with a key matching the `objectName` property.
-- Precedence: `objectPrefix` takes precedence over `objectName` when determining which objects to transfer. It allows
-  for both multiple object transfers and fetching a single object when necessary.
+- There are three different ways to select objects by specifying a `folderName` and/or a `objectPrefix`.
+  Objects in an S3 bucket are persisted under the same root directory (the bucket), and a structured organization is
+  achievable by using object key prefixes. There are cases where maintaining the key prefix in the data destination
+  is desirable but other cases where it's not.
+  When using `folderName`, one can aggregate objects contained within a folder like structure. The `folderName` part will
+  be removed in the destination.
+  Using `objectPrefix`, one can aggregate objects whose key is prefixed by the specified string. The property can still
+  be used for folder like aggregation but the prefix part will not be removed in the destination.
+  When used in combination, both properties will be used for object selection through the concatenation of `folderName`
+  with `objectPrefix` (`folderName` + `objectPrefix`). Similarly, the `folderName` part will be removed from the object name
+  in the destination.
+- When `folderName` and `objectPrefix` are not present, transfer only the object with a key matching the `objectName`
+  property.
+- Precedence: `folderName` and/or `objectPrefix` take precedence over `objectName` when determining which objects to
+  transfer. It allows for both multiple object transfers and fetching a single object when necessary.
 
-> Note: Using `objectPrefix` introduces an additional step to list all objects whose keys match the specified prefix.
+> Note: Using `folderName` or/and `objectPrefix` introduces an additional step to list all objects whose keys match the specified "filter".
 
 ### S3DataSink Properties and behavior
 
@@ -63,7 +74,7 @@ possible values are:
   typically
   referred to as AWS temporary security credentials. This process involves assuming an IAM role to obtain short-term
   credentials, which include an `accessKeyId`, `secretAccessKey`, and a session token. In addition to these fields,
-  the token expiration time, which is received together with the credentials upon assuming a role or otherwise 
+  the token expiration time, which is received together with the credentials upon assuming a role or otherwise
   requesting temporary credentials, has to be specified as a **unix timestamp**.
   ```json
   {
@@ -79,10 +90,10 @@ Example:
 ```json
 {
   "dataAddress": {
-    "type": "AmazonS3", 
-    "bucketName": "bucketName", 
-    "region": "us-east-1", 
-    "objectName": "test/object.bin", 
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "objectName": "test/object.bin",
     "keyName": "<SECRET_KEY_IN_VAULT>"
   }
 }
@@ -143,14 +154,14 @@ Example:
 - Single object:
 ```json
 {
-    "dataDestination": {
-      "type": "AmazonS3",
-      "bucketName": "bucketName",
-      "region": "us-east-1",
-      "folderName": "destinationFolder/",
-      "objectName": "newName",
-      "keyName": "(see above)"
-    }
+  "dataDestination": {
+    "type": "AmazonS3",
+    "bucketName": "bucketName",
+    "region": "us-east-1",
+    "folderName": "destinationFolder/",
+    "objectName": "newName",
+    "keyName": "(see above)"
+  }
 }
 ```
 
@@ -180,21 +191,21 @@ In order to be able to use an S3 bucket as the source of a transfer, the user/ro
 Example:
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "my-statement",
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject",
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::<bucket-name>",
-                "arn:aws:s3:::<bucket-name>/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "my-statement",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<bucket-name>",
+        "arn:aws:s3:::<bucket-name>/*"
+      ]
+    }
+  ]
 }
 ```
 
@@ -206,19 +217,19 @@ In order to be able to use an S3 bucket as the destination of a transfer, the us
 Example:
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "my-statement",
-            "Effect": "Allow",
-            "Action": [
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::<bucket-name>/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "my-statement",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<bucket-name>/*"
+      ]
+    }
+  ]
 }
 ```
 

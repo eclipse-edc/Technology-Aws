@@ -44,6 +44,7 @@ import static java.util.Optional.ofNullable;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ACCESS_KEY_ID;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
+import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.FOLDER_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_PREFIX;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
@@ -83,11 +84,10 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
         return S3DataSource.Builder.newInstance()
                 .bucketName(source.getStringProperty(BUCKET_NAME))
-                .keyName(source.getKeyName())
                 .objectName(source.getStringProperty(OBJECT_NAME))
+                .folderName(source.getStringProperty(FOLDER_NAME))
                 .objectPrefix(source.getStringProperty(OBJECT_PREFIX))
                 .client(this.clientProvider.s3Client(s3ClientRequest))
-                .monitor(monitor)
                 .build();
     }
 

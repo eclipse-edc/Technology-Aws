@@ -35,11 +35,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
@@ -60,8 +58,12 @@ public class S3DataPlaneIntegrationTest {
     // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
     // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
     private static final String REGION = propOrEnv("it.aws.region", Region.US_EAST_1.id());
+    private static final String OBJECT_FOLDER_NAME = "object-folder-name/";
     private static final String OBJECT_PREFIX = "object-prefix/";
     private static final String KEY_NAME = "key-name";
+    private static final String OBJECT_NAME = "text-document.txt";
+    private static final String FOLDER_NAME_IN_DESTINATION = "folder-name-in-destination/";
+    private static final String OBJECT_NAME_IN_DESTINATION = "object-name-in-destination";
 
     @Container
     private final MinioContainer sourceMinio = new MinioContainer();
@@ -100,31 +102,20 @@ public class S3DataPlaneIntegrationTest {
     }
 
     @ParameterizedTest
-    @ArgumentsSource(ObjectNamesToTransferProvider.class)
-    void should_copy_using_destination_object_name_case_single_transfer(List<String> objectNames) {
-
-        var isSingleObject = objectNames.size() == 1;
-        var objectNameInDestination = "object-name-in-destination";
+    @ArgumentsSource(SingleObjectNamesToTransfer.class)
+    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name, String key) {
         var objectContent = UUID.randomUUID().toString();
 
-        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
-        if (!isSingleObject) {
-            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
-            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
-        }
+        sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
 
-        for (var objectName : objectNames) {
-            sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
-        }
-
-        var sourceAddress = createDataAddress(objectNames, isSingleObject);
+        var sourceAddress = createSingleObjectDataAddress(folderName, prefix, name);
 
         var destinationAddress = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(KEY_NAME)
                 .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
                 .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
+                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
                 .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
                 .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
@@ -144,103 +135,61 @@ public class S3DataPlaneIntegrationTest {
 
         assertThat(transferResult).succeedsWithin(5, SECONDS);
 
-        if (isSingleObject) {
-            assertThat(destinationClient.getObject(destinationBucketName, objectNameInDestination))
+        assertThat(destinationClient.getObject(destinationBucketName, OBJECT_NAME_IN_DESTINATION))
+                .succeedsWithin(5, SECONDS)
+                .extracting(ResponseBytes::response)
+                .extracting(GetObjectResponse::contentLength)
+                .extracting(Long::intValue)
+                .isEqualTo(objectContent.length());
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(MultiObjectsNamesToTransfer.class)
+    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> keys, List<String> namesInDestination) {
+        var objectContent = UUID.randomUUID().toString();
+
+        for (var key : keys) {
+            sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
+        }
+
+        var sourceAddress = createMultiObjectsDataAddress(folderName, prefix);
+
+        var destinationAddress = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .keyName(KEY_NAME)
+                .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(S3BucketSchema.FOLDER_NAME, FOLDER_NAME_IN_DESTINATION)
+                .property(S3BucketSchema.OBJECT_NAME, OBJECT_NAME_IN_DESTINATION)
+                .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
+                .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
+                .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
+                .build();
+
+        var request = DataFlowStartMessage.Builder.newInstance()
+                .id(UUID.randomUUID().toString())
+                .processId(UUID.randomUUID().toString())
+                .sourceDataAddress(sourceAddress)
+                .destinationDataAddress(destinationAddress)
+                .build();
+
+        var sink = sinkFactory.createSink(request);
+        var source = sourceFactory.createSource(request);
+
+        var transferResult = sink.transfer(source);
+        assertThat(transferResult).succeedsWithin(5, SECONDS);
+
+        for (var name : namesInDestination) {
+            assertThat(destinationClient.getObject(destinationBucketName, name))
                     .succeedsWithin(5, SECONDS)
                     .extracting(ResponseBytes::response)
                     .extracting(GetObjectResponse::contentLength)
                     .extracting(Long::intValue)
                     .isEqualTo(objectContent.length());
-        } else {
-            for (var objectName : objectNames) {
-                assertThat(destinationClient.getObject(destinationBucketName, objectName))
-                        .succeedsWithin(5, SECONDS)
-                        .extracting(ResponseBytes::response)
-                        .extracting(GetObjectResponse::contentLength)
-                        .extracting(Long::intValue)
-                        .isEqualTo(objectContent.length());
-            }
-
-            assertThat(destinationClient.getObject(destinationBucketName,
-                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
-                    .withThrowableOfType(ExecutionException.class)
-                    .withCauseInstanceOf(NoSuchKeyException.class);
         }
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(ObjectNamesToTransferProvider.class)
-    void should_copy_to_folder_case_property_is_present(List<String> objectNames) {
-
-        var isSingleObject = objectNames.size() == 1;
-        var objectNameInDestination = "object-name-in-destination";
-        var folderNameInDestination = "folder-name-in-destination/";
-        var objectBody = UUID.randomUUID().toString();
-
-        //Put folder 0 byte size file marker. AWS does this when a folder is created via the console.
-        if (!isSingleObject) {
-            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX, "");
-            sourceClient.putStringOnBucket(sourceBucketName, OBJECT_PREFIX + "testFolder/", "");
-        }
-
-        for (var objectToTransfer : objectNames) {
-            sourceClient.putStringOnBucket(sourceBucketName, objectToTransfer, objectBody);
-        }
-
-        var sourceAddress = createDataAddress(objectNames, isSingleObject);
-
-        var destinationAddress = DataAddress.Builder.newInstance()
-                .type(S3BucketSchema.TYPE)
-                .keyName(KEY_NAME)
-                .property(S3BucketSchema.BUCKET_NAME, destinationBucketName)
-                .property(S3BucketSchema.REGION, REGION)
-                .property(S3BucketSchema.OBJECT_NAME, objectNameInDestination)
-                .property(S3BucketSchema.FOLDER_NAME, folderNameInDestination)
-                .property(S3BucketSchema.ACCESS_KEY_ID, destinationClient.getCredentials().accessKeyId())
-                .property(S3BucketSchema.SECRET_ACCESS_KEY, destinationClient.getCredentials().secretAccessKey())
-                .property(S3BucketSchema.ENDPOINT_OVERRIDE, "http://localhost:" + destinationMinio.getFirstMappedPort())
-                .build();
-
-        var request = DataFlowStartMessage.Builder.newInstance()
-                .id(UUID.randomUUID().toString())
-                .processId(UUID.randomUUID().toString())
-                .sourceDataAddress(sourceAddress)
-                .destinationDataAddress(destinationAddress)
-                .build();
-
-        var sink = sinkFactory.createSink(request);
-        var source = sourceFactory.createSource(request);
-
-        var transferResult = sink.transfer(source);
-
-        assertThat(transferResult).succeedsWithin(5, SECONDS);
-
-        if (isSingleObject) {
-            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
-                    objectNameInDestination)).succeedsWithin(5, SECONDS)
-                    .extracting(ResponseBytes::response)
-                    .extracting(GetObjectResponse::contentLength)
-                    .extracting(Long::intValue)
-                    .isEqualTo(objectBody.length());
-        } else {
-            for (var objectName : objectNames) {
-                assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
-                        objectName)).succeedsWithin(5, SECONDS)
-                        .extracting(ResponseBytes::response)
-                        .extracting(GetObjectResponse::contentLength)
-                        .extracting(Long::intValue)
-                        .isEqualTo(objectBody.length());
-            }
-            assertThat(destinationClient.getObject(destinationBucketName, folderNameInDestination +
-                    OBJECT_PREFIX)).failsWithin(5, SECONDS)
-                    .withThrowableOfType(ExecutionException.class)
-                    .withCauseInstanceOf(NoSuchKeyException.class);
-        }
-
-
-    }
-
-    private DataAddress createDataAddress(List<String> assetNames, boolean isSingleObject) {
+    private DataAddress createSingleObjectDataAddress(String folderName, String prefix, String name) {
         var dataAddressBuilder = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
                 .keyName(KEY_NAME)
@@ -249,24 +198,59 @@ public class S3DataPlaneIntegrationTest {
                 .property(S3BucketSchema.ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
                 .property(S3BucketSchema.SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey());
 
-        return isSingleObject ? dataAddressBuilder.property(S3BucketSchema.OBJECT_NAME, assetNames.get(0)).build() :
-                dataAddressBuilder.property(S3BucketSchema.OBJECT_PREFIX, OBJECT_PREFIX).build();
-
+        if (folderName != null) {
+            dataAddressBuilder.property(S3BucketSchema.FOLDER_NAME, folderName);
+        }
+        if (prefix != null) {
+            dataAddressBuilder.property(S3BucketSchema.OBJECT_PREFIX, prefix);
+        }
+        return dataAddressBuilder.property(S3BucketSchema.OBJECT_NAME, name).build();
     }
 
-    private static class ObjectNamesToTransferProvider implements ArgumentsProvider {
+    private DataAddress createMultiObjectsDataAddress(String folderName, String prefix) {
+        var dataAddressBuilder = DataAddress.Builder.newInstance()
+                .type(S3BucketSchema.TYPE)
+                .keyName(KEY_NAME)
+                .property(S3BucketSchema.BUCKET_NAME, sourceBucketName)
+                .property(S3BucketSchema.REGION, REGION)
+                .property(S3BucketSchema.ACCESS_KEY_ID, sourceClient.getCredentials().accessKeyId())
+                .property(S3BucketSchema.SECRET_ACCESS_KEY, sourceClient.getCredentials().secretAccessKey());
 
-        private static final String OBJECT_NAME = "text-document.txt";
+        if (folderName != null) {
+            dataAddressBuilder.property(S3BucketSchema.FOLDER_NAME, folderName);
+        }
+        if (prefix != null) {
+            dataAddressBuilder.property(S3BucketSchema.OBJECT_PREFIX, prefix);
+        }
+        return dataAddressBuilder.build();
+    }
+
+    private static class SingleObjectNamesToTransfer implements ArgumentsProvider {
 
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(List.of(
-                            OBJECT_PREFIX + "1-" + OBJECT_NAME,
-                            OBJECT_PREFIX + "2-" + OBJECT_NAME,
-                            OBJECT_PREFIX + "3-" + OBJECT_NAME
-                    )),
-                    Arguments.of(List.of(OBJECT_NAME))
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME),
+                    Arguments.of(null, null, "1-" + OBJECT_NAME, "1-" + OBJECT_NAME));
+        }
+    }
+
+    private static class MultiObjectsNamesToTransfer implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX,
+                            List.of((OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + OBJECT_PREFIX + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
+                    Arguments.of(null, OBJECT_PREFIX,
+                            List.of((OBJECT_PREFIX + "1-" + OBJECT_NAME), (OBJECT_PREFIX + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + OBJECT_PREFIX + "2-" + OBJECT_NAME))),
+                    Arguments.of(OBJECT_FOLDER_NAME, null,
+                            List.of((OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME), (OBJECT_FOLDER_NAME + "2-" + OBJECT_NAME)),
+                            List.of((FOLDER_NAME_IN_DESTINATION + "1-" + OBJECT_NAME), (FOLDER_NAME_IN_DESTINATION + "2-" + OBJECT_NAME)))
             );
         }
     }
