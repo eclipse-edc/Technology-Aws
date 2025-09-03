@@ -28,22 +28,25 @@ When as a source, it supports copying a single or multiple objects.
 The behavior of object transfers can be customized using `DataAddress` properties.
 
 - There are three different ways to select objects by specifying a `folderName` and/or a `objectPrefix`.
-  Objects in an S3 bucket are persisted under the same root directory (the bucket), and a structured organization is
-  achievable by using object key prefixes. There are cases where maintaining the key prefix in the data destination
+  Objects in an S3 bucket are persisted under the same root directory (the bucket), and a structured organization is 
+  achievable by using object key prefixes. There are cases where maintaining the key prefix in the data destination 
   is desirable but other cases where it's not.
   When using `folderName`, one can aggregate objects contained within a folder like structure. The `folderName` part will
   be removed in the destination.
   Using `objectPrefix`, one can aggregate objects whose key is prefixed by the specified string. The property can still
   be used for folder like aggregation but the prefix part will not be removed in the destination.
-  When used in combination, both properties will be used for object selection through the concatenation of `folderName`
-  with `objectPrefix` (`folderName` + `objectPrefix`). Similarly, the `folderName` part will be removed from the object name
+  When used in combination, both properties will be used for object selection through the concatenation of `folderName` 
+  with `objectPrefix` (`folderName` + `objectPrefix`). Similarly, the `folderName` part will be removed from the object name 
   in the destination.
+- When `folderName` attribute is requested as slash (folderName = "/") and `objectPrefix` is empty or null an entire s3 
+  bucket transfer is triggered.
 - When `folderName` and `objectPrefix` are not present, transfer only the object with a key matching the `objectName`
   property.
 - Precedence: `folderName` and/or `objectPrefix` take precedence over `objectName` when determining which objects to
   transfer. It allows for both multiple object transfers and fetching a single object when necessary.
 
-> Note: Using `folderName` or/and `objectPrefix` introduces an additional step to list all objects whose keys match the specified "filter".
+> Note: Using `folderName` or/and `objectPrefix` introduces an additional step to list all objects whose keys match the 
+  specified "filter".
 
 ### S3DataSink Properties and behavior
 
