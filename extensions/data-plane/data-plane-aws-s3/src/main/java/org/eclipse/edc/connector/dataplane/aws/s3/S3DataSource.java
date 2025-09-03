@@ -104,10 +104,11 @@ class S3DataSource implements DataSource {
         if (isNullOrEmpty(folderName) || folderName.equals("/")) {
             return "";
         }
-        if (!folderName.endsWith("/")) {
-            return folderName + "/";
+
+        if (folderName.endsWith("/")) {
+            return folderName;
         }
-        return folderName;
+        return folderName + "/";
     }
 
     @Override
