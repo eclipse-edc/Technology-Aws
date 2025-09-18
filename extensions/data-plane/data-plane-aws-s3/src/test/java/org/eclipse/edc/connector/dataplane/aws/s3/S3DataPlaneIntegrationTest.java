@@ -153,22 +153,11 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(SingleObjectNamesToTransfer.class)
-    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name) {
+    void shouldCopy_UsingDestinationObjectName_WhenSingleFileTransfer(String folderName, String prefix, String name, String key) {
         var objectNameInDestination = "object-name-in-destination";
         var objectContent = UUID.randomUUID().toString();
 
-        var objectKey = new StringBuilder();
-        if (folderName != null) {
-            objectKey.append(folderName);
-            if (!folderName.endsWith("/")) {
-                objectKey.append("/");
-            }
-        }
-        if (prefix != null) {
-            objectKey.append(prefix);
-        }
-        objectKey.append(name);
-        sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
+        sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
 
         var sourceAddress = createSingleObjectDataAddress(folderName, prefix, name);
 
@@ -207,25 +196,14 @@ public class S3DataPlaneIntegrationTest {
 
     @ParameterizedTest
     @ArgumentsSource(MultiObjectsNamesToTransfer.class)
-    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames) {
+    void shouldCopy_UsingDestinationFolderName_InMultiFileTransfer(String folderName, String prefix, List<String> objectNames, List<String> keys) {
 
         var folderNameInDestination = "folder-name-in-destination/";
         var objectNameInDestination = "object-name-in-destination";
         var objectContent = UUID.randomUUID().toString();
 
-        for (var objectName : objectNames) {
-            var objectKey = new StringBuilder();
-            if (folderName != null) {
-                objectKey.append(folderName);
-                if (!folderName.endsWith("/")) {
-                    objectKey.append("/");
-                }
-            }
-            if (prefix != null) {
-                objectKey.append(prefix);
-            }
-            objectKey.append(objectName);
-            sourceClient.putStringOnBucket(sourceBucketName, objectKey.toString(), objectContent);
+        for (var key : keys) {
+            sourceClient.putStringOnBucket(sourceBucketName, key, objectContent);
         }
 
         var sourceAddress = createMultiObjectsDataAddress(folderName, prefix);
@@ -313,10 +291,10 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME),
-                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME),
-                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME),
-                    Arguments.of(null, null, "1-" + OBJECT_NAME));
+                    Arguments.of(OBJECT_FOLDER_NAME, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(null, OBJECT_PREFIX, "1-" + OBJECT_NAME, OBJECT_PREFIX + "1-" + OBJECT_NAME),
+                    Arguments.of(OBJECT_FOLDER_NAME, null, "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME),
+                    Arguments.of(null, null, "1-" + OBJECT_NAME, "1-" + OBJECT_NAME));
         }
     }
 
@@ -325,9 +303,24 @@ public class S3DataPlaneIntegrationTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
-                    Arguments.of(OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1), OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
-                    Arguments.of(null, OBJECT_PREFIX, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME)),
-                    Arguments.of(OBJECT_FOLDER_NAME, null, List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME))
+                    Arguments.of(
+                            OBJECT_FOLDER_NAME.substring(0, OBJECT_FOLDER_NAME.length() - 1),
+                            OBJECT_PREFIX,
+                            List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME),
+                            List.of(OBJECT_FOLDER_NAME + OBJECT_PREFIX + "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + OBJECT_PREFIX + "2-" + OBJECT_NAME)
+                    ),
+                    Arguments.of(
+                            null,
+                            OBJECT_PREFIX,
+                            List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME),
+                            List.of(OBJECT_PREFIX + "1-" + OBJECT_NAME, OBJECT_PREFIX + "2-" + OBJECT_NAME)
+                    ),
+                    Arguments.of(
+                            OBJECT_FOLDER_NAME,
+                            null,
+                            List.of("1-" + OBJECT_NAME, "2-" + OBJECT_NAME),
+                            List.of(OBJECT_FOLDER_NAME + "1-" + OBJECT_NAME, OBJECT_FOLDER_NAME + "2-" + OBJECT_NAME)
+                    )
             );
         }
     }
