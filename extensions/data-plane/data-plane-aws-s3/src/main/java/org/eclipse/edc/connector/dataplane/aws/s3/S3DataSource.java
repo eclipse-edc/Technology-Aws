@@ -51,7 +51,7 @@ class S3DataSource implements DataSource {
     @Override
     public StreamResult<Stream<Part>> openPartStream() {
 
-        if (isNullOrEmpty(folderName) && isNullOrEmpty(objectPrefix)) {
+        if (isNullOrEmpty(folderName) && isNullOrEmpty(objectPrefix) && !isNullOrEmpty(objectName)) {
             return success(Stream.of(new S3Part(client, objectName, bucketName, "")));
         }
 
@@ -101,7 +101,11 @@ class S3DataSource implements DataSource {
     }
 
     private String getRefinedFolderName(String folderName) {
-        if (isNullOrEmpty(folderName) || folderName.equals("/")) {
+        if (!isNullOrEmpty(folderName) && folderName.startsWith("/")) {
+            folderName = folderName.substring(1);
+        }
+
+        if (isNullOrEmpty(folderName)) {
             return "";
         }
 
