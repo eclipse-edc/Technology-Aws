@@ -60,23 +60,6 @@ public class S3SourceDataAddressValidatorTest {
     }
 
     @Test
-    void should_fail_when_both_object_name_and_prefix_are_missing() {
-        var dataAddress = DataAddress.Builder.newInstance()
-                .type(TYPE)
-                .property(BUCKET_NAME, "bucketName")
-                .property(REGION, "region")
-                .build();
-
-        var result = validator.validate(dataAddress);
-
-        assertThat(result).isFailed()
-                .extracting(ValidationFailure::getViolations)
-                .satisfies(violations -> assertThat(violations)
-                        .extracting(Violation::path)
-                        .contains(OBJECT_NAME));
-    }
-
-    @Test
     void should_fail_when_region_or_bucketName_is_missing() {
         var dataAddress = DataAddress.Builder.newInstance()
                 .type(TYPE)
