@@ -102,7 +102,7 @@ public class S3DataPlaneIntegrationTest {
     }
 
     @Test
-    void shouldSelectAllS3Objects() {
+    void shouldCopyEntireS3Bucket() {
         var folderNameInDestination = "folder-name-in-destination/";
         var objectContent = UUID.randomUUID().toString();
 
