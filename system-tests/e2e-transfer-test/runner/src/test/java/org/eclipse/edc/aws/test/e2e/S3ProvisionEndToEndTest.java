@@ -62,6 +62,7 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForTransferSta
 import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.DEPROVISIONED;
+import static org.eclipse.edc.util.io.Ports.getFreePort;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.IAM;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.STS;
@@ -310,7 +311,7 @@ class S3ProvisionEndToEndTest {
                 put("web.http.control.path", "/control");
                 put("web.http.public.port", "8585");
                 put("web.http.public.path", "/public");
-                put("edc.api.auth.key", "password");
+                put("web.http.version.port", String.valueOf(getFreePort()));
                 put("edc.control.endpoint", "http://localhost:8383/control");
                 put("edc.dsp.callback.address", "http://localhost:8282/protocol");
                 put("edc.dataplane.api.public.baseurl", "http://localhost:8585/public");
@@ -339,7 +340,7 @@ class S3ProvisionEndToEndTest {
                 put("web.http.control.path", "/control");
                 put("web.http.public.port", "9595");
                 put("web.http.public.path", "/public");
-                put("edc.api.auth.key", "password");
+                put("web.http.version.port", String.valueOf(getFreePort()));
                 put("edc.control.endpoint", "http://localhost:9393/control");
                 put("edc.dsp.callback.address", "http://localhost:9292/protocol");
                 put("edc.dataplane.api.public.baseurl", "http://localhost:9595/public");

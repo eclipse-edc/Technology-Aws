@@ -22,8 +22,9 @@ import java.util.List;
 public class MinioContainer extends GenericContainer<MinioContainer> {
 
     public MinioContainer() {
-        super(DockerImageName.parse("bitnami/minio:latest"));
+        super(DockerImageName.parse("quay.io/minio/minio"));
         setExposedPorts(List.of(9000));
         setEnv(List.of("MINIO_ROOT_USER=root", "MINIO_ROOT_PASSWORD=password"));
+        setCommand("server /data");
     }
 }
