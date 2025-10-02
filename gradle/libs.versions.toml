@@ -48,5 +48,5 @@ aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws" }
 aws-secretsmanager = { module = "software.amazon.awssdk:secretsmanager", version.ref = "aws" }
 
 [plugins]
-edc-build = { id = "org.eclipse.edc.edc-build", version = "1.1.0" }
+edc-build = { id = "org.eclipse.edc.edc-build", version = "1.1.1" }
 shadow = { id = "com.gradleup.shadow", version = "8.3.8" }
