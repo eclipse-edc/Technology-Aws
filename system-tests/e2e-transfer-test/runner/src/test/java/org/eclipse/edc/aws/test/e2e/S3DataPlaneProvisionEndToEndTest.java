@@ -46,6 +46,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -69,8 +70,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 
 @EndToEndTest
 @Testcontainers
-@Deprecated(since = "0.15.0")
-class S3ProvisionEndToEndTest {
+class S3DataPlaneProvisionEndToEndTest {
 
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
 
@@ -100,13 +100,11 @@ class S3ProvisionEndToEndTest {
 
     @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("provider", getAdditionalModules())
-                    .configurationProvider(S3ProvisionEndToEndTest::providerConfig));
+            runtime("provider", S3DataPlaneProvisionEndToEndTest::providerConfig));
 
     @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
-            new EmbeddedRuntime("consumer", getAdditionalModules())
-                    .configurationProvider(S3ProvisionEndToEndTest::consumerConfig));
+            runtime("consumer", S3DataPlaneProvisionEndToEndTest::consumerConfig));
 
     @BeforeEach
     void setUp() {
@@ -291,11 +289,9 @@ class S3ProvisionEndToEndTest {
         return "{\\\"edctype\\\":\\\"dataspaceconnector:secrettoken\\\",\\\"accessKeyId\\\":\\\"" + accessKeyId + "\\\",\\\"secretAccessKey\\\":\\\"" + secretAccessKey + "\\\"}";
     }
 
-    private static String[] getAdditionalModules() {
-        return new String[]{
-                ":system-tests:e2e-transfer-test:runtime",
-                ":extensions:control-plane:provision:provision-aws-s3"
-        };
+    private static EmbeddedRuntime runtime(String name, Supplier<Config> configurationProvider) {
+        return new EmbeddedRuntime(name, ":system-tests:e2e-transfer-test:runtime", ":extensions:data-plane:data-plane-provision-aws-s3")
+                .configurationProvider(configurationProvider);
     }
 
     private static Config providerConfig() {
