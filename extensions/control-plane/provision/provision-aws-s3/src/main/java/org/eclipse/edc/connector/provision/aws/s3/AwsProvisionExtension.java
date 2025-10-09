@@ -31,11 +31,14 @@ import org.eclipse.edc.spi.types.TypeManager;
 
 /**
  * Provides data transfer {@link Provisioner}s backed by AWS services.
+ *
+ * @deprecated provisioning has been moved to data-plane, please use data-plane-provision-aws-s3 module instead.
  */
 @Extension(value = AwsProvisionExtension.NAME)
+@Deprecated(since = "0.15.0")
 public class AwsProvisionExtension implements ServiceExtension {
 
-    public static final String NAME = "AWS Provision";
+    public static final String NAME = "DEPRECATED: AWS Provision";
     @Setting
     private static final String PROVISION_MAX_RETRY = "edc.aws.provision.retry.retries.max";
     @Setting
@@ -62,6 +65,7 @@ public class AwsProvisionExtension implements ServiceExtension {
     @Override
     public void initialize(ServiceExtensionContext context) {
         monitor = context.getMonitor();
+        monitor.warning("The provision-aws-s3 module has been deprecated, provisioning phase has been moved to data-plane, please use data-plane-provision-aws-s3 instead");
 
         int maxRetries = context.getSetting(PROVISION_MAX_RETRY, 10);
         int roleMaxSessionDuration = context.getSetting(PROVISION_MAX_ROLE_SESSION_DURATION, 3600);

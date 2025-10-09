@@ -35,8 +35,10 @@ include(":extensions:control-plane:provision:provision-aws-s3-copy")
 
 include(":extensions:data-plane:data-plane-aws-s3")
 include(":extensions:data-plane:data-plane-aws-s3-copy")
+include(":extensions:data-plane:data-plane-provision-aws-s3")
 
 include(":spi:common:aws-spi")
 
 include(":system-tests:e2e-transfer-test:runner")
 include(":system-tests:e2e-transfer-test:runtime")
+

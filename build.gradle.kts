@@ -37,7 +37,6 @@ allprojects {
         pom {
             scmUrl.set(techAwsScmUrl)
             scmConnection.set(techAwsScmConnection)
-            groupId = project.group.toString()
         }
     }
 
