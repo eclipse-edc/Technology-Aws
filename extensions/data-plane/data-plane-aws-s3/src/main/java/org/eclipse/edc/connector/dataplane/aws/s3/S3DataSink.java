@@ -36,8 +36,6 @@ class S3DataSink extends ParallelSink {
 
     private S3Client client;
     private String bucketName;
-    @Deprecated(since = "0.5.2")
-    private String keyName;
     private String objectName;
     private String folderName;
     private int chunkSize;
@@ -128,11 +126,6 @@ class S3DataSink extends ParallelSink {
 
         public Builder bucketName(String bucketName) {
             sink.bucketName = bucketName;
-            return this;
-        }
-
-        public Builder keyName(String keyName) {
-            sink.keyName = keyName;
             return this;
         }
 

@@ -51,7 +51,7 @@ class S3DataSourceFactoryTest {
     private final Vault vault = mock();
     private final DataAddressValidatorRegistry validator = mock();
 
-    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider, mock(),
+    private final S3DataSourceFactory factory = new S3DataSourceFactory(clientProvider,
             vault, typeManager.getMapper(), validator);
 
     @Test

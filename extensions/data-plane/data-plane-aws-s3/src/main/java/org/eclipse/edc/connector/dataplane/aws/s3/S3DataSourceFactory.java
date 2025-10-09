@@ -27,7 +27,6 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSource;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSourceFactory;
 import org.eclipse.edc.spi.EdcException;
-import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -54,14 +53,12 @@ public class S3DataSourceFactory implements DataSourceFactory {
 
     private final Validator<DataAddress> credentialsValidation = new S3DataAddressCredentialsValidator();
     private final AwsClientProvider clientProvider;
-    private final Monitor monitor;
     private final Vault vault;
     private final ObjectMapper objectMapper;
     private final DataAddressValidatorRegistry validator;
 
-    public S3DataSourceFactory(AwsClientProvider clientProvider, Monitor monitor, Vault vault, ObjectMapper objectMapper, DataAddressValidatorRegistry validator) {
+    public S3DataSourceFactory(AwsClientProvider clientProvider, Vault vault, ObjectMapper objectMapper, DataAddressValidatorRegistry validator) {
         this.clientProvider = clientProvider;
-        this.monitor = monitor;
         this.vault = vault;
         this.objectMapper = objectMapper;
         this.validator = validator;
