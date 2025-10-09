@@ -16,7 +16,6 @@
 package org.eclipse.edc.aws.s3;
 
 import org.eclipse.edc.runtime.metamodel.annotation.ExtensionPoint;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -45,43 +44,13 @@ public interface AwsClientProvider {
 
     /**
      * Returns the s3 async client for the specified region
-     *
-     * @deprecated Use {@link AwsClientProvider#s3AsyncClient(S3ClientRequest)} instead!
-     */
-    @Deprecated
-    default S3AsyncClient s3AsyncClient(String region) {
-        return s3AsyncClient(S3ClientRequest.from(region, null));
-    }
-
-    /**
-     * Returns the s3 async client for the specified region
      */
     S3AsyncClient s3AsyncClient(S3ClientRequest s3ClientRequest);
 
     /**
      * Returns the iam async client for the global region
-     *
-     * @deprecated Use {@link AwsClientProvider#iamAsyncClient(S3ClientRequest)} instead!
-     */
-    @Deprecated
-    default IamAsyncClient iamAsyncClient() {
-        return iamAsyncClient(S3ClientRequest.from(Region.AWS_GLOBAL.id(), null));
-    }
-
-    /**
-     * Returns the iam async client for the global region
      */
     IamAsyncClient iamAsyncClient(S3ClientRequest s3ClientRequest);
-
-    /**
-     * Returns the sts async client for the specified region
-     *
-     * @deprecated Use {@link AwsClientProvider#stsAsyncClient(S3ClientRequest)} instead!
-     */
-    @Deprecated
-    default StsAsyncClient stsAsyncClient(String region) {
-        return stsAsyncClient(S3ClientRequest.from(region, null));
-    }
 
     /**
      * Returns the sts async client for the specified region
