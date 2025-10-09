@@ -70,8 +70,8 @@ public class S3BucketDeprovisioner implements Deprovisioner {
         var roleName = (String) resource.getProvisionedResource().getProperty(S3BucketSchema.ROLE_NAME);
 
         return deleteRolePolicy(iamClient, roleName)
-                .thenCompose(deleteRolePolicyResponse -> deleteRole(iamClient, roleName))
-                .thenCompose(deleteSecretResponse -> deleteSecret(resource))
+                .thenCompose(ignore -> deleteRole(iamClient, roleName))
+                .thenCompose(ignore -> deleteSecret(resource))
                 .thenApply(ignore -> StatusResult.success(DeprovisionedResource.Builder.from(resource).build()));
     }
 

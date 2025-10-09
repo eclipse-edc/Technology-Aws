@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Think-it GmbH - initial API and implementation
+ *
  */
 
 package org.eclipse.edc.dataplane.provision.aws.s3;

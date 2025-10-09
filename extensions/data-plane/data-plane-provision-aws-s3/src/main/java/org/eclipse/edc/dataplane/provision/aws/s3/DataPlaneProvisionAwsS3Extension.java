@@ -30,8 +30,8 @@ import org.eclipse.edc.spi.types.TypeManager;
 /**
  * Provides data transfer {@link Provisioner}s backed by AWS services.
  */
-@Extension(value = DataPlaneProvisionAwsS3extension.NAME)
-public class DataPlaneProvisionAwsS3extension implements ServiceExtension {
+@Extension(value = DataPlaneProvisionAwsS3Extension.NAME)
+public class DataPlaneProvisionAwsS3Extension implements ServiceExtension {
 
     public static final String NAME = "Data Plane Provision AWS S3";
 

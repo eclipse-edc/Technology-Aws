@@ -11,5 +11,5 @@
 #       Think-it GmbH - initial API and implementation
 #
 
-org.eclipse.edc.dataplane.provision.aws.s3.DataPlaneProvisionAwsS3extension
+org.eclipse.edc.dataplane.provision.aws.s3.DataPlaneProvisionAwsS3Extension
 

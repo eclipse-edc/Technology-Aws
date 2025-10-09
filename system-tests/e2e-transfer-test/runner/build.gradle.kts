@@ -21,6 +21,7 @@ dependencies {
     testImplementation(project(":extensions:common:aws:aws-s3-core"))
 
     testImplementation(libs.edc.junit)
+    testImplementation(libs.edc.spi.dataplane)
     testImplementation(testFixtures(libs.edc.management.api.test.fixtures))
 
     testImplementation(libs.testcontainers.junit.jupiter)
