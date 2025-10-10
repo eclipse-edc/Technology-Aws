@@ -20,6 +20,7 @@ plugins {
 
 dependencies {
     implementation(project(":extensions:common:aws:aws-s3-core"))
+    implementation(project(":extensions:common:validator:validator-data-address-s3"))
     implementation(project(":extensions:data-plane:data-plane-aws-s3"))
 
     implementation(libs.edc.bom.controlplane.base)

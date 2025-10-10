@@ -26,6 +26,5 @@ public interface S3BucketSchema {
     String OBJECT_PREFIX = "objectPrefix";
     String OBJECT_NAME = "objectName";
     String SECRET_ACCESS_ALIAS_PREFIX = "secretAccessAlias-";
-    String CREDENTIALS = "credentials";
     String ROLE_NAME = "roleName";
 }

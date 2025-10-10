@@ -37,6 +37,8 @@ import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncCli
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
 
+import java.util.concurrent.TimeUnit;
+
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +47,7 @@ import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.BUCKET_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.ENDPOINT_OVERRIDE;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.OBJECT_NAME;
 import static org.eclipse.edc.aws.s3.spi.S3BucketSchema.REGION;
+import static org.eclipse.edc.junit.assertions.AbstractResultAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -206,21 +209,21 @@ class AwsS3CopyTransferServiceTest {
     }
     
     @Test
-    void validate_missingSourceKeyName_shouldReturnFalse() {
+    void transfer_shouldFail_whenMissingSourceKeyName() {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         
         var source = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
         var destination = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
         var request = dataFlowStartMessage(source, destination);
-        
-        var result = transferService.validate(request);
-        
-        assertThat(result.succeeded()).isFalse();
+
+        var future = transferService.transfer(request);
+
+        assertThat(future).succeedsWithin(1, TimeUnit.SECONDS).satisfies(result -> assertThat(result).isFailed());
     }
     
     @Test
-    void validate_missingSourceCredentials_shouldReturnFalse() {
+    void transfer_shouldFail_whenMissingSourceCredentials() {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         when(vault.resolveSecret(keyName)).thenReturn(null);
@@ -231,14 +234,14 @@ class AwsS3CopyTransferServiceTest {
                 .build();
         var destination = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
         var request = dataFlowStartMessage(source, destination);
-    
-        var result = transferService.validate(request);
-    
-        assertThat(result.succeeded()).isFalse();
+
+        var future = transferService.transfer(request);
+
+        assertThat(future).succeedsWithin(1, TimeUnit.SECONDS).satisfies(result -> assertThat(result).isFailed());
     }
     
     @Test
-    void validate_invalidDestinationCredentials_shouldReturnFalse() throws Exception {
+    void transfer_shouldFail_whenTemporaryTokenIsNotValid() throws Exception {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
         when(vault.resolveSecret(keyName)).thenReturn("value");
@@ -254,9 +257,9 @@ class AwsS3CopyTransferServiceTest {
         var destination = DataAddress.Builder.newInstance().type(S3BucketSchema.TYPE).build();
         var request = dataFlowStartMessage(source, destination);
     
-        var result = transferService.validate(request);
+        var future = transferService.transfer(request);
     
-        assertThat(result.succeeded()).isFalse();
+        assertThat(future).succeedsWithin(1, TimeUnit.SECONDS).satisfies(result -> assertThat(result).isFailed());
     }
     
     @Test

@@ -14,6 +14,9 @@
 
 package org.eclipse.edc.aws.test.e2e;
 
+import org.eclipse.edc.connector.controlplane.transfer.spi.store.TransferProcessStore;
+import org.eclipse.edc.connector.dataplane.spi.DataFlowStates;
+import org.eclipse.edc.connector.dataplane.spi.manager.DataPlaneManager;
 import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
@@ -49,6 +52,7 @@ import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createAsset;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createConsumerSecret;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createContractDefinition;
@@ -57,17 +61,14 @@ import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.getAgreementId;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateNegotiation;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.initiateTransfer;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForNegotiationState;
-import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForProviderTransferState;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.waitForTransferState;
 import static org.eclipse.edc.connector.controlplane.contract.spi.types.negotiation.ContractNegotiationStates.FINALIZED;
 import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.COMPLETED;
-import static org.eclipse.edc.connector.controlplane.transfer.spi.types.TransferProcessStates.DEPROVISIONED;
 import static org.eclipse.edc.util.io.Ports.getFreePort;
 
 @Testcontainers
 @EndToEndTest
-@Deprecated(since = "0.15.0")
-class S3CopyEndToEndTest {
+class S3DataPlaneCopyEndToEndTest {
     
     private static final DockerImageName LOCALSTACK_DOCKER_IMAGE = DockerImageName.parse("localstack/localstack:4.2.0");
     
@@ -101,12 +102,12 @@ class S3CopyEndToEndTest {
     @RegisterExtension
     private static final RuntimeExtension PROVIDER = new RuntimePerClassExtension(
             new EmbeddedRuntime("provider", getAdditionalModules())
-                    .configurationProvider(S3CopyEndToEndTest::providerConfig));
+                    .configurationProvider(S3DataPlaneCopyEndToEndTest::providerConfig));
     
     @RegisterExtension
     private static final RuntimeExtension CONSUMER = new RuntimePerClassExtension(
             new EmbeddedRuntime("consumer", getAdditionalModules())
-                    .configurationProvider(S3CopyEndToEndTest::consumerConfig));
+                    .configurationProvider(S3DataPlaneCopyEndToEndTest::consumerConfig));
     
     @BeforeEach
     void setUp() {
@@ -190,8 +191,12 @@ class S3CopyEndToEndTest {
         
         var destinationFileContent = readS3DestinationObject();
         assertThat(destinationFileContent).isEqualTo(fileContent);
-        
-        waitForProviderTransferState(transferId, DEPROVISIONED);
+
+        await().untilAsserted(() -> {
+            var providerFlowId = CONSUMER.getService(TransferProcessStore.class).findById(transferId).getCorrelationId();
+            var dataFlowState = PROVIDER.getService(DataPlaneManager.class).getTransferState(providerFlowId);
+            assertThat(dataFlowState).isEqualTo(DataFlowStates.DEPROVISIONED);
+        });
         
         var s3Client = getS3Client();
         assertThatThrownBy(() -> s3Client.getBucketPolicy(GetBucketPolicyRequest.builder()
@@ -242,7 +247,7 @@ class S3CopyEndToEndTest {
         return new String[]{
                 ":system-tests:e2e-transfer-test:runtime",
                 ":extensions:data-plane:data-plane-aws-s3-copy",
-                ":extensions:control-plane:provision:provision-aws-s3-copy",
+                ":extensions:data-plane:data-plane-provision-aws-s3-copy",
         };
     }
 
