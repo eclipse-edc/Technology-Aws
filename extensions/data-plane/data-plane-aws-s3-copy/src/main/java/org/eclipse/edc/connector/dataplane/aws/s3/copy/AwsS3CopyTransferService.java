@@ -86,12 +86,11 @@ public class AwsS3CopyTransferService implements TransferService {
     public Result<Void> validate(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
         var sourceResult = validator.validateSource(source);
-        var sourceCredentialsResult = validateSourceCredentials(source);
-        
+
         var destination = request.getDestinationDataAddress();
         var destinationResult = validator.validateDestination(destination);
         
-        var errors = Stream.of(sourceResult, sourceCredentialsResult, destinationResult)
+        var errors = Stream.of(sourceResult, destinationResult)
                 .filter(ValidationResult::failed)
                 .map(ValidationResult::getFailureMessages)
                 .flatMap(List::stream)
@@ -103,6 +102,11 @@ public class AwsS3CopyTransferService implements TransferService {
     @Override
     public CompletableFuture<StreamResult<Object>> transfer(DataFlowStartMessage request) {
         var source = request.getSourceDataAddress();
+        var sourceCredentialsResult = validateSourceCredentials(source);
+        if (sourceCredentialsResult.failed()) {
+            return CompletableFuture.completedFuture(StreamResult.error(sourceCredentialsResult.getFailureDetail()));
+        }
+
         var sourceBucketName = source.getStringProperty(BUCKET_NAME);
         var sourceKey = source.getStringProperty(OBJECT_NAME);
         
