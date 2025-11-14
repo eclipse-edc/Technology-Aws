@@ -29,7 +29,6 @@ edc-bom-controlplane-base = { module = "org.eclipse.edc:controlplane-base-bom", 
 edc-control-plane-api-client = { module = "org.eclipse.edc:control-plane-api-client", version.ref = "edc" }
 edc-data-plane-signaling-api = { module = "org.eclipse.edc:data-plane-signaling-api", version.ref = "edc" }
 edc-data-plane-self-registration = { module = "org.eclipse.edc:data-plane-self-registration", version.ref = "edc" }
-edc-data-plane-public-api = { module = "org.eclipse.edc:data-plane-public-api-v2", version.ref = "edc" }
 edc-data-plane-iam = { module = "org.eclipse.edc:data-plane-iam", version.ref = "edc" }
 edc-management-api-test-fixtures = { module = "org.eclipse.edc:management-api-test-fixtures", version.ref = "edc" }
 edc-api-secrets = { module = "org.eclipse.edc:secrets-api", version.ref = "edc" }
