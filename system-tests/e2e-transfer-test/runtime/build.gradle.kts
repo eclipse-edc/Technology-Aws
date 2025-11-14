@@ -30,7 +30,6 @@ dependencies {
 
     implementation(libs.edc.data.plane.self.registration)
     implementation(libs.edc.data.plane.signaling.api)
-    implementation(libs.edc.data.plane.public.api)
     implementation(libs.edc.core.dataplane)
     implementation(libs.edc.data.plane.iam)
 }
