@@ -3,7 +3,7 @@ format.version = "1.1"
 
 [versions]
 awaitility = "4.2.1"
-aws = "2.38.2"
+aws = "2.38.7"
 edc = "0.15.0-SNAPSHOT"
 failsafe = "3.3.1"
 testcontainers = "1.21.3"
