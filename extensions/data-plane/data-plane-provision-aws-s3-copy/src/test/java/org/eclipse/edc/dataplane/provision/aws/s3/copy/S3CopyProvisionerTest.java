@@ -26,12 +26,16 @@ import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.json.JacksonTypeManager;
+import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest;
 import software.amazon.awssdk.services.iam.model.CreateRoleResponse;
@@ -90,6 +94,7 @@ class S3CopyProvisionerTest {
     private final String roleAccessKeyId = "123";
     private final String roleSecretAccessKey = "456";
     private final String roleSessionToken = "789";
+    private final SingleParticipantContextSupplier participantContextSupplier = Mockito.mock();
 
     private S3CopyProvisioner provisioner;
 
@@ -98,9 +103,11 @@ class S3CopyProvisionerTest {
         when(clientProvider.iamAsyncClient(any(S3ClientRequest.class))).thenReturn(iamClient);
         when(clientProvider.stsAsyncClient(any(S3ClientRequest.class))).thenReturn(stsClient);
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
+        var participantContext = ParticipantContext.Builder.newInstance().participantContextId("participantContextId").identity("any").build();
+        when(participantContextSupplier.get()).thenReturn(ServiceResult.success(participantContext));
         
         provisioner = new S3CopyProvisioner(clientProvider, vault,
-                typeManager, mock(), "componentId", 3600, RetryPolicy.ofDefaults());
+                typeManager, mock(), "componentId", 3600, RetryPolicy.ofDefaults(), participantContextSupplier);
     }
     
     @Test
@@ -108,7 +115,8 @@ class S3CopyProvisionerTest {
         var resource = provisionResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(((DataAddress) resource.getProperty("newDestination")).getKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", ((DataAddress) resource.getProperty("newDestination")).getKeyName()))
+                .thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getUserResponse = getUserResponse();
         when(iamClient.getUser()).thenReturn(completedFuture(getUserResponse));
@@ -135,7 +143,7 @@ class S3CopyProvisionerTest {
                 var destination = provisioned.getDataAddress();
                 assertThat(destination.getKeyName()).isNotBlank();
                 assertThat(provisioned.getProperty(S3BucketSchema.ROLE_NAME)).isEqualTo(roleName);
-                verify(vault).storeSecret(any(), argThat(json -> {
+                verify(vault).storeSecret(any(), any(), argThat(json -> {
                     var deserialized = typeManager.readValue(json, AwsTemporarySecretToken.class);
                     assertThat(deserialized.accessKeyId()).isEqualTo(roleAccessKeyId);
                     assertThat(deserialized.secretAccessKey()).isEqualTo(roleSecretAccessKey);
@@ -178,7 +186,8 @@ class S3CopyProvisionerTest {
         var resource = provisionResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(((DataAddress) resource.getProperty("newDestination")).getKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", ((DataAddress) resource.getProperty("newDestination")).getKeyName()))
+                .thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         when(iamClient.getUser()).thenReturn(failedFuture(new RuntimeException("error")));
         

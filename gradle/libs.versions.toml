@@ -17,12 +17,13 @@ edc-core-dataPlane-util = { module = "org.eclipse.edc:data-plane-util", version.
 edc-spi-controlplane = { module = "org.eclipse.edc:control-plane-spi", version.ref = "edc" }
 edc-junit = { module = "org.eclipse.edc:junit", version.ref = "edc" }
 edc-spi-core = { module = "org.eclipse.edc:core-spi", version.ref = "edc" }
-edc-spi-web = { module = "org.eclipse.edc:web-spi", version.ref = "edc" }
+edc-spi-data-plane-selector = { module = "org.eclipse.edc:data-plane-selector-spi", version.ref = "edc" }
+edc-spi-dataplane = { module = "org.eclipse.edc:data-plane-spi", version.ref = "edc" }
+edc-spi-jsonld = { module = "org.eclipse.edc:json-ld-spi", version.ref = "edc" }
+edc-spi-participant-context-single = { module = "org.eclipse.edc:participant-context-single-spi", version.ref = "edc" }
 edc-spi-transfer = { module = "org.eclipse.edc:transfer-spi", version.ref = "edc" }
 edc-spi-validation = { module = "org.eclipse.edc:validator-spi", version.ref = "edc" }
-edc-spi-dataplane = { module = "org.eclipse.edc:data-plane-spi", version.ref = "edc" }
-edc-spi-data-plane-selector = { module = "org.eclipse.edc:data-plane-selector-spi", version.ref = "edc" }
-edc-spi-jsonld = { module = "org.eclipse.edc:json-ld-spi", version.ref = "edc" }
+edc-spi-web = { module = "org.eclipse.edc:web-spi", version.ref = "edc" }
 edc-lib-util = { module = "org.eclipse.edc:util-lib", version.ref = "edc" }
 edc-lib-http = { module = "org.eclipse.edc:http-lib", version.ref = "edc" }
 edc-bom-controlplane-base = { module = "org.eclipse.edc:controlplane-base-bom", version.ref = "edc" }

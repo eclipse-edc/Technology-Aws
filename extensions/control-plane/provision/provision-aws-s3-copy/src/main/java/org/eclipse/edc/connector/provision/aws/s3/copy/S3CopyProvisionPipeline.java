@@ -20,6 +20,7 @@ import dev.failsafe.RetryPolicy;
 import jakarta.json.Json;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
@@ -72,10 +73,12 @@ public class S3CopyProvisionPipeline {
     private final Monitor monitor;
     private final String componentId;
     private final int maxRoleSessionDuration;
-    
+    private final ParticipantContextSupplier participantContextSupplier;
+
     private S3CopyProvisionPipeline(AwsClientProvider clientProvider, Vault vault,
                                     RetryPolicy<Object> retryPolicy, TypeManager typeManager,
-                                    Monitor monitor, String componentId, int maxRoleSessionDuration) {
+                                    Monitor monitor, String componentId, int maxRoleSessionDuration,
+                                    ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
@@ -83,6 +86,7 @@ public class S3CopyProvisionPipeline {
         this.monitor = monitor;
         this.componentId = componentId;
         this.maxRoleSessionDuration = maxRoleSessionDuration;
+        this.participantContextSupplier = participantContextSupplier;
     }
     
     public CompletableFuture<S3CopyProvisionResponse> provision(S3CopyResourceDefinition resourceDefinition) {
@@ -92,7 +96,7 @@ public class S3CopyProvisionPipeline {
         var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
         
         // create S3 client for destination account -> update S3 bucket policy
-        var secretTokenResult = getSecretTokenFromVault(resourceDefinition.getDestinationKeyName(), vault, typeManager);
+        var secretTokenResult = getSecretTokenFromVault(participantContextSupplier, resourceDefinition.getDestinationKeyName(), vault, typeManager);
         if (secretTokenResult.failed()) {
             return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
         }
@@ -252,7 +256,8 @@ public class S3CopyProvisionPipeline {
         private Monitor monitor;
         private String componentId;
         private int maxRoleSessionDuration;
-        
+        private ParticipantContextSupplier participantContextSupplier;
+
         private Builder() {}
         
         public static Builder newInstance() {
@@ -293,7 +298,12 @@ public class S3CopyProvisionPipeline {
             this.maxRoleSessionDuration = maxRoleSessionDuration;
             return this;
         }
-        
+
+        public Builder participantContextSupplier(ParticipantContextSupplier participantContextSupplier) {
+            this.participantContextSupplier = participantContextSupplier;
+            return this;
+        }
+
         public S3CopyProvisionPipeline build() {
             Objects.requireNonNull(clientProvider);
             Objects.requireNonNull(vault);
@@ -301,7 +311,8 @@ public class S3CopyProvisionPipeline {
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
             Objects.requireNonNull(componentId);
-            return new S3CopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId, maxRoleSessionDuration);
+            return new S3CopyProvisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, componentId,
+                    maxRoleSessionDuration, participantContextSupplier);
         }
     }
 }

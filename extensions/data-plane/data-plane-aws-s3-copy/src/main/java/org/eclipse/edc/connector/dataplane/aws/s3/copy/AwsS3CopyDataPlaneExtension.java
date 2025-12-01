@@ -16,6 +16,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3.copy;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.connector.dataplane.spi.registry.TransferServiceRegistry;
+import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -52,6 +53,8 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     private TypeManager typeManager;
     @Inject
     private DataAddressValidatorRegistry validator;
+    @Inject
+    private SingleParticipantContextSupplier singleParticipantContextSupplier;
     
     @Override
     public String name() {
@@ -60,7 +63,7 @@ public class AwsS3CopyDataPlaneExtension implements ServiceExtension {
     
     @Override
     public void initialize(ServiceExtensionContext context) {
-        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validator, monitor, chunkSizeInMb);
+        var s3CopyTransferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validator, monitor, chunkSizeInMb, singleParticipantContextSupplier);
         registry.registerTransferService(1, s3CopyTransferService);
     }
 }

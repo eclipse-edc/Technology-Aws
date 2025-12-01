@@ -14,10 +14,12 @@
 
 package org.eclipse.edc.aws.test.e2e;
 
+import jakarta.json.Json;
 import org.eclipse.edc.junit.annotations.EndToEndTest;
 import org.eclipse.edc.junit.extensions.EmbeddedRuntime;
 import org.eclipse.edc.junit.extensions.RuntimeExtension;
 import org.eclipse.edc.junit.extensions.RuntimePerClassExtension;
+import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.system.configuration.Config;
 import org.eclipse.edc.spi.system.configuration.ConfigFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -50,7 +52,6 @@ import java.util.HashMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createAsset;
-import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createConsumerSecret;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createContractDefinition;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.createPolicy;
 import static org.eclipse.edc.aws.test.e2e.EndToEndTestCommon.getAgreementId;
@@ -175,8 +176,8 @@ class S3CopyEndToEndTest {
     
     @Test
     void s3CopyTransfer() {
-        createConsumerSecret("s3-credentials", awsSecretToken(destinationAccessKeyId, destinationSecretAccessKey));
-        
+        CONSUMER.getService(Vault.class).storeSecret("consumer", "s3-credentials", awsSecretToken(destinationAccessKeyId, destinationSecretAccessKey));
+
         createAsset(LOCALSTACK_CONTAINER.getEndpoint().toString());
         createPolicy();
         createContractDefinition();
@@ -293,11 +294,16 @@ class S3CopyEndToEndTest {
                 "    ]\n" +
                 "}";
     }
-    
+
     private String awsSecretToken(String accessKeyId, String secretAccessKey) {
-        return "{\\\"edctype\\\":\\\"dataspaceconnector:secrettoken\\\",\\\"accessKeyId\\\":\\\"" + accessKeyId + "\\\",\\\"secretAccessKey\\\":\\\"" + secretAccessKey + "\\\"}";
+        return Json.createObjectBuilder()
+                .add("edctype", "dataspaceconnector:secrettoken")
+                .add("accessKeyId", accessKeyId)
+                .add("secretAccessKey", secretAccessKey)
+                .build()
+                .toString();
     }
-    
+
     private static Config providerConfig() {
         var settings = new HashMap<String, String>() {
             {
