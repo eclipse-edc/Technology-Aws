@@ -20,6 +20,7 @@ dependencies {
     api(libs.edc.spi.dataplane)
     api(libs.edc.spi.web)
     api(libs.edc.spi.data.plane.selector)
+    api(libs.edc.spi.participant.context.single)
     implementation(libs.edc.lib.util)
     implementation(libs.edc.core.dataPlane.util)
 

@@ -19,6 +19,7 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.Provisioner;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionerManager;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
+import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -58,6 +59,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private ResourceDefinitionGeneratorManager manifestGenerator;
     @Inject
     private ProvisionerManager provisionerManager;
+    @Inject
+    private SingleParticipantContextSupplier singleParticipantContextSupplier;
 
     @Override
     public String name() {
@@ -75,9 +78,9 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
 
         provisionerManager.register(new S3CopyProvisioner(clientProvider, vault, typeManager,
                 monitor.withPrefix(S3CopyProvisioner.class.getSimpleName()),
-                context.getComponentId(), maxRoleSessionDuration, retryPolicy));
+                context.getComponentId(), maxRoleSessionDuration, retryPolicy, singleParticipantContextSupplier));
         provisionerManager.register(new S3CopyDeprovisioner(clientProvider, vault, typeManager,
-                monitor.withPrefix(S3CopyDeprovisioner.class.getSimpleName()), retryPolicy));
+                monitor.withPrefix(S3CopyDeprovisioner.class.getSimpleName()), retryPolicy, singleParticipantContextSupplier));
     }
 
 }

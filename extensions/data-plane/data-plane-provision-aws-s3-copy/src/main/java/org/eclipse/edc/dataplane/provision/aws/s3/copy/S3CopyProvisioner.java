@@ -26,6 +26,8 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionedResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.Provisioner;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.ResponseStatus;
@@ -79,6 +81,7 @@ public class S3CopyProvisioner implements Provisioner {
     private final AwsClientProvider clientProvider;
     private final Vault vault;
     private final RetryPolicy<Object> retryPolicy;
+    private final ParticipantContextSupplier participantContextSupplier;
     private final TypeManager typeManager;
     private final Monitor monitor;
     private final String componentId;
@@ -87,7 +90,8 @@ public class S3CopyProvisioner implements Provisioner {
     public S3CopyProvisioner(AwsClientProvider clientProvider, Vault vault,
                              TypeManager typeManager,
                              Monitor monitor, String componentId,
-                             int maxRoleSessionDuration, RetryPolicy<Object> retryPolicy) {
+                             int maxRoleSessionDuration, RetryPolicy<Object> retryPolicy,
+                             ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.typeManager = typeManager;
@@ -95,6 +99,7 @@ public class S3CopyProvisioner implements Provisioner {
         this.componentId = componentId;
         this.maxRoleSessionDuration = maxRoleSessionDuration;
         this.retryPolicy = retryPolicy;
+        this.participantContextSupplier = participantContextSupplier;
     }
 
     @Override
@@ -113,7 +118,7 @@ public class S3CopyProvisioner implements Provisioner {
         var stsClient = clientProvider.stsAsyncClient(sourceClientRequest);
 
         // create S3 client for destination account -> update S3 bucket policy
-        var secretTokenResult = getSecretTokenFromVault(destination.getKeyName(), vault, typeManager);
+        var secretTokenResult = getSecretTokenFromVault(participantContextSupplier, destination.getKeyName(), vault, typeManager);
         if (secretTokenResult.failed()) {
             return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
         }
@@ -264,7 +269,12 @@ public class S3CopyProvisioner implements Provisioner {
         var keyName = "resourceDefinition-" + provisionResource.getId() + "-secret-" + UUID.randomUUID();
 
         try {
-            vault.storeSecret(keyName, typeManager.getMapper().writeValueAsString(secretToken));
+            var participantContextId = participantContextSupplier.get().map(ParticipantContext::getParticipantContextId);
+            if (participantContextId.failed()) {
+                return StatusResult.failure(ResponseStatus.FATAL_ERROR, "Cannot retrieve participant context id");
+            }
+
+            vault.storeSecret(participantContextId.getContent(), keyName, typeManager.getMapper().writeValueAsString(secretToken));
         } catch (JsonProcessingException e) {
             return StatusResult.failure(ResponseStatus.FATAL_ERROR, "Cannot serialize secret token: " + e.getMessage());
         }

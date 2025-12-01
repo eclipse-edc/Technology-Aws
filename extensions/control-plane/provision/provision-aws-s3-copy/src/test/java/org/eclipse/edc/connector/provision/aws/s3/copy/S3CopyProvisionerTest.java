@@ -25,8 +25,11 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.json.JacksonTypeManager;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -97,15 +100,18 @@ class S3CopyProvisionerTest {
     private String roleAccessKeyId = "123";
     private String roleSecretAccessKey = "456";
     private String roleSessionToken = "789";
-    
+    private ParticipantContextSupplier participantContextSupplier = mock();
+
     @BeforeEach
     void setUp() {
         when(clientProvider.iamAsyncClient(any(S3ClientRequest.class))).thenReturn(iamClient);
         when(clientProvider.stsAsyncClient(any(S3ClientRequest.class))).thenReturn(stsClient);
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
+        var participantContext = ParticipantContext.Builder.newInstance().participantContextId("participantContextId").identity("any").build();
+        when(participantContextSupplier.get()).thenReturn(ServiceResult.success(participantContext));
         
         provisioner = new S3CopyProvisioner(clientProvider, vault, RetryPolicy.ofDefaults(),
-                typeManager, mock(Monitor.class), "componentId", 2, 3600);
+                typeManager, mock(Monitor.class), "componentId", 2, 3600, participantContextSupplier);
     }
     
     @Test
@@ -113,7 +119,7 @@ class S3CopyProvisionerTest {
         var definition = resourceDefinition();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getUserResponse = getUserResponse();
         when(iamClient.getUser()).thenReturn(completedFuture(getUserResponse));
@@ -184,7 +190,7 @@ class S3CopyProvisionerTest {
         var definition = resourceDefinition();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", definition.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         when(iamClient.getUser()).thenReturn(failedFuture(new RuntimeException("error")));
         
@@ -198,7 +204,7 @@ class S3CopyProvisionerTest {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getBucketPolicyResponse = getNoneEmptyBucketPolicyResponse();
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
@@ -234,7 +240,7 @@ class S3CopyProvisionerTest {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getBucketPolicyResponse = getBucketPolicyResponseWithMultipleStatements();
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
@@ -274,7 +280,7 @@ class S3CopyProvisionerTest {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", resource.getDestinationKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(failedFuture(new RuntimeException("error")));
         

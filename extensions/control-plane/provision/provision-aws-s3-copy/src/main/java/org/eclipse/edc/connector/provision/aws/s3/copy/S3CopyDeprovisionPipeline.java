@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedResource;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.security.Vault;
@@ -61,18 +62,21 @@ public class S3CopyDeprovisionPipeline {
     private final RetryPolicy<Object> retryPolicy;
     private final TypeManager typeManager;
     private final Monitor monitor;
-    
-    private S3CopyDeprovisionPipeline(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy, TypeManager typeManager, Monitor monitor) {
+    private final ParticipantContextSupplier participantContextSupplier;
+
+    private S3CopyDeprovisionPipeline(AwsClientProvider clientProvider, Vault vault, RetryPolicy<Object> retryPolicy,
+                                      TypeManager typeManager, Monitor monitor, ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.retryPolicy = retryPolicy;
         this.typeManager = typeManager;
         this.monitor = monitor;
+        this.participantContextSupplier = participantContextSupplier;
     }
     
     public CompletableFuture<DeprovisionedResource> deprovision(S3CopyProvisionedResource provisionedResource) {
         // create S3 client for destination account -> update S3 bucket policy
-        var secretTokenResult = getSecretTokenFromVault(provisionedResource.getDestinationKeyName(), vault, typeManager);
+        var secretTokenResult = getSecretTokenFromVault(participantContextSupplier, provisionedResource.getDestinationKeyName(), vault, typeManager);
         if (secretTokenResult.failed()) {
             return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
         }
@@ -176,7 +180,8 @@ public class S3CopyDeprovisionPipeline {
         private RetryPolicy<Object> retryPolicy;
         private TypeManager typeManager;
         private Monitor monitor;
-        
+        private ParticipantContextSupplier participantContextSupplier;
+
         private Builder() {}
         
         public static Builder newInstance() {
@@ -207,14 +212,19 @@ public class S3CopyDeprovisionPipeline {
             this.monitor = monitor;
             return this;
         }
-        
+
+        public Builder participantContextSupplier(ParticipantContextSupplier participantContextSupplier) {
+            this.participantContextSupplier = participantContextSupplier;
+            return this;
+        }
+
         public S3CopyDeprovisionPipeline build() {
             Objects.requireNonNull(clientProvider);
             Objects.requireNonNull(vault);
             Objects.requireNonNull(retryPolicy);
             Objects.requireNonNull(typeManager);
             Objects.requireNonNull(monitor);
-            return new S3CopyDeprovisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor);
+            return new S3CopyDeprovisionPipeline(clientProvider, vault, retryPolicy, typeManager, monitor, participantContextSupplier);
         }
     }
 }

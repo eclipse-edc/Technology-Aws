@@ -20,6 +20,7 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ProvisionManager;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.Provisioner;
 import org.eclipse.edc.connector.controlplane.transfer.spi.provision.ResourceManifestGenerator;
+import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -56,6 +57,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     private ResourceManifestGenerator manifestGenerator;
     @Inject
     private ProvisionManager provisionManager;
+    @Inject
+    private SingleParticipantContextSupplier singleParticipantContextSupplier;
 
     @Override
     public String name() {
@@ -66,7 +69,8 @@ public class AwsS3CopyProvisionExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         manifestGenerator.registerGenerator(new S3CopyResourceDefinitionGenerator());
         
-        var provisioner = new S3CopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor, context.getComponentId(), maxRetries, maxRoleSessionDuration);
+        var provisioner = new S3CopyProvisioner(clientProvider, vault, retryPolicy, typeManager, monitor,
+                context.getComponentId(), maxRetries, maxRoleSessionDuration, singleParticipantContextSupplier);
         provisionManager.register(provisioner);
 
         registerTypes(typeManager);

@@ -20,6 +20,7 @@ import org.eclipse.edc.connector.dataplane.spi.DataFlow;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.StreamResult;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.TransferService;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
@@ -62,10 +63,11 @@ public class AwsS3CopyTransferService implements TransferService {
     private final Monitor monitor;
     
     private final MultipartConfiguration multipartConfiguration;
-    
+    private final ParticipantContextSupplier participantContextSupplier;
+
     public AwsS3CopyTransferService(AwsClientProvider clientProvider, Vault vault,
                                     TypeManager typeManager, DataAddressValidatorRegistry validator,
-                                    Monitor monitor, int chunkSizeInMb) {
+                                    Monitor monitor, int chunkSizeInMb, ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.monitor = monitor;
         this.vault = vault;
@@ -75,6 +77,7 @@ public class AwsS3CopyTransferService implements TransferService {
                 .thresholdInBytes(chunkSizeInMb * 1024L * 1024L)
                 .minimumPartSizeInBytes(chunkSizeInMb * 1024L * 1024L)
                 .build();
+        this.participantContextSupplier = participantContextSupplier;
     }
     
     @Override
@@ -117,7 +120,7 @@ public class AwsS3CopyTransferService implements TransferService {
         var destinationFileName = destination.getStringProperty(OBJECT_NAME) != null ?
                 destination.getStringProperty(OBJECT_NAME) : sourceKey;
         
-        var tokenResult = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+        var tokenResult = getSecretTokenFromVault(participantContextSupplier, source.getKeyName(), vault, typeManager);
         if (tokenResult.failed()) {
             return completedFuture(StreamResult.error("Missing or invalid credentials."));
         }
@@ -164,7 +167,7 @@ public class AwsS3CopyTransferService implements TransferService {
     }
     
     private ValidationResult validateSourceCredentials(DataAddress source) {
-        var tokenResult = getSecretTokenFromVault(source.getKeyName(), vault, typeManager);
+        var tokenResult = getSecretTokenFromVault(participantContextSupplier, source.getKeyName(), vault, typeManager);
         if (tokenResult.failed()) {
             var violation = Violation.violation("No or invalid credential found in vault for given key.", "keyName", source.getKeyName());
             return ValidationResult.failure(violation);

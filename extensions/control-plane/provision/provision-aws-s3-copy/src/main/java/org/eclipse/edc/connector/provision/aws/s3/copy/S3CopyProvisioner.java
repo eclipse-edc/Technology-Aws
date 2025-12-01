@@ -22,6 +22,7 @@ import org.eclipse.edc.connector.controlplane.transfer.spi.types.DeprovisionedRe
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionResponse;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ProvisionedResource;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.ResourceDefinition;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.policy.model.Policy;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
@@ -45,17 +46,19 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
     private final Monitor monitor;
     private final String componentId;
     private final int maxRoleSessionDuration;
-    
+    private final ParticipantContextSupplier participantContextSupplier;
+
     public S3CopyProvisioner(AwsClientProvider clientProvider, Vault vault,
                              RetryPolicy<Object> retryPolicy, TypeManager typeManager,
                              Monitor monitor, String componentId, int maxRetries,
-                             int maxRoleSessionDuration) {
+                             int maxRoleSessionDuration, ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.typeManager = typeManager;
         this.monitor = monitor;
         this.componentId = componentId;
         this.maxRoleSessionDuration = maxRoleSessionDuration;
+        this.participantContextSupplier = participantContextSupplier;
         this.retryPolicy = RetryPolicy.builder(retryPolicy.getConfig())
                 .withMaxRetries(maxRetries)
                 .handle(AwsServiceException.class)
@@ -82,6 +85,7 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
                 .monitor(monitor)
                 .componentId(componentId)
                 .maxRoleSessionDuration(maxRoleSessionDuration)
+                .participantContextSupplier(participantContextSupplier)
                 .build()
                 .provision(resourceDefinition)
                 .thenApply(response -> provisioningSucceeded(resourceDefinition, response));
@@ -123,6 +127,7 @@ public class S3CopyProvisioner implements Provisioner<S3CopyResourceDefinition, 
                 .retryPolicy(retryPolicy)
                 .typeManager(typeManager)
                 .monitor(monitor)
+                .participantContextSupplier(participantContextSupplier)
                 .build()
                 .deprovision(provisionedResource)
                 .thenApply(StatusResult::success);

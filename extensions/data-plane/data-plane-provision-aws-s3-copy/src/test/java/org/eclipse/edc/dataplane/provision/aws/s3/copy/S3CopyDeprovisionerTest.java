@@ -26,12 +26,16 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionedResource;
 import org.eclipse.edc.json.JacksonTypeManager;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import software.amazon.awssdk.services.iam.IamAsyncClient;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyRequest;
 import software.amazon.awssdk.services.iam.model.DeleteRolePolicyResponse;
@@ -77,14 +81,17 @@ class S3CopyDeprovisionerTest {
     private final String policyStatementSid = "edc-transfer_tp-id";
     private final String roleName = "roleName";
 
+    private final ParticipantContextSupplier participantContextSupplier = Mockito.mock();
     private final S3CopyDeprovisioner deprovisioner = new S3CopyDeprovisioner(clientProvider, vault, typeManager, mock(),
-            RetryPolicy.ofDefaults());
+            RetryPolicy.ofDefaults(), participantContextSupplier);
 
     @BeforeEach
     void setUp() {
         when(clientProvider.iamAsyncClient(any(S3ClientRequest.class))).thenReturn(iamClient);
         when(clientProvider.stsAsyncClient(any(S3ClientRequest.class))).thenReturn(stsClient);
         when(clientProvider.s3AsyncClient(any(S3ClientRequest.class))).thenReturn(s3Client);
+        var participantContext = ParticipantContext.Builder.newInstance().participantContextId("participantContextId").identity("any").build();
+        when(participantContextSupplier.get()).thenReturn(ServiceResult.success(participantContext));
     }
 
     @Test
@@ -92,7 +99,8 @@ class S3CopyDeprovisionerTest {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(((DataAddress) resource.getProperty("newDestination")).getKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", ((DataAddress) resource.getProperty("newDestination")).getKeyName()))
+                .thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getBucketPolicyResponse = getNoneEmptyBucketPolicyResponse();
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));
@@ -128,7 +136,8 @@ class S3CopyDeprovisionerTest {
         var resource = provisionedResource();
         
         var secretToken = new AwsSecretToken("accessKeyId", "secretAccessKey");
-        when(vault.resolveSecret(((DataAddress) resource.getProperty("newDestination")).getKeyName())).thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
+        when(vault.resolveSecret("participantContextId", ((DataAddress) resource.getProperty("newDestination")).getKeyName()))
+                .thenReturn(typeManager.getMapper().writeValueAsString(secretToken));
         
         var getBucketPolicyResponse = getBucketPolicyResponseWithMultipleStatements();
         when(s3Client.getBucketPolicy(any(GetBucketPolicyRequest.class))).thenReturn(completedFuture(getBucketPolicyResponse));

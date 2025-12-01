@@ -28,4 +28,6 @@ dependencies {
     testImplementation(libs.testcontainers.localstack)
     testImplementation(libs.restAssured)
     testImplementation(libs.awaitility)
+
+    testCompileOnly(project(":system-tests:e2e-transfer-test:runtime"))
 }

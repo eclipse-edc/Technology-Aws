@@ -21,8 +21,11 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -70,6 +73,7 @@ class AwsS3CopyTransferServiceTest {
     private final JsonNode jsonNode = mock(JsonNode.class);
     private final DataAddressValidatorRegistry validatorRegistry = mock(DataAddressValidatorRegistry.class);
     private final Monitor monitor = mock(Monitor.class);
+    private final ParticipantContextSupplier participantContextSupplier = mock();
     
     private final String endpoint = "https://endpoint";
     private final String sourceRegion = "sourceRegion";
@@ -81,7 +85,9 @@ class AwsS3CopyTransferServiceTest {
     
     @BeforeEach
     void setUp() {
-        transferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validatorRegistry, monitor, 500);
+        var participantContext = ParticipantContext.Builder.newInstance().participantContextId("participantContextId").identity("any").build();
+        when(participantContextSupplier.get()).thenReturn(ServiceResult.success(participantContext));
+        transferService = new AwsS3CopyTransferService(clientProvider, vault, typeManager, validatorRegistry, monitor, 500, participantContextSupplier);
     }
     
     @Test
@@ -144,7 +150,7 @@ class AwsS3CopyTransferServiceTest {
     void validate_validRequest_shouldReturnSuccess() throws Exception {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -167,7 +173,7 @@ class AwsS3CopyTransferServiceTest {
         var violation = Violation.violation("error", "path");
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.failure(violation));
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -190,7 +196,7 @@ class AwsS3CopyTransferServiceTest {
         var violation = Violation.violation("error", "path");
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.failure(violation));
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -226,7 +232,7 @@ class AwsS3CopyTransferServiceTest {
     void transfer_shouldFail_whenMissingSourceCredentials() {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
-        when(vault.resolveSecret(keyName)).thenReturn(null);
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn(null);
     
         var source = DataAddress.Builder.newInstance()
                 .type(S3BucketSchema.TYPE)
@@ -244,7 +250,7 @@ class AwsS3CopyTransferServiceTest {
     void transfer_shouldFail_whenTemporaryTokenIsNotValid() throws Exception {
         when(validatorRegistry.validateSource(any())).thenReturn(ValidationResult.success());
         when(validatorRegistry.validateDestination(any())).thenReturn(ValidationResult.success());
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -264,7 +270,7 @@ class AwsS3CopyTransferServiceTest {
     
     @Test
     void transfer_copyingObjectSuccessful_shouldReturnSuccess() throws Exception {
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -296,7 +302,7 @@ class AwsS3CopyTransferServiceTest {
     
     @Test
     void transfer_missingDestinationObjectName_shouldReturnSuccess() throws Exception {
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -332,7 +338,7 @@ class AwsS3CopyTransferServiceTest {
     
     @Test
     void transfer_errorCopyingObject_shouldReturnError() throws Exception {
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);
@@ -373,7 +379,7 @@ class AwsS3CopyTransferServiceTest {
     
     @Test
     void transfer_missingSecret_shouldReturnError() throws Exception {
-        when(vault.resolveSecret(keyName)).thenReturn(null);
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn(null);
     
         var source = sourceDataAddress();
         var destination = destinationDataAddress();
@@ -386,7 +392,7 @@ class AwsS3CopyTransferServiceTest {
     
     @Test
     void transfer_invalidSecret_shouldReturnError() throws Exception {
-        when(vault.resolveSecret(keyName)).thenReturn("value");
+        when(vault.resolveSecret(any(), eq(keyName))).thenReturn("value");
         when(typeManager.getMapper()).thenReturn(objectMapper);
         when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
         when(jsonNode.has("sessionToken")).thenReturn(true);

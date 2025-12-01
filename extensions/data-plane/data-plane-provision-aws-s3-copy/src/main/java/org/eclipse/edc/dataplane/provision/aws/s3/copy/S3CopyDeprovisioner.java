@@ -24,6 +24,7 @@ import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.connector.dataplane.spi.provision.DeprovisionedResource;
 import org.eclipse.edc.connector.dataplane.spi.provision.Deprovisioner;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionResource;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.response.StatusResult;
@@ -65,17 +66,20 @@ public class S3CopyDeprovisioner implements Deprovisioner {
     private final AwsClientProvider clientProvider;
     private final Vault vault;
     private final RetryPolicy<Object> retryPolicy;
+    private final ParticipantContextSupplier participantContextSupplier;
     private final TypeManager typeManager;
     private final Monitor monitor;
 
     public S3CopyDeprovisioner(AwsClientProvider clientProvider, Vault vault,
                                TypeManager typeManager,
-                               Monitor monitor, RetryPolicy<Object> retryPolicy) {
+                               Monitor monitor, RetryPolicy<Object> retryPolicy,
+                               ParticipantContextSupplier participantContextSupplier) {
         this.clientProvider = clientProvider;
         this.vault = vault;
         this.typeManager = typeManager;
         this.monitor = monitor;
         this.retryPolicy = retryPolicy;
+        this.participantContextSupplier = participantContextSupplier;
     }
 
     @Override
@@ -89,7 +93,7 @@ public class S3CopyDeprovisioner implements Deprovisioner {
         var destination = (DataAddress) provisionResource.getProperty("newDestination");
 
         // create S3 client for destination account -> update S3 bucket policy
-        var secretTokenResult = getSecretTokenFromVault(destination.getKeyName(), vault, typeManager);
+        var secretTokenResult = getSecretTokenFromVault(participantContextSupplier, destination.getKeyName(), vault, typeManager);
         if (secretTokenResult.failed()) {
             return failedFuture(new EdcException(secretTokenResult.getFailureDetail()));
         }

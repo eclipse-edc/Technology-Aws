@@ -18,7 +18,8 @@ import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
-import org.eclipse.edc.spi.result.Result;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -98,27 +99,30 @@ public class S3CopyUtils {
      * @param typeManager type manager required for deserialization
      * @return result containing the deserialized secret token or an error message
      */
-    public static Result<SecretToken> getSecretTokenFromVault(String secretKeyName, Vault vault, TypeManager typeManager) {
-        return ofNullable(secretKeyName)
-                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                .map(vault::resolveSecret)
-                .filter(secret -> !StringUtils.isNullOrBlank(secret))
-                .map(secret -> deserializeSecretToken(secret, typeManager))
-                .orElse(Result.failure(format("Failed to resolve secret with key '%s'", secretKeyName)));
+    public static ServiceResult<SecretToken> getSecretTokenFromVault(ParticipantContextSupplier participantContextSupplier,
+                                                                     String secretKeyName, Vault vault, TypeManager typeManager) {
+        return participantContextSupplier.get()
+                .compose(participantContext -> ofNullable(secretKeyName)
+                        .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
+                        .map(s -> vault.resolveSecret(participantContext.getParticipantContextId(), s))
+                        .filter(secret -> !StringUtils.isNullOrBlank(secret))
+                        .map(secret -> deserializeSecretToken(secret, typeManager))
+                        .orElse(ServiceResult.unexpected(format("Failed to resolve secret with key '%s'", secretKeyName)))
+                );
     }
     
-    private static Result<SecretToken> deserializeSecretToken(String secret, TypeManager typeManager) {
+    private static ServiceResult<SecretToken> deserializeSecretToken(String secret, TypeManager typeManager) {
         try {
             var objectMapper = typeManager.getMapper();
             var tree = objectMapper.readTree(secret);
 
             if (tree.has("sessionToken")) {
-                return Result.success(objectMapper.treeToValue(tree, AwsTemporarySecretToken.class));
+                return ServiceResult.success(objectMapper.treeToValue(tree, AwsTemporarySecretToken.class));
             } else {
-                return Result.success(objectMapper.treeToValue(tree, AwsSecretToken.class));
+                return ServiceResult.success(objectMapper.treeToValue(tree, AwsSecretToken.class));
             }
         } catch (Exception e) {
-            return Result.failure(format("Failed to parse AWS secret token: %s", e.getMessage()));
+            return ServiceResult.unexpected(format("Failed to parse AWS secret token: %s", e.getMessage()));
         }
     }
     
