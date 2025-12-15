@@ -7,7 +7,7 @@ aws = "2.38.2"
 edc = "0.16.0-SNAPSHOT"
 failsafe = "3.3.1"
 testcontainers = "1.21.3"
-restAssured = "5.5.6"
+restAssured = "6.0.0"
 
 
 [libraries]
