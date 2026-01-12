@@ -56,16 +56,16 @@ maven/mavencentral/dev.failsafe/failsafe/3.3.1, Apache-2.0, approved, #9268
 maven/mavencentral/dev.failsafe/failsafe/3.3.2, Apache-2.0, approved, #9268
 maven/mavencentral/info.picocli/picocli/4.7.7, Apache-2.0, approved, #4365
 maven/mavencentral/io.github.classgraph/classgraph/4.8.176, MIT, approved, CQ22530
-maven/mavencentral/io.netty/netty-buffer/4.1.126.Final, Apache-2.0, approved, CQ21842
-maven/mavencentral/io.netty/netty-codec-http/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-codec-http2/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-codec/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-common/4.1.126.Final, Apache-2.0 AND MIT AND CC0-1.0, approved, CQ21843
-maven/mavencentral/io.netty/netty-handler/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-resolver/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-transport-classes-epoll/4.1.126.Final, Apache-2.0, approved, #6366
-maven/mavencentral/io.netty/netty-transport-native-unix-common/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
-maven/mavencentral/io.netty/netty-transport/4.1.126.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-buffer/4.1.130.Final, Apache-2.0, approved, CQ21842
+maven/mavencentral/io.netty/netty-codec-http/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-codec-http2/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-codec/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-common/4.1.130.Final, Apache-2.0 AND MIT AND CC0-1.0, approved, CQ21843
+maven/mavencentral/io.netty/netty-handler/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-resolver/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-transport-classes-epoll/4.1.130.Final, Apache-2.0, approved, #6366
+maven/mavencentral/io.netty/netty-transport-native-unix-common/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
+maven/mavencentral/io.netty/netty-transport/4.1.130.Final, Apache-2.0 AND BSD-3-Clause AND MIT, approved, CQ20926
 maven/mavencentral/io.opentelemetry.instrumentation/opentelemetry-instrumentation-annotations/1.32.0, Apache-2.0, approved, #11684
 maven/mavencentral/io.opentelemetry/opentelemetry-api/1.32.0, Apache-2.0, approved, #11682
 maven/mavencentral/io.opentelemetry/opentelemetry-context/1.32.0, Apache-2.0, approved, #11683
@@ -380,38 +380,38 @@ maven/mavencentral/org.testcontainers/testcontainers/2.0.3, MIT, approved, #2527
 maven/mavencentral/org.xmlresolver/xmlresolver/5.3.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.yaml/snakeyaml/2.3, Apache-2.0 AND (Apache-2.0 OR BSD-3-Clause OR EPL-1.0 OR GPL-2.0-or-later OR LGPL-2.1-or-later), approved, #16046
 maven/mavencentral/org.yaml/snakeyaml/2.4, Apache-2.0, approved, #19469
-maven/mavencentral/software.amazon.awssdk/annotations/2.38.2, Apache-2.0, approved, #24768
-maven/mavencentral/software.amazon.awssdk/apache-client/2.38.2, Apache-2.0, approved, #24766
-maven/mavencentral/software.amazon.awssdk/arns/2.38.2, Apache-2.0, approved, #24764
-maven/mavencentral/software.amazon.awssdk/auth/2.38.2, Apache-2.0, approved, #24767
-maven/mavencentral/software.amazon.awssdk/aws-core/2.38.2, Apache-2.0, approved, #24782
-maven/mavencentral/software.amazon.awssdk/aws-json-protocol/2.38.2, Apache-2.0, approved, clearlydefined
-maven/mavencentral/software.amazon.awssdk/aws-query-protocol/2.38.2, Apache-2.0, approved, #24763
-maven/mavencentral/software.amazon.awssdk/aws-xml-protocol/2.38.2, Apache-2.0, approved, #24752
-maven/mavencentral/software.amazon.awssdk/checksums-spi/2.38.2, Apache-2.0, approved, #24753
-maven/mavencentral/software.amazon.awssdk/checksums/2.38.2, Apache-2.0, approved, #24761
-maven/mavencentral/software.amazon.awssdk/crt-core/2.38.2, Apache-2.0, approved, #24779
-maven/mavencentral/software.amazon.awssdk/endpoints-spi/2.38.2, Apache-2.0, approved, #24758
-maven/mavencentral/software.amazon.awssdk/http-auth-aws-eventstream/2.38.2, Apache-2.0, approved, #24780
-maven/mavencentral/software.amazon.awssdk/http-auth-aws/2.38.2, Apache-2.0, approved, #24771
-maven/mavencentral/software.amazon.awssdk/http-auth-spi/2.38.2, Apache-2.0, approved, #24773
-maven/mavencentral/software.amazon.awssdk/http-auth/2.38.2, Apache-2.0, approved, #24756
-maven/mavencentral/software.amazon.awssdk/http-client-spi/2.38.2, Apache-2.0, approved, #24776
-maven/mavencentral/software.amazon.awssdk/iam/2.38.2, Apache-2.0, approved, clearlydefined
-maven/mavencentral/software.amazon.awssdk/identity-spi/2.38.2, Apache-2.0, approved, #24760
-maven/mavencentral/software.amazon.awssdk/json-utils/2.38.2, Apache-2.0, approved, #24784
-maven/mavencentral/software.amazon.awssdk/metrics-spi/2.38.2, Apache-2.0, approved, #24755
-maven/mavencentral/software.amazon.awssdk/netty-nio-client/2.38.2, Apache-2.0, approved, #24770
-maven/mavencentral/software.amazon.awssdk/profiles/2.38.2, Apache-2.0, approved, #24759
-maven/mavencentral/software.amazon.awssdk/protocol-core/2.38.2, Apache-2.0, approved, #24754
-maven/mavencentral/software.amazon.awssdk/regions/2.38.2, Apache-2.0, approved, #24765
-maven/mavencentral/software.amazon.awssdk/retries-spi/2.38.2, Apache-2.0, approved, #24775
-maven/mavencentral/software.amazon.awssdk/retries/2.38.2, Apache-2.0, approved, #24772
-maven/mavencentral/software.amazon.awssdk/s3/2.38.2, Apache-2.0, approved, #24769
-maven/mavencentral/software.amazon.awssdk/sdk-core/2.38.2, Apache-2.0, approved, #24774
-maven/mavencentral/software.amazon.awssdk/secretsmanager/2.38.2, Apache-2.0, approved, clearlydefined
-maven/mavencentral/software.amazon.awssdk/sts/2.38.2, Apache-2.0, approved, clearlydefined
-maven/mavencentral/software.amazon.awssdk/third-party-jackson-core/2.38.2, Apache-2.0, approved, #24778
-maven/mavencentral/software.amazon.awssdk/utils-lite/2.38.2, Apache-2.0, approved, #24762
-maven/mavencentral/software.amazon.awssdk/utils/2.38.2, Apache-2.0, approved, #24783
+maven/mavencentral/software.amazon.awssdk/annotations/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/apache-client/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/arns/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/auth/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/aws-core/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/aws-json-protocol/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/aws-query-protocol/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/aws-xml-protocol/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/checksums-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/checksums/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/crt-core/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/endpoints-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/http-auth-aws-eventstream/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/http-auth-aws/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/http-auth-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/http-auth/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/http-client-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/iam/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/identity-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/json-utils/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/metrics-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/netty-nio-client/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/profiles/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/protocol-core/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/regions/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/retries-spi/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/retries/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/s3/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/sdk-core/2.41.1, Apache-2.0, restricted, clearlydefined
+maven/mavencentral/software.amazon.awssdk/secretsmanager/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/sts/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/third-party-jackson-core/2.41.1, Apache-2.0 AND BSD-2-Clause AND MIT, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/utils-lite/2.41.1, Apache-2.0, approved, clearlydefined
+maven/mavencentral/software.amazon.awssdk/utils/2.41.1, Apache-2.0, approved, clearlydefined
 maven/mavencentral/software.amazon.eventstream/eventstream/1.0.1, Apache-2.0, approved, #19691
