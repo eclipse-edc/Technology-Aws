@@ -372,10 +372,10 @@ maven/mavencentral/org.slf4j/slf4j-api/1.7.36, MIT, approved, CQ13368
 maven/mavencentral/org.slf4j/slf4j-api/2.0.17, MIT, approved, #5915
 maven/mavencentral/org.slf4j/slf4j-api/2.0.9, MIT, approved, #5915
 maven/mavencentral/org.slf4j/slf4j-simple/2.0.17, MIT, approved, #10372
-maven/mavencentral/org.testcontainers/junit-jupiter/1.21.3, MIT, approved, clearlydefined
-maven/mavencentral/org.testcontainers/localstack/1.21.3, MIT, approved, clearlydefined
+maven/mavencentral/org.testcontainers/junit-jupiter/1.21.4, MIT, approved, clearlydefined
+maven/mavencentral/org.testcontainers/localstack/1.21.4, MIT, approved, clearlydefined
 maven/mavencentral/org.testcontainers/testcontainers-junit-jupiter/2.0.3, , restricted, clearlydefined
-maven/mavencentral/org.testcontainers/testcontainers/1.21.3, MIT, approved, #20874
+maven/mavencentral/org.testcontainers/testcontainers/1.21.4, MIT, approved, #20874
 maven/mavencentral/org.testcontainers/testcontainers/2.0.3, MIT, approved, #25274
 maven/mavencentral/org.xmlresolver/xmlresolver/5.3.3, Apache-2.0, approved, clearlydefined
 maven/mavencentral/org.yaml/snakeyaml/2.3, Apache-2.0 AND (Apache-2.0 OR BSD-3-Clause OR EPL-1.0 OR GPL-2.0-or-later OR LGPL-2.1-or-later), approved, #16046
