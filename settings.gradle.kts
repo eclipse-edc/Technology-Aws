@@ -30,9 +30,6 @@ include(":extensions:common:s3-copy-lib")
 include(":extensions:common:vault:vault-aws")
 include(":extensions:common:validator:validator-data-address-s3")
 
-include(":extensions:control-plane:provision:provision-aws-s3")
-include(":extensions:control-plane:provision:provision-aws-s3-copy")
-
 include(":extensions:data-plane:data-plane-aws-s3")
 include(":extensions:data-plane:data-plane-aws-s3-copy")
 include(":extensions:data-plane:data-plane-provision-aws-s3")
