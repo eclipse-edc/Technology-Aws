@@ -15,7 +15,6 @@
 package org.eclipse.edc.aws.s3;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 
 import java.util.Objects;
 
@@ -26,11 +25,6 @@ public class AwsSecretToken implements SecretToken {
     public AwsSecretToken(@JsonProperty("accessKeyId") String accessKeyId, @JsonProperty("secretAccessKey") String secretAccessKey) {
         this.accessKeyId = accessKeyId;
         this.secretAccessKey = secretAccessKey;
-    }
-
-    @Override
-    public long getExpiration() {
-        return 0;
     }
 
     public String getAccessKeyId() {

@@ -178,7 +178,8 @@ class S3DataPlaneCopyEndToEndTest {
     @Test
     void s3CopyTransfer() {
         CONSUMER.getService(Vault.class).storeSecret("consumer", "s3-credentials", awsSecretToken(destinationAccessKeyId, destinationSecretAccessKey));
-        
+        PROVIDER.getService(Vault.class).storeSecret("provider", "s3-credentials", awsSecretToken(sourceAccessKeyId, sourceSecretAccessKey));
+
         createAsset(LOCALSTACK_CONTAINER.getEndpoint().toString());
         createPolicy();
         createContractDefinition();

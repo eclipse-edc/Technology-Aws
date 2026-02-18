@@ -22,7 +22,9 @@ import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.json.JacksonTypeManager;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
 import org.eclipse.edc.spi.EdcException;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.TypeManager;
 import org.eclipse.edc.spi.types.domain.DataAddress;
@@ -39,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.edc.junit.assertions.AbstractResultAssert.assertThat;
 import static org.eclipse.edc.validator.spi.Violation.violation;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,7 +54,7 @@ class S3DataSinkFactoryTest {
     private final DataAddressValidatorRegistry validator = mock();
 
     private final S3DataSinkFactory factory = new S3DataSinkFactory(clientProvider, mock(), mock(),
-            vault, typeManager.getMapper(), 1024, validator);
+            vault, typeManager.getMapper(), 1024, validator, () -> ServiceResult.success(ParticipantContext.Builder.newInstance().participantContextId("id").identity("any").build()));
 
     @Test
     void validate_shouldSucceed_whenValidatorSucceeds() {
@@ -100,7 +103,7 @@ class S3DataSinkFactoryTest {
     void createSink_shouldGetTheTemporarySecretTokenFromTheVault() {
         var destination = TestFunctions.s3DataAddressWithCredentials();
         var temporaryKey = new AwsTemporarySecretToken("temporaryId", "temporarySecret", "temporaryToken", 10);
-        when(vault.resolveSecret(destination.getKeyName())).thenReturn(typeManager.writeValueAsString(temporaryKey));
+        when(vault.resolveSecret(any(), eq(destination.getKeyName()))).thenReturn(typeManager.writeValueAsString(temporaryKey));
         when(validator.validateDestination(any())).thenReturn(ValidationResult.success());
         var request = createRequest(destination);
 

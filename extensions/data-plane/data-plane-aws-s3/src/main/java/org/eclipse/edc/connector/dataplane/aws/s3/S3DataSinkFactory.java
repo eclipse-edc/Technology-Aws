@@ -21,22 +21,23 @@ import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
 import org.eclipse.edc.aws.s3.S3ClientRequest;
+import org.eclipse.edc.aws.s3.SecretToken;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.aws.s3.validation.S3DataAddressCredentialsValidator;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSink;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.DataSinkFactory;
+import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.EdcException;
 import org.eclipse.edc.spi.monitor.Monitor;
 import org.eclipse.edc.spi.result.Result;
 import org.eclipse.edc.spi.security.Vault;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
-import org.eclipse.edc.util.string.StringUtils;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
 import org.eclipse.edc.validator.spi.ValidationResult;
 import org.eclipse.edc.validator.spi.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -60,9 +61,11 @@ public class S3DataSinkFactory implements DataSinkFactory {
     private final ObjectMapper objectMapper;
     private final int chunkSizeInBytes;
     private final DataAddressValidatorRegistry dataAddressValidator;
+    private final ParticipantContextSupplier singleParticipantContextSupplier;
 
     public S3DataSinkFactory(AwsClientProvider clientProvider, ExecutorService executorService, Monitor monitor, Vault vault,
-                             ObjectMapper objectMapper, int chunkSizeInBytes, DataAddressValidatorRegistry dataAddressValidator) {
+                             ObjectMapper objectMapper, int chunkSizeInBytes, DataAddressValidatorRegistry dataAddressValidator,
+                             ParticipantContextSupplier singleParticipantContextSupplier) {
         this.clientProvider = clientProvider;
         this.executorService = executorService;
         this.monitor = monitor;
@@ -70,6 +73,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
         this.objectMapper = objectMapper;
         this.chunkSizeInBytes = chunkSizeInBytes;
         this.dataAddressValidator = dataAddressValidator;
+        this.singleParticipantContextSupplier = singleParticipantContextSupplier;
     }
 
     @Override
@@ -109,10 +113,7 @@ public class S3DataSinkFactory implements DataSinkFactory {
     private S3ClientRequest createS3ClientRequest(DataAddress address) {
         var endpointOverride = address.getStringProperty(ENDPOINT_OVERRIDE);
         var region = address.getStringProperty(REGION);
-        var awsSecretToken = ofNullable(address.getKeyName())
-                .filter(keyName -> !StringUtils.isNullOrBlank(keyName))
-                .map(vault::resolveSecret)
-                .filter(secret -> !StringUtils.isNullOrBlank(secret))
+        var awsSecretToken = ofNullable(getSecret(address))
                 .map(this::deserializeSecretToken);
 
         if (awsSecretToken.isPresent()) {
@@ -125,7 +126,24 @@ public class S3DataSinkFactory implements DataSinkFactory {
             return S3ClientRequest.from(region, endpointOverride);
         }
     }
-    
+
+    private @Nullable String getSecret(DataAddress dataAddress) {
+        var addressSecret = dataAddress.getStringProperty(DataAddress.EDC_DATA_ADDRESS_SECRET);
+        if (addressSecret != null) {
+            return addressSecret;
+        }
+
+        var keyName = dataAddress.getKeyName();
+        if (keyName == null) {
+            return null;
+        }
+
+        var participantContext = singleParticipantContextSupplier.get()
+                .orElseThrow(f -> new EdcException("Failed to obtain participant context for data sink creation"));
+
+        return vault.resolveSecret(participantContext.getParticipantContextId(), keyName);
+    }
+
     private SecretToken deserializeSecretToken(String secret) {
         try {
             var tree = objectMapper.readTree(secret);

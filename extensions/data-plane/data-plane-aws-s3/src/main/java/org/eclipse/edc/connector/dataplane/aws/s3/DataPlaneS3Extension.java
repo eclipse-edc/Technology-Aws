@@ -16,6 +16,7 @@ package org.eclipse.edc.connector.dataplane.aws.s3;
 
 import org.eclipse.edc.aws.s3.AwsClientProvider;
 import org.eclipse.edc.connector.dataplane.spi.pipeline.PipelineService;
+import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
 import org.eclipse.edc.runtime.metamodel.annotation.Extension;
 import org.eclipse.edc.runtime.metamodel.annotation.Inject;
 import org.eclipse.edc.runtime.metamodel.annotation.Setting;
@@ -39,18 +40,16 @@ public class DataPlaneS3Extension implements ServiceExtension {
 
     @Inject
     private PipelineService pipelineService;
-
     @Inject
     private AwsClientProvider awsClientProvider;
-
     @Inject
     private Vault vault;
-
     @Inject
     private TypeManager typeManager;
-
     @Inject
     private DataAddressValidatorRegistry validator;
+    @Inject
+    private SingleParticipantContextSupplier singleParticipantContextSupplier;
 
     @Override
     public String name() {
@@ -71,7 +70,7 @@ public class DataPlaneS3Extension implements ServiceExtension {
         var sourceFactory = new S3DataSourceFactory(awsClientProvider, vault, typeManager.getMapper(), validator);
         pipelineService.registerFactory(sourceFactory);
 
-        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager.getMapper(), chunkSizeInBytes, validator);
+        var sinkFactory = new S3DataSinkFactory(awsClientProvider, executorService, monitor, vault, typeManager.getMapper(), chunkSizeInBytes, validator, singleParticipantContextSupplier);
         pipelineService.registerFactory(sinkFactory);
     }
 

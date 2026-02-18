@@ -19,6 +19,8 @@ import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
 import org.eclipse.edc.aws.s3.testfixtures.S3TestClient;
 import org.eclipse.edc.json.JacksonTypeManager;
 import org.eclipse.edc.junit.annotations.EndToEndTest;
+import org.eclipse.edc.participantcontext.spi.types.ParticipantContext;
+import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.types.domain.DataAddress;
 import org.eclipse.edc.spi.types.domain.transfer.DataFlowStartMessage;
 import org.eclipse.edc.validator.spi.DataAddressValidatorRegistry;
@@ -89,7 +91,9 @@ public class S3DataPlaneIntegrationTest {
         var typeManager = new JacksonTypeManager();
         var chunkSizeInBytes = 1024 * 1024 * 20;
         sourceFactory = new S3DataSourceFactory(sourceClient.getClientProvider(), mock(), typeManager.getMapper(), validator);
-        sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(), mock(), mock(), typeManager.getMapper(), chunkSizeInBytes, validator);
+        sinkFactory = new S3DataSinkFactory(destinationClient.getClientProvider(), Executors.newSingleThreadExecutor(),
+                mock(), mock(), typeManager.getMapper(), chunkSizeInBytes, validator,
+                () -> ServiceResult.success(ParticipantContext.Builder.newInstance().participantContextId("id").identity("any").build()));
 
         sourceClient.createBucket(sourceBucketName);
         destinationClient.createBucket(destinationBucketName);
@@ -111,7 +115,7 @@ public class S3DataPlaneIntegrationTest {
         objectNames.add(OBJECT_PREFIX + OBJECT_NAME);
         objectNames.add(OBJECT_FOLDER_NAME + OBJECT_PREFIX + OBJECT_NAME);
 
-        for (String objectName : objectNames) {
+        for (var objectName : objectNames) {
             sourceClient.putStringOnBucket(sourceBucketName, objectName, objectContent);
         }
 

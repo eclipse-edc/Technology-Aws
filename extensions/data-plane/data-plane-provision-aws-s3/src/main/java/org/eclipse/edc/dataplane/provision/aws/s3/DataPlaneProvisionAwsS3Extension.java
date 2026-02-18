@@ -16,7 +16,6 @@ package org.eclipse.edc.dataplane.provision.aws.s3;
 
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.Provisioner;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionerManager;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
 import org.eclipse.edc.runtime.metamodel.annotation.Configuration;
@@ -28,7 +27,7 @@ import org.eclipse.edc.spi.system.ServiceExtensionContext;
 import org.eclipse.edc.spi.types.TypeManager;
 
 /**
- * Provides data transfer {@link Provisioner}s backed by AWS services.
+ * Provides provisioners for data transfer backed by AWS services.
  */
 @Extension(value = DataPlaneProvisionAwsS3Extension.NAME)
 public class DataPlaneProvisionAwsS3Extension implements ServiceExtension {

@@ -82,8 +82,6 @@ class S3DataPlaneProvisionEndToEndTest {
     private final String sourceObjectName = "source.txt";
     private final String sourceUser = "source-user";
     private final String sourceUserPolicyName = "source-user-policy";
-    private String sourceAccessKeyId;
-    private String sourceSecretAccessKey;
 
     private final String destinationBucket = "destination-bucket";
     private final String destinationObjectName = "transferred.txt";
@@ -133,8 +131,8 @@ class S3DataPlaneProvisionEndToEndTest {
         var sourceCredentials = iamClient.createAccessKey(CreateAccessKeyRequest.builder()
                 .userName(sourceUser)
                 .build());
-        sourceAccessKeyId = sourceCredentials.accessKey().accessKeyId();
-        sourceSecretAccessKey = sourceCredentials.accessKey().secretAccessKey();
+        var sourceAccessKeyId = sourceCredentials.accessKey().accessKeyId();
+        var sourceSecretAccessKey = sourceCredentials.accessKey().secretAccessKey();
 
         System.setProperty(SYSTEM_PROPERTY_AWS_ACCESS_KEY_ID, sourceAccessKeyId);
         System.setProperty(SYSTEM_PROPERTY_AWS_SECRET_ACCESS_KEY, sourceSecretAccessKey);

@@ -15,7 +15,6 @@
 package org.eclipse.edc.aws.s3;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 
 public record AwsTemporarySecretToken(@JsonProperty("accessKeyId") String accessKeyId,
                                       @JsonProperty("secretAccessKey") String secretAccessKey,
@@ -26,8 +25,4 @@ public record AwsTemporarySecretToken(@JsonProperty("accessKeyId") String access
         return sessionToken;
     }
 
-    @Override
-    public long getExpiration() {
-        return expiration();
-    }
 }

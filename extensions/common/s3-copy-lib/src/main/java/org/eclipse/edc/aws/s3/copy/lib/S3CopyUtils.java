@@ -16,8 +16,8 @@ package org.eclipse.edc.aws.s3.copy.lib;
 
 import org.eclipse.edc.aws.s3.AwsSecretToken;
 import org.eclipse.edc.aws.s3.AwsTemporarySecretToken;
+import org.eclipse.edc.aws.s3.SecretToken;
 import org.eclipse.edc.aws.s3.spi.S3BucketSchema;
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
 import org.eclipse.edc.participantcontext.spi.service.ParticipantContextSupplier;
 import org.eclipse.edc.spi.result.ServiceResult;
 import org.eclipse.edc.spi.security.Vault;
