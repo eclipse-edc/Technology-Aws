@@ -4,9 +4,9 @@
   },
   "@type": "TransferRequestDto",
   "counterPartyId": "alice",
-  "counterPartyAddress": "http://localhost:8282/protocol",
+  "counterPartyAddress": "http://localhost:8282/protocol/2025-1",
   "contractId": "{agreement-id}",
-  "protocol": "dataspace-protocol-http",
+  "protocol": "dataspace-protocol-http:2025-1",
   "transferType": "AmazonS3-PUSH",
   "dataDestination": {
     "type": "AmazonS3",

@@ -16,7 +16,6 @@ package org.eclipse.edc.dataplane.provision.aws.s3.copy;
 
 import dev.failsafe.RetryPolicy;
 import org.eclipse.edc.aws.s3.AwsClientProvider;
-import org.eclipse.edc.connector.controlplane.transfer.spi.provision.Provisioner;
 import org.eclipse.edc.connector.dataplane.spi.provision.ProvisionerManager;
 import org.eclipse.edc.connector.dataplane.spi.provision.ResourceDefinitionGeneratorManager;
 import org.eclipse.edc.participantcontext.single.spi.SingleParticipantContextSupplier;
@@ -31,7 +30,7 @@ import org.eclipse.edc.spi.types.TypeManager;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 /**
- * Provides {@link Provisioner}s for preparing a cross-account copy of S3 objects.
+ * Provides provisioners for preparing a cross-account copy of S3 objects.
  */
 @Extension(value = AwsS3CopyProvisionExtension.NAME)
 public class AwsS3CopyProvisionExtension implements ServiceExtension {

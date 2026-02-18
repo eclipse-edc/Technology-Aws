@@ -15,8 +15,6 @@
 package org.eclipse.edc.aws.s3;
 
 
-import org.eclipse.edc.connector.controlplane.transfer.spi.types.SecretToken;
-
 public record S3ClientRequest(String region, String endpointOverride, SecretToken secretToken) {
 
     public static S3ClientRequest from(String region, String endpointOverride) {
