@@ -37,13 +37,13 @@ import static org.eclipse.edc.aws.s3.AwsClientProviderConfiguration.DEFAULT_AWS_
 public class S3CoreExtension implements ServiceExtension {
 
     public static final String NAME = "S3";
-    @Setting(value = "The key of the secret where the AWS Access Key Id is stored")
+    @Setting(description = "The key of the secret where the AWS Access Key Id is stored")
     private static final String AWS_ACCESS_KEY = "edc.aws.access.key";
-    @Setting(value = "The key of the secret where the AWS Secret Access Key is stored")
+    @Setting(description = "The key of the secret where the AWS Secret Access Key is stored")
     private static final String AWS_SECRET_KEY = "edc.aws.secret.access.key";
-    @Setting(value = "If valued, the AWS clients will point to the specified endpoint")
+    @Setting(description = "If valued, the AWS clients will point to the specified endpoint")
     private static final String AWS_ENDPOINT_OVERRIDE = "edc.aws.endpoint.override";
-    @Setting(value = "The size of the thread pool used for the async clients")
+    @Setting(description = "The size of the thread pool used for the async clients")
     private static final String AWS_ASYNC_CLIENT_THREAD_POOL_SIZE = "edc.aws.client.async.thread-pool-size";
     @Inject
     private Vault vault;

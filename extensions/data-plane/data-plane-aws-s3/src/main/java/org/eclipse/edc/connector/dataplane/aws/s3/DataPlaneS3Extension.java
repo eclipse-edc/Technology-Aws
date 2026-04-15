@@ -35,7 +35,7 @@ public class DataPlaneS3Extension implements ServiceExtension {
 
     private static final int DEFAULT_CHUNK_SIZE_IN_MB = 500; // 500MB chunk size
 
-    @Setting(value = "The maximum chunk of stream to be read, in mb", defaultValue = DEFAULT_CHUNK_SIZE_IN_MB + "", type = "int")
+    @Setting(description = "The maximum chunk of stream to be read, in mb", defaultValue = DEFAULT_CHUNK_SIZE_IN_MB + "")
     private static final String EDC_DATAPLANE_S3_SINK_CHUNK_SIZE_MB = "edc.dataplane.aws.sink.chunk.size.mb";
 
     @Inject
