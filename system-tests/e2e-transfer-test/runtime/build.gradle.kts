@@ -23,7 +23,10 @@ dependencies {
     implementation(project(":extensions:common:validator:validator-data-address-s3"))
     implementation(project(":extensions:data-plane:data-plane-aws-s3"))
 
-    implementation(libs.edc.bom.controlplane.base)
+    implementation(libs.edc.bom.controlplane.base) {
+        exclude("org.eclipse.edc", "data-plane-signaling")
+        exclude("org.eclipse.edc", "data-plane-signaling-oauth2")
+    }
     implementation(libs.edc.control.plane.api.client)
     implementation(libs.edc.iam.mock)
     implementation(libs.edc.api.secrets)
@@ -32,6 +35,7 @@ dependencies {
     implementation(libs.edc.data.plane.signaling.api)
     implementation(libs.edc.core.dataplane)
     implementation(libs.edc.data.plane.iam)
+    implementation(libs.edc.transfer.data.plane.signaling)
 }
 
 application {

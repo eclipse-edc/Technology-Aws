@@ -34,6 +34,7 @@ edc-data-plane-iam = { module = "org.eclipse.edc:data-plane-iam", version.ref = 
 edc-management-api-test-fixtures = { module = "org.eclipse.edc:management-api-test-fixtures", version.ref = "edc" }
 edc-api-secrets = { module = "org.eclipse.edc:secrets-api", version.ref = "edc" }
 edc-iam-mock = { module = "org.eclipse.edc:iam-mock", version.ref = "edc" }
+edc-transfer-data-plane-signaling = { module = "org.eclipse.edc:transfer-data-plane-signaling", version.ref = "edc" }
 
 # third-party deps
 failsafe-core = { module = "dev.failsafe:failsafe", version.ref = "failsafe" }
