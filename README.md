@@ -11,7 +11,7 @@
 
 ---
 
-This repository contains AWS-specific implementations for several SPIs of the [Eclipse Dataspace Components Connector](https://github.com/eclipse-edc/Connector):
+This repository contains AWS-specific implementations for several SPIs of the [Eclipse Dataspace Components](https://github.com/eclipse-edc/Connector):
 
 ## Documentation
 
