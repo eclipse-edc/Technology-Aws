@@ -25,7 +25,6 @@ pluginManagement {
 }
 
 include(":extensions:common:vault:vault-aws")
-include(":extensions:common:validator:validator-data-address-s3")
 
 include(":spi:common:aws-spi")
 
