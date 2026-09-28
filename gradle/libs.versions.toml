@@ -2,7 +2,7 @@
 format.version = "1.1"
 
 [versions]
-aws = "2.47.1"
+aws = "2.55.5"
 edc = "1.0.0-SNAPSHOT"
 
 [libraries]
