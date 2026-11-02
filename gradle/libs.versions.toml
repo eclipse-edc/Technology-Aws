@@ -13,4 +13,4 @@ edc-spi-core = { module = "org.eclipse.edc:core-spi", version.ref = "edc" }
 aws-secretsmanager = { module = "software.amazon.awssdk:secretsmanager", version.ref = "aws" }
 
 [plugins]
-edc-build = { id = "org.eclipse.edc.edc-build", version = "1.5.2" }
+edc-build = { id = "org.eclipse.edc.edc-build", version = "1.5.3" }
